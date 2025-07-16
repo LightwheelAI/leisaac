@@ -1,5 +1,4 @@
 import weakref
-import torch
 import numpy as np
 
 from collections.abc import Callable
@@ -8,36 +7,7 @@ from pynput.keyboard import Listener
 import carb
 import omni
 
-from ..device_base import DeviceBase
-
-
-class Device(DeviceBase):
-    def __init__(self, env):
-        """
-        Args:
-            env (RobotEnv): The environment which contains the robot(s) to control
-                            using this device.
-        """
-        self.env = env
-    
-    def get_device_state(self):
-        raise NotImplementedError
-
-    def input2action(self):
-        raise NotImplementedError
-
-    def advance(self):
-        action = self.input2action()
-        if action is None:
-            return self.env.action_manager.action
-        if action['reset']:
-            return None
-        if not action['started']:
-            return False
-        for key, value in action.items():
-            if isinstance(value, np.ndarray):
-                action[key] = torch.tensor(value, device=self.env.device, dtype=torch.float32)
-        return self.env.cfg.preprocess_device_action(action, self)
+from ..device_base import Device
 
 class Se3Keyboard(Device):
     """A keyboard controller for sending SE(3) commands as delta poses for lerobot.
@@ -104,7 +74,8 @@ class Se3Keyboard(Device):
         msg += "\tJoint 6 (gripper):       D/L\n"
         msg += "\t----------------------------------------------\n"
         msg += "\tStart Control: B\n"
-        msg += "\tReset: R\n"
+        msg += "\tTask Failed and Reset: R\n"
+        msg += "\tTask Success and Reset: N\n"
         msg += "\tControl+C: quit"
         return msg
     
@@ -120,11 +91,15 @@ class Se3Keyboard(Device):
         try:
             if key.char=='b':
                 self.started = True
-                self._reset_state = 0
+                self._reset_state = False
             elif key.char=='r':
                 self.started = False
-                self._reset_state = 1
+                self._reset_state = True
                 self._additional_callbacks["R"]()
+            elif key.char=='n':
+                self.started = False
+                self._reset_state = True
+                self._additional_callbacks["N"]()
         except AttributeError as e:
             pass
 
@@ -133,7 +108,7 @@ class Se3Keyboard(Device):
     
     def input2action(self):
         state = {}
-        reset = state["reset"] = bool(self._reset_state)
+        reset = state["reset"] = self._reset_state
         state['started'] = self.started
         if reset:
             self._reset_state = False

@@ -5,6 +5,9 @@
 
 """Base class for teleoperation interface."""
 
+import torch
+import numpy as np
+
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any
@@ -50,3 +53,38 @@ class DeviceBase(ABC):
         """
         raise NotImplementedError
 
+
+class Device(DeviceBase):
+    def __init__(self, env):
+        """
+        Args:
+            env (RobotEnv): The environment which contains the robot(s) to control
+                            using this device.
+        """
+        self.env = env
+    
+    def get_device_state(self):
+        raise NotImplementedError
+
+    def input2action(self):
+        raise NotImplementedError
+
+    def advance(self):
+        """
+        Returns:
+            Can be:
+                - torch.Tensor: The action to be applied to the robot.
+                - dict: state of the scene and the task, and the task need to reset.
+                - None: the scene is not started
+        """
+        action = self.input2action()
+        if action is None:
+            return self.env.action_manager.action
+        if not action['started']:
+            return None
+        if action['reset']:
+            return action
+        for key, value in action.items():
+            if isinstance(value, np.ndarray):
+                action[key] = torch.tensor(value, device=self.env.device, dtype=torch.float32)
+        return self.env.cfg.preprocess_device_action(action, self)

@@ -47,6 +47,7 @@ import gymnasium as gym
 
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
+from isaaclab.managers import TerminationTermCfg
 
 from leisaac.devices import Se3Keyboard, SO101Leader
 from leisaac.enhance.managers import StreamingRecorderManager
@@ -97,6 +98,9 @@ def main():
     if args_cli.record:
         env_cfg.recorders.dataset_export_dir_path = output_dir
         env_cfg.recorders.dataset_filename = output_file_name
+        if not hasattr(env_cfg.terminations, "success"):
+            setattr(env_cfg.terminations, "success", None)
+        env_cfg.terminations.success = TerminationTermCfg(func=lambda env: torch.zeros(env.num_envs, dtype=torch.bool, device=env.device))
     else:
         env_cfg.recorders = None
     # create environment
@@ -138,7 +142,15 @@ def main():
         nonlocal should_reset_recording_instance
         should_reset_recording_instance = True
 
+    # add teleoperation key for task success
+    should_reset_task_success = False
+    def reset_task_success():
+        nonlocal should_reset_task_success
+        should_reset_task_success = True
+        reset_recording_instance()
+
     teleop_interface.add_callback("R", reset_recording_instance)
+    teleop_interface.add_callback("N", reset_task_success)
     print(teleop_interface)
 
     rate_limiter = RateLimiter(args_cli.step_hz)
@@ -156,13 +168,29 @@ def main():
         # run everything in inference mode
         with torch.inference_mode():
             actions = teleop_interface.advance()
-            if actions is None or should_reset_recording_instance:
+            if should_reset_task_success:
+                print("Task Success!!!")
+                should_reset_task_success = False
+                if args_cli.record:
+                    env.termination_manager.set_term_cfg("success", TerminationTermCfg(func=lambda env: torch.ones(env.num_envs, dtype=torch.bool, device=env.device)))
+                    env.termination_manager.compute()
+            if should_reset_recording_instance:
                 env.reset()
                 should_reset_recording_instance = False
                 if start_record_state == True:
                     print("Stop Recording!!!")
                     start_record_state = False
-            elif isinstance(actions, bool) and actions == False:
+                if args_cli.record:
+                    env.termination_manager.set_term_cfg("success", TerminationTermCfg(func=lambda env: torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)))
+                # print out the current demo count if it has changed
+                if args_cli.record and env.recorder_manager.exported_successful_episode_count > current_recorded_demo_count:
+                    current_recorded_demo_count = env.recorder_manager.exported_successful_episode_count
+                    print(f"Recorded {current_recorded_demo_count} successful demonstrations.")
+                if args_cli.record and args_cli.num_demos > 0 and env.recorder_manager.exported_successful_episode_count >= args_cli.num_demos:
+                    print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
+                    break            
+            
+            elif actions is None:
                 env.render()
             # apply actions
             else:
@@ -170,15 +198,6 @@ def main():
                     print("Start Recording!!!")
                     start_record_state = True
                 env.step(actions)
-
-                # print out the current demo count if it has changed
-                if args_cli.record and env.recorder_manager.exported_successful_episode_count > current_recorded_demo_count:
-                    current_recorded_demo_count = env.recorder_manager.exported_successful_episode_count
-                    print(f"Recorded {current_recorded_demo_count} successful demonstrations.")
-                
-                if args_cli.record and args_cli.num_demos > 0 and env.recorder_manager.exported_successful_episode_count >= args_cli.num_demos:
-                    print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
-                    break
             if rate_limiter:
                 rate_limiter.sleep(env)
 

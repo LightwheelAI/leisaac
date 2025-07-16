@@ -1,42 +1,12 @@
 import os
-import numpy as np
 import json
-import torch
 from collections.abc import Callable
 from typing import Dict
 from pynput.keyboard import Listener
 
 from .common.motors import FeetechMotorsBus, Motor, MotorNormMode, MotorCalibration, OperatingMode
 from .common.errors import DeviceAlreadyConnectedError, DeviceNotConnectedError
-from ..device_base import DeviceBase
-
-class Device(DeviceBase):
-    def __init__(self, env):
-        """
-        Args:
-            env (RobotEnv): The environment which contains the robot(s) to control
-                            using this device.
-        """
-        self.env = env
-    
-    def get_device_state(self):
-        raise NotImplementedError
-
-    def input2action(self):
-        raise NotImplementedError
-
-    def advance(self):
-        action = self.input2action()
-        if action is None:
-            return self.env.action_manager.action
-        if action['reset']:
-            return None
-        if not action['started']:
-            return False
-        for key, value in action.items():
-            if isinstance(value, np.ndarray):
-                action[key] = torch.tensor(value, device=self.env.device, dtype=torch.float32)
-        return self.env.cfg.preprocess_device_action(action, self)
+from ..device_base import Device
 
 
 class SO101Leader(Device):
@@ -78,7 +48,7 @@ class SO101Leader(Device):
 
         # some flags and callbacks
         self.started = False
-        self._reset_state = 0
+        self._reset_state = False
         self._additional_callbacks = {}
 
         self.listener = Listener(on_press=self.on_press, on_release=self.on_release)
@@ -104,7 +74,8 @@ class SO101Leader(Device):
 
         print("")
         print_command("b", "start control")
-        print_command("r", "reset simulation")
+        print_command("r", "reset simulation and set task success to False")
+        print_command("n", "reset simulation and set task success to True")
         print_command("move leader", "control follower in the simulation")
         print_command("Control+C", "quit")
         print("")
@@ -121,11 +92,15 @@ class SO101Leader(Device):
         try:
             if key.char=='b':
                 self.started = True
-                self._reset_state = 0
+                self._reset_state = False
             elif key.char=='r':
                 self.started = False
-                self._reset_state = 1
+                self._reset_state = True
                 self._additional_callbacks["R"]()
+            elif key.char=='n':
+                self.started = False
+                self._reset_state = True
+                self._additional_callbacks["N"]()
         except AttributeError as e:
             pass
 
@@ -134,7 +109,7 @@ class SO101Leader(Device):
 
     def input2action(self):
         state = {}
-        reset = state["reset"] = bool(self._reset_state)
+        reset = state["reset"] = self._reset_state
         state['started'] = self.started
         if reset:
             self._reset_state = False

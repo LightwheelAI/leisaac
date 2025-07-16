@@ -102,7 +102,6 @@ def convert_isaaclab_to_lerobot():
     push_to_hub = False
 
     now_episode_index = 0
-    bad_episode_index_list = []
     dataset = LeRobotDataset.create(
         repo_id=repo_id,
         fps=fps,
@@ -118,7 +117,10 @@ def convert_isaaclab_to_lerobot():
             
             for demo_name in tqdm(demo_names, desc='Processing each demo'):
                 demo_group = f['data'][demo_name]
-
+                if "success" in demo_group.attrs and not demo_group.attrs["success"]:
+                    print(f'Demo {demo_name} is not successful, skip it')
+                    continue
+                
                 try:
                     actions = np.array(demo_group['obs/actions'])
                     joint_pos = np.array(demo_group['obs/joint_pos'])
@@ -144,12 +146,8 @@ def convert_isaaclab_to_lerobot():
                     }
                     dataset.add_frame(frame=frame, task=task)
                 now_episode_index += 1
-                if now_episode_index in bad_episode_index_list:
-                    dataset.clear_episode_buffer()
-                    print(f'Episode {now_episode_index} is bad, skip it and clear episode buffer')
-                else:
-                    dataset.save_episode()
-                    print(f'Saving episode {now_episode_index} successfully')
+                dataset.save_episode()
+                print(f'Saving episode {now_episode_index} successfully')
 
     if push_to_hub:
         dataset.push_to_hub()
