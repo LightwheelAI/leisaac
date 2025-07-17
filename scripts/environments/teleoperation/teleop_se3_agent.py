@@ -178,7 +178,8 @@ def main():
                 env.reset()
                 should_reset_recording_instance = False
                 if start_record_state == True:
-                    print("Stop Recording!!!")
+                    if args_cli.record:
+                        print("Stop Recording!!!")
                     start_record_state = False
                 if args_cli.record:
                     env.termination_manager.set_term_cfg("success", TerminationTermCfg(func=lambda env: torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)))
@@ -195,7 +196,8 @@ def main():
             # apply actions
             else:
                 if start_record_state == False:
-                    print("Start Recording!!!")
+                    if args_cli.record:
+                        print("Start Recording!!!")
                     start_record_state = True
                 env.step(actions)
             if rate_limiter:
