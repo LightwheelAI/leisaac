@@ -156,10 +156,6 @@ class CleanToyTableEnvCfg(ManagerBasedRLEnvCfg):
 
         parse_usd_and_create_subassets(LIGHTWHEEL_TOYROOM_USD_PATH, self)
 
-        domain_randomization(self, random_options=[
-            randomize_object_uniform("Box", pose_range={"x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (0.0, 0.0)}),
-        ])
-
     def use_teleop_device(self, teleop_device) -> None:
         self.actions = init_action_cfg(self.actions, device=teleop_device)
         if teleop_device == "keyboard":
