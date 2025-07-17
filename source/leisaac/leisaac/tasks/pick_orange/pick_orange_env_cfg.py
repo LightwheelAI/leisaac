@@ -144,8 +144,8 @@ class PickOrangeEnvCfg(ManagerBasedRLEnvCfg):
 
         self.decimation = 1
         self.episode_length_s = 8.0
-        self.viewer.eye = (3.0, -4.0, 2.0)
-        self.viewer.lookat = (3.0, 1.0, 0.3)
+        self.viewer.eye = (1.4, -0.9, 1.2)
+        self.viewer.lookat = (2.0, -0.5, 1.0)
         self.actions = init_action_cfg(self.actions)
 
         self.sim.physx.bounce_threshold_velocity = 0.01
