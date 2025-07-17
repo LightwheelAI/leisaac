@@ -92,23 +92,30 @@ from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.assets.rigid_object import RigidObjectCfg
 
 
-def match_specific_name(prim_path, specific_name_list):
-    if specific_name_list is None:
-        return True
-    return any([specific_name in prim_path for specific_name in specific_name_list])
+def match_specific_name(prim_path, specific_name_list, exlude_name_list):
+    match_specific = True if specific_name_list is None else any([specific_name in prim_path for specific_name in specific_name_list])
+    match_exclude = False if exlude_name_list is None else any([exclude in prim_path for exclude in exlude_name_list])
 
-def parse_usd_and_create_subassets(usd_path, env_cfg, specific_name_list=None):
+    return match_specific and not match_exclude
+
+def parse_usd_and_create_subassets(usd_path, env_cfg, specific_name_list=None, exclude_name_list=None):
     stage = get_stage(usd_path)
     prims = get_all_prims(stage)
     articulation_sub_prims = list()
+    create_attr_record = dict()
     for prim in prims:
-        if is_articulation_root(prim) and match_specific_name(prim.GetPath().pathString, specific_name_list):
+        if is_articulation_root(prim) and match_specific_name(prim.GetPath().pathString, specific_name_list, exclude_name_list):
             pos, rot = get_prim_pos_rot(prim)
             joints = get_all_joints_without_fixed(prim)
             if not joints:
                 continue
             orin_prim_path = prim.GetPath().pathString
             name=orin_prim_path.split("/")[-1]
+            if name not in create_attr_record:
+                create_attr_record[name] = 0
+            else:
+                create_attr_record[name] += 1
+                name = f"{name}_{create_attr_record[name]}"
             sub_prim_path = orin_prim_path[orin_prim_path.find('/', 1)+1: ]
             prim_path = f"{{ENV_REGEX_NS}}/Scene/{sub_prim_path}"
             artcfg = ArticulationCfg(
@@ -123,12 +130,17 @@ def parse_usd_and_create_subassets(usd_path, env_cfg, specific_name_list=None):
             setattr(env_cfg.scene, name, artcfg)
             articulation_sub_prims.extend(get_all_prims(stage, prim))
     for prim in prims:        
-        if is_rigidbody(prim) and match_specific_name(prim.GetPath().pathString, specific_name_list):
+        if is_rigidbody(prim) and match_specific_name(prim.GetPath().pathString, specific_name_list, exclude_name_list):
             if prim in articulation_sub_prims:
                 continue
             pos, rot = get_prim_pos_rot(prim)
             orin_prim_path = prim.GetPath().pathString
             name = orin_prim_path.split("/")[-1]
+            if name not in create_attr_record:
+                create_attr_record[name] = 0
+            else:
+                create_attr_record[name] += 1
+                name = f"{name}_{create_attr_record[name]}"
             sub_prim_path = orin_prim_path[orin_prim_path.find('/', 1)+1: ]
             prim_path=f"{{ENV_REGEX_NS}}/Scene/{sub_prim_path}"
             rigidcfg = RigidObjectCfg(
