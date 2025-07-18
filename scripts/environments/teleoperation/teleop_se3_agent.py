@@ -94,7 +94,10 @@ def main():
     task_name = args_cli.task
 
     # modify configuration
-    env_cfg.terminations.time_out = None
+    if hasattr(env_cfg.terminations, "time_out"):
+        env_cfg.terminations.time_out = None
+    # if hasattr(env_cfg.recorders, "success"):
+    #     env_cfg.recorders.success = None
     if args_cli.record:
         env_cfg.recorders.dataset_export_dir_path = output_dir
         env_cfg.recorders.dataset_filename = output_file_name

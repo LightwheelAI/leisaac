@@ -4,7 +4,6 @@ from dataclasses import MISSING
 from typing import Any
 
 import isaaclab.sim as sim_utils
-import isaaclab.envs.mdp as mdp
 from isaaclab.envs.mdp.recorders.recorders_cfg import ActionStateRecorderManagerCfg as RecordTerm
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
@@ -22,6 +21,8 @@ from leisaac.assets.scenes.kitchen import KITCHEN_WITH_ORANGE_CFG, KITCHEN_WITH_
 from leisaac.devices.action_process import init_action_cfg, preprocess_device_action
 from leisaac.utils.general_assets import parse_usd_and_create_subassets
 from leisaac.utils.domain_randomization import randomize_object_uniform, randomize_camera_uniform, domain_randomization
+
+from . import mdp
 
 
 @configclass
@@ -123,6 +124,11 @@ class RewardsCfg:
 class TerminationsCfg:
     """Configuration for the termination"""
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
+
+    success = DoneTerm(func=mdp.task_done, params={
+        "oranges_cfg": [SceneEntityCfg("Orange001"), SceneEntityCfg("Orange002"), SceneEntityCfg("Orange003")],
+        "plate_cfg": SceneEntityCfg("Plate")
+    })
 
 @configclass
 class PickOrangeEnvCfg(ManagerBasedRLEnvCfg):
