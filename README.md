@@ -8,9 +8,10 @@ This repository provides teleoperation functionality in [IsaacLab](https://isaac
 - 🔄 We offer scripts to convert data from HDF5 format to the LeRobot Dataset.
 - 🧠 We utilize simulation-collected data to fine-tune [GR00T N1.5](https://github.com/NVIDIA/Isaac-GR00T) and deploy it on real hardware.
 
-***Welcome to the Lightwheel open-source community!***
-
-Join us, contribute, and help shape the future of AI and robotics. For questions or collaboration, contact [Zeyu](mailto:zeyu.hu@lightwheel.ai) or [Yinghao](mailto:yinghao.shuai@lightwheel.ai).
+> [!TIP]
+> ***Welcome to the Lightwheel open-source community!***
+>
+> Join us, contribute, and help shape the future of AI and robotics. For questions or collaboration, contact [Zeyu](mailto:zeyu.hu@lightwheel.ai) or [Yinghao](mailto:yinghao.shuai@lightwheel.ai).
 
 ## Prerequisites & Installation 🛠️
 
@@ -84,7 +85,7 @@ We provide an example USD asset—a kitchen scene. Please download related scene
 | Lightwheel Toyroom   | Modern room with many toys         | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.1)                  |
 
 
-> [!NOTE] 
+> [!TIP] 
 > For more high-quality scene assets, please visit our [official website](https://lightwheel.ai/) or the [Releases page](https://github.com/LightwheelAI/leisaac/releases).
 
 ## Device Setup 🎮
@@ -144,7 +145,8 @@ sudo usermod -aG dialout $USER
 
 Collected teleoperation data is stored in HDF5 format in the specified directory. We provide a script to convert HDF5 data to the LeRobot Dataset format. Only successful episode will be converted.
 
-**Note:** This script depends on the LeRobot runtime environment. We recommend using a separate Conda environment for LeRobot—see the official [LeRobot repo](https://github.com/huggingface/lerobot?tab=readme-ov-file#installation) for installation instructions.
+>[!NOTE] 
+> This script depends on the LeRobot runtime environment. We recommend using a separate Conda environment for LeRobot—see the official [LeRobot repo](https://github.com/huggingface/lerobot?tab=readme-ov-file#installation) for installation instructions.
 
 You can modify the parameters in the script and run the following command:
 
