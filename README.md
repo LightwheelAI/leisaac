@@ -59,7 +59,7 @@ pip install pynput pyserial deepdiff feetech-servo-sdk
 
 ## Asset Preparation 🏠
 
-We provide an example USD asset—a kitchen scene. Please download related scene [here](https://github.com/LightwheelAI/leisaac/releases/) and extract it into the `assets` directory. The directory structure should look like this:
+We provide an example USD asset—a kitchen scene. Please download related scene [here](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.0) and extract it into the `assets` directory. The directory structure should look like this:
 
 ```
 <assets>
@@ -76,8 +76,16 @@ We provide an example USD asset—a kitchen scene. Please download related scene
             └── Plate
 ```
 
-We also offers more high-quality assets—visit our website ([lightwheel.ai](https://lightwheel.ai/)) for more!
+### Scene Assets Download Table
 
+| Scene Name           | Description                        | Download Link                                                                             |
+|----------------------|------------------------------------|------------------------------------------------------------------------------------------|
+| Kitchen with Orange  | Example kitchen scene with oranges | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.0)                  |
+| Lightwheel Toyroom   | Modern room with many toys         | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.1)                  |
+
+
+> [!NOTE] 
+> For more high-quality scene assets, please visit our [official website](https://lightwheel.ai/) or the [Releases page](https://github.com/LightwheelAI/leisaac/releases).
 
 ## Device Setup 🎮
 
@@ -127,6 +135,9 @@ If you encounter permission errors like `ConnectionError`, you may need to run:
 
 ```bash
 sudo chmod 666 /dev/ttyACM0
+
+# or just add your user in related groups
+sudo usermod -aG dialout $USER
 ```
 
 ## Data Convention & Conversion 📊
