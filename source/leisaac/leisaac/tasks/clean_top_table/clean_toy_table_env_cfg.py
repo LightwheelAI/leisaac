@@ -47,7 +47,7 @@ class CleanToyTableSceneCfg(InteractiveSceneCfg):
         height=480,
         update_period=1 / 30.0, # 30FPS
     )
-    front:TiledCameraCfg = TiledCameraCfg(
+    front: TiledCameraCfg = TiledCameraCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base/front_camera",
         offset=TiledCameraCfg.OffsetCfg(pos=(0.0, -0.5, 0.6), rot=(0.1650476, -0.9862856, 0.0, 0.0), convention="ros"), # wxyz
         data_types=["rgb"],
@@ -78,17 +78,6 @@ class ActionsCfg:
 class EventCfg:
     """Configuration for the events."""
 
-    robot_physics_material = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (0.8, 1.25),
-            "dynamic_friction_range": (0.8, 1.25),
-            "restitution_range": (0.0, 0.0),
-            "num_buckets": 16,
-        },
-    )
     # reset to default scene
     reset_all = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
 
