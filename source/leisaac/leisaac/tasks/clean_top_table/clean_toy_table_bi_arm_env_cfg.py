@@ -25,15 +25,17 @@ from leisaac.utils.domain_randomization import randomize_object_uniform, randomi
 
 
 @configclass
-class CleanToyTableSceneCfg(InteractiveSceneCfg):
-    """Scene configuration for the clean top table task."""
+class CleanToyTableBiArmSceneCfg(InteractiveSceneCfg):
+    """Scene configuration for the clean top table task using two arms."""
 
     scene: AssetBaseCfg = LIGHTWHEEL_TOYROOM_CFG.replace(prim_path="{ENV_REGEX_NS}/Scene")
 
-    robot: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    left_arm: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/Left_Robot")
 
-    wrist: TiledCameraCfg = TiledCameraCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/gripper/wrist_camera",
+    right_arm: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/Right_Robot")
+
+    left_wrist: TiledCameraCfg = TiledCameraCfg(
+        prim_path="{ENV_REGEX_NS}/Left_Robot/gripper/wrist_camera",
         offset=TiledCameraCfg.OffsetCfg(pos=(-0.001, 0.1, -0.04), rot=(-0.404379, -0.912179, -0.0451242, 0.0486914), convention="ros"), # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
@@ -47,8 +49,25 @@ class CleanToyTableSceneCfg(InteractiveSceneCfg):
         height=480,
         update_period=1 / 30.0, # 30FPS
     )
+
+    right_wrist: TiledCameraCfg = TiledCameraCfg(
+        prim_path="{ENV_REGEX_NS}/Right_Robot/gripper/wrist_camera",
+        offset=TiledCameraCfg.OffsetCfg(pos=(-0.001, 0.1, -0.04), rot=(-0.404379, -0.912179, -0.0451242, 0.0486914), convention="ros"), # wxyz
+        data_types=["rgb"],
+        spawn=sim_utils.PinholeCameraCfg(
+            focal_length=36.5,
+            focus_distance=400.0,
+            horizontal_aperture=36.83,  # For a 75° FOV (assuming square image)
+            clipping_range=(0.01, 50.0),
+            lock_camera=True
+        ),
+        width=640,
+        height=480,
+        update_period=1 / 30.0, # 30FPS
+    )
+
     front: TiledCameraCfg = TiledCameraCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/base/front_camera",
+        prim_path="{ENV_REGEX_NS}/Right_Robot/base/front_camera",
         offset=TiledCameraCfg.OffsetCfg(pos=(0.0, -0.5, 0.6), rot=(0.1650476, -0.9862856, 0.0, 0.0), convention="ros"), # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
@@ -71,8 +90,10 @@ class CleanToyTableSceneCfg(InteractiveSceneCfg):
 @configclass
 class ActionsCfg:
     """Configuration for the actions."""
-    arm_action: mdp.ActionTermCfg = MISSING
-    gripper_action: mdp.ActionTermCfg = MISSING
+    left_arm_action: mdp.ActionTermCfg = MISSING
+    left_gripper_action: mdp.ActionTermCfg = MISSING
+    right_arm_action: mdp.ActionTermCfg = MISSING
+    right_gripper_action: mdp.ActionTermCfg = MISSING
 
 @configclass
 class EventCfg:
@@ -89,12 +110,19 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for policy group."""
 
-        joint_pos = ObsTerm(func=mdp.joint_pos)
-        joint_vel = ObsTerm(func=mdp.joint_vel)
-        joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel)
-        joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel)
+        left_joint_pos = ObsTerm(func=mdp.joint_pos, params={"asset_cfg": SceneEntityCfg("left_arm")})
+        left_joint_vel = ObsTerm(func=mdp.joint_vel, params={"asset_cfg": SceneEntityCfg("left_arm")})
+        left_joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg": SceneEntityCfg("left_arm")})
+        left_joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg": SceneEntityCfg("left_arm")})
+
+        right_joint_pos = ObsTerm(func=mdp.joint_pos, params={"asset_cfg": SceneEntityCfg("right_arm")})
+        right_joint_vel = ObsTerm(func=mdp.joint_vel, params={"asset_cfg": SceneEntityCfg("right_arm")})
+        right_joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg": SceneEntityCfg("right_arm")})
+        right_joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg": SceneEntityCfg("right_arm")})
+
         actions = ObsTerm(func=mdp.last_action)
-        wrist = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("wrist"), "data_type": "rgb", "normalize": False})
+        left = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("left_wrist"), "data_type": "rgb", "normalize": False})
+        right = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("right_wrist"), "data_type": "rgb", "normalize": False})
         front = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("front"), "data_type": "rgb", "normalize": False})
 
         def __post_init__(self):
@@ -114,10 +142,10 @@ class TerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
 
 @configclass
-class CleanToyTableEnvCfg(ManagerBasedRLEnvCfg):
+class CleanToyTableBiArmEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the clean top table environment."""
 
-    scene: CleanToyTableSceneCfg = CleanToyTableSceneCfg(env_spacing=8.0)
+    scene: CleanToyTableBiArmSceneCfg = CleanToyTableBiArmSceneCfg(env_spacing=8.0)
 
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
@@ -140,7 +168,8 @@ class CleanToyTableEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physx.friction_correlation_distance = 0.00625
         self.sim.render.enable_translucency = True
 
-        self.scene.robot.init_state.pos = (-0.42, -0.26, 0.43)
+        self.scene.left_arm.init_state.pos = (-0.62, -0.26, 0.43)
+        self.scene.right_arm.init_state.pos = (-0.12, -0.26, 0.43)
 
         parse_usd_and_create_subassets(LIGHTWHEEL_TOYROOM_USD_PATH, self)
 
