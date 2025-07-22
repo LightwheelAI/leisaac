@@ -112,7 +112,7 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 
 - `--task`: Specify the task environment name to run, e.g., `LeIsaac-SO101-PickOrange-v0`.
 
-- `--teleop_device`: Specify the teleoperation device type, e.g., `so101leader`, `keyboard`.
+- `--teleop_device`: Specify the teleoperation device type, e.g., `so101leader`, `bi-so101-leader`, `keyboard`.
 
 -  `--port`: Specify the port of teleoperation device, e.g., `/dev/ttyACM0`. only used when teleop_device is `so101leader`.
 

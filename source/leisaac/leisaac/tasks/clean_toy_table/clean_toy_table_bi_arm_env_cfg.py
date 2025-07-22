@@ -35,7 +35,7 @@ class CleanToyTableBiArmSceneCfg(InteractiveSceneCfg):
     right_arm: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/Right_Robot")
 
     left_wrist: TiledCameraCfg = TiledCameraCfg(
-        prim_path="{ENV_REGEX_NS}/Left_Robot/gripper/wrist_camera",
+        prim_path="{ENV_REGEX_NS}/Left_Robot/gripper/left_wrist_camera",
         offset=TiledCameraCfg.OffsetCfg(pos=(-0.001, 0.1, -0.04), rot=(-0.404379, -0.912179, -0.0451242, 0.0486914), convention="ros"), # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
@@ -51,7 +51,7 @@ class CleanToyTableBiArmSceneCfg(InteractiveSceneCfg):
     )
 
     right_wrist: TiledCameraCfg = TiledCameraCfg(
-        prim_path="{ENV_REGEX_NS}/Right_Robot/gripper/wrist_camera",
+        prim_path="{ENV_REGEX_NS}/Right_Robot/gripper/right_wrist_camera",
         offset=TiledCameraCfg.OffsetCfg(pos=(-0.001, 0.1, -0.04), rot=(-0.404379, -0.912179, -0.0451242, 0.0486914), convention="ros"), # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
@@ -68,7 +68,7 @@ class CleanToyTableBiArmSceneCfg(InteractiveSceneCfg):
 
     front: TiledCameraCfg = TiledCameraCfg(
         prim_path="{ENV_REGEX_NS}/Right_Robot/base/front_camera",
-        offset=TiledCameraCfg.OffsetCfg(pos=(0.0, -0.5, 0.6), rot=(0.1650476, -0.9862856, 0.0, 0.0), convention="ros"), # wxyz
+        offset=TiledCameraCfg.OffsetCfg(pos=(0.225, -0.5, 0.6), rot=(0.1650476, -0.9862856, 0.0, 0.0), convention="ros"), # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
             focal_length=28.7,
@@ -168,8 +168,8 @@ class CleanToyTableBiArmEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physx.friction_correlation_distance = 0.00625
         self.sim.render.enable_translucency = True
 
-        self.scene.left_arm.init_state.pos = (-0.62, -0.26, 0.43)
-        self.scene.right_arm.init_state.pos = (-0.12, -0.26, 0.43)
+        self.scene.left_arm.init_state.pos = (-0.6, -0.2, 0.43)
+        self.scene.right_arm.init_state.pos = (-0.15, -0.2, 0.43)
 
         parse_usd_and_create_subassets(LIGHTWHEEL_TOYROOM_USD_PATH, self)
 
