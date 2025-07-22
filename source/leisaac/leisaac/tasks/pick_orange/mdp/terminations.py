@@ -35,7 +35,7 @@ def task_done(
     Returns:
         Boolean tensor indicating which environments have completed the task.
     """
-    done = torch.ones(env.num_envs, dtype=torch.bool)
+    done = torch.ones(env.num_envs, dtype=torch.bool, device=env.device)
     plate: RigidObject = env.scene[plate_cfg.name]
     plate_x = plate.data.root_pos_w[:, 0] - env.scene.env_origins[:, 0]
     plate_y = plate.data.root_pos_w[:, 1] - env.scene.env_origins[:, 1]
