@@ -38,7 +38,7 @@ SO101_FOLLOWER_CFG = ArticulationCfg(
     actuators={
         "sts3215": ImplicitActuatorCfg(
             joint_names_expr=[".*"],
-            effort_limit_sim=10,
+            effort_limit_sim=1,
             velocity_limit_sim=10,
             stiffness=17.8,
             damping=0.60,
