@@ -66,6 +66,8 @@ tests/
 
 # lerobot cache
 source/leisaac/leisaac/devices/lerobot/.cache/so101_leader.json
+source/leisaac/leisaac/devices/lerobot/.cache/left_so101_leader.json
+source/leisaac/leisaac/devices/lerobot/.cache/right_so101_leader.json
 
 # scene assets
 assets/scenes/*

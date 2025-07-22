@@ -16,8 +16,10 @@ from isaaclab.app import AppLauncher
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Keyboard teleoperation for Isaac Lab environments.")
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
-parser.add_argument("--teleop_device", type=str, default="keyboard", choices=['keyboard', 'so101leader'], help="Device for interacting with environment")
+parser.add_argument("--teleop_device", type=str, default="keyboard", choices=['keyboard', 'so101leader', 'bi-so101leader'], help="Device for interacting with environment")
 parser.add_argument("--port", type=str, default='/dev/ttyACM0', help="Port for the teleop device:so101leader, default is /dev/ttyACM0")
+parser.add_argument("--left_arm_port", type=str, default='/dev/ttyACM0', help="Port for the left teleop device:bi-so101leader, default is /dev/ttyACM0")
+parser.add_argument("--right_arm_port", type=str, default='/dev/ttyACM1', help="Port for the right teleop device:bi-so101leader, default is /dev/ttyACM1")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--sensitivity", type=float, default=1.0, help="Sensitivity factor.")
 
@@ -27,7 +29,7 @@ parser.add_argument("--step_hz", type=int, default=60, help="Environment steppin
 parser.add_argument("--dataset_file", type=str, default="./datasets/dataset.hdf5", help="File path to export recorded demos.")
 parser.add_argument("--num_demos", type=int, default=0, help="Number of demonstrations to record. Set to 0 for infinite.")
 
-parser.add_argument("--recalibrate", action="store_true", default=False, help="recalibrate SO101-Leader")
+parser.add_argument("--recalibrate", action="store_true", default=False, help="recalibrate SO101-Leader or Bi-SO101Leader")
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -49,7 +51,7 @@ from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab.managers import TerminationTermCfg
 
-from leisaac.devices import Se3Keyboard, SO101Leader
+from leisaac.devices import Se3Keyboard, SO101Leader, BiSO101Leader
 from leisaac.enhance.managers import StreamingRecorderManager
 
 class RateLimiter:
@@ -93,11 +95,15 @@ def main():
     env_cfg.use_teleop_device(args_cli.teleop_device)
     task_name = args_cli.task
 
+    # precheck task and teleop device
+    if "BiArm" in task_name:
+        assert args_cli.teleop_device == "bi-so101leader", "only support bi-so101leader for bi-arm task"
+
     # modify configuration
     if hasattr(env_cfg.terminations, "time_out"):
         env_cfg.terminations.time_out = None
-    # if hasattr(env_cfg.recorders, "success"):
-    #     env_cfg.recorders.success = None
+    if hasattr(env_cfg.recorders, "success"):
+        env_cfg.recorders.success = None
     if args_cli.record:
         env_cfg.recorders.dataset_export_dir_path = output_dir
         env_cfg.recorders.dataset_filename = output_file_name
@@ -106,6 +112,7 @@ def main():
         env_cfg.terminations.success = TerminationTermCfg(func=lambda env: torch.zeros(env.num_envs, dtype=torch.bool, device=env.device))
     else:
         env_cfg.recorders = None
+   
     # create environment
     env: ManagerBasedRLEnv = gym.make(task_name, cfg=env_cfg).unwrapped
     # replace the original recorder manager with the streaming recorder manager
@@ -118,24 +125,13 @@ def main():
     # create controller
     if args_cli.teleop_device == "keyboard":
         teleop_interface = Se3Keyboard(env, sensitivity=0.25 * args_cli.sensitivity)
-    # elif args_cli.teleop_device.startswith("vr"):
-    #     image_size = (720, 1280)
-    #     shm = shared_memory.SharedMemory(
-    #         create=True,
-    #         size=image_size[0] * image_size[1] * 3 * np.uint8().itemsize,
-    #     )
-    #     vr_device_type = {
-    #         "vr-controller": VRController,
-    #         "vr-hand": VRHand,
-    #     }[args_cli.teleop_device.lower()]
-    #     teleop_interface = vr_device_type(env,
-    #                                     img_shape=image_size,
-    #                                     shm_name=shm.name,)
     elif args_cli.teleop_device == "so101leader":
         teleop_interface = SO101Leader(env, port=args_cli.port, recalibrate=args_cli.recalibrate)
+    elif args_cli.teleop_device == "bi-so101leader":
+        teleop_interface = BiSO101Leader(env, left_port=args_cli.left_arm_port, right_port=args_cli.right_arm_port, recalibrate=args_cli.recalibrate)
     else:
         raise ValueError(
-            f"Invalid device interface '{args_cli.teleop_device}'. Supported: 'keyboard', 'vr', 'so101leader'."
+            f"Invalid device interface '{args_cli.teleop_device}'. Supported: 'keyboard', 'so101leader', 'bi-so101leader'."
         )
 
     # add teleoperation key for env reset

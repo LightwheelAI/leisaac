@@ -1,7 +1,7 @@
 import os
 import json
 from collections.abc import Callable
-from typing import Dict
+from typing import Dict, Tuple
 from pynput.keyboard import Listener
 
 from .common.motors import FeetechMotorsBus, Motor, MotorNormMode, MotorCalibration, OperatingMode
@@ -12,12 +12,12 @@ from ..device_base import Device
 class SO101Leader(Device):
     """A SO101 Leader device for SE(3) control.
     """
-    def __init__(self, env, port: str = '/dev/ttyACM0', recalibrate: bool = False):
+    def __init__(self, env, port: str = '/dev/ttyACM0', recalibrate: bool = False, calibration_file_name: str = 'so101_leader.json'):
         super().__init__(env)
         self.port = port
 
         # calibration
-        self.calibration_path = os.path.join(os.path.dirname(__file__), ".cache", "so101_leader.json")
+        self.calibration_path = os.path.join(os.path.dirname(__file__), ".cache", calibration_file_name)
         if not os.path.exists(self.calibration_path) or recalibrate:
             self.calibrate()
         calibration = self._load_calibration()
@@ -47,7 +47,7 @@ class SO101Leader(Device):
         self.connect()
 
         # some flags and callbacks
-        self.started = False
+        self._started = False
         self._reset_state = False
         self._additional_callbacks = {}
 
@@ -91,14 +91,14 @@ class SO101Leader(Device):
         """
         try:
             if key.char=='b':
-                self.started = True
+                self._started = True
                 self._reset_state = False
             elif key.char=='r':
-                self.started = False
+                self._started = False
                 self._reset_state = True
                 self._additional_callbacks["R"]()
             elif key.char=='n':
-                self.started = False
+                self._started = False
                 self._reset_state = True
                 self._additional_callbacks["N"]()
         except AttributeError as e:
@@ -110,7 +110,7 @@ class SO101Leader(Device):
     def input2action(self):
         state = {}
         reset = state["reset"] = self._reset_state
-        state['started'] = self.started
+        state['started'] = self._started
         if reset:
             self._reset_state = False
             return state
@@ -118,7 +118,7 @@ class SO101Leader(Device):
 
         ac_dict = {}
         ac_dict["reset"] = reset
-        ac_dict['started'] = self.started
+        ac_dict['started'] = self._started
         ac_dict['so101_leader'] = True
         if reset:
             return ac_dict
@@ -131,6 +131,22 @@ class SO101Leader(Device):
 
     def add_callback(self, key: str, func: Callable):
         self._additional_callbacks[key] = func
+    
+    @property
+    def started(self) -> bool:
+        return self._started
+    
+    @property
+    def reset_state(self) -> bool:
+        return self._reset_state
+    
+    @reset_state.setter
+    def reset_state(self, reset_state: bool):
+        self._reset_state = reset_state
+    
+    @property
+    def motor_limits(self) -> Dict[str, Tuple[float, float]]:
+        return self._motor_limits
 
     @property
     def is_connected(self) -> bool:
