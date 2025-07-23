@@ -53,6 +53,7 @@ from isaaclab.managers import TerminationTermCfg
 
 from leisaac.devices import Se3Keyboard, SO101Leader, BiSO101Leader
 from leisaac.enhance.managers import StreamingRecorderManager
+from leisaac.utils.env_utils import dynamic_reset_gripper_effort_limit_sim
 
 class RateLimiter:
     """Convenience class for enforcing rates in loops."""
@@ -166,6 +167,7 @@ def main():
     while simulation_app.is_running():
         # run everything in inference mode
         with torch.inference_mode():
+            dynamic_reset_gripper_effort_limit_sim(env)
             actions = teleop_interface.advance()
             if should_reset_task_success:
                 print("Task Success!!!")
