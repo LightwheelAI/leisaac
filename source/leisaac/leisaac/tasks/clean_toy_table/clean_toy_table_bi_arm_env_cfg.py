@@ -66,8 +66,8 @@ class CleanToyTableBiArmSceneCfg(InteractiveSceneCfg):
         update_period=1 / 30.0, # 30FPS
     )
 
-    front: TiledCameraCfg = TiledCameraCfg(
-        prim_path="{ENV_REGEX_NS}/Right_Robot/base/front_camera",
+    top: TiledCameraCfg = TiledCameraCfg(
+        prim_path="{ENV_REGEX_NS}/Right_Robot/base/top_camera",
         offset=TiledCameraCfg.OffsetCfg(pos=(0.225, -0.5, 0.6), rot=(0.1650476, -0.9862856, 0.0, 0.0), convention="ros"), # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
@@ -123,7 +123,7 @@ class ObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
         left = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("left_wrist"), "data_type": "rgb", "normalize": False})
         right = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("right_wrist"), "data_type": "rgb", "normalize": False})
-        front = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("front"), "data_type": "rgb", "normalize": False})
+        top = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("top"), "data_type": "rgb", "normalize": False})
 
         def __post_init__(self):
             self.enable_corruption = True
