@@ -88,5 +88,5 @@ def preprocess_device_action(action: dict[str, Any], teleop_device) -> torch.Ten
         processed_action[:, :6] = convert_action_from_so101_leader(action['joint_state']['left_arm'], action['motor_limits']['left_arm'], teleop_device)
         processed_action[:, 6:] = convert_action_from_so101_leader(action['joint_state']['right_arm'], action['motor_limits']['right_arm'], teleop_device)
     else:
-        raise NotImplementedError("Only teleoperation with so101_leader, keyboard is supported for now.")
+        raise NotImplementedError("Only teleoperation with so101_leader, bi_so101_leader, keyboard is supported for now.")
     return processed_action
