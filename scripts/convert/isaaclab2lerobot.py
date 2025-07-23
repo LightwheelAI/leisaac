@@ -1,14 +1,20 @@
 import os
+from pyexpat import features
 import h5py
 import numpy as np
 
 from tqdm import tqdm
 
-from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
-"""NOTE: Please use the environment of lerobot."""
+from lerobot.datasets.lerobot_dataset import LeRobotDataset
+"""
+NOTE: Please use the environment of lerobot.
 
-# Feature definition for so101_follower
-FEATURES = {
+Because lerobot is rapidly developing, we don't guarantee the compatibility for the latest version of lerobot.
+Currently, the commit we used is https://github.com/huggingface/lerobot/commit/26cb4614c961e6da04e4b83b6178331f4150650d
+"""
+
+# Feature definition for single-arm so101_follower
+SINGLE_ARM_FEATURES = {
     "action": {
         "dtype": "float32",
         "shape": (6,),
@@ -66,6 +72,92 @@ FEATURES = {
     }
 }
 
+# Feature definition for bi-arm so101_follower
+BI_ARM_FEATURES = {
+    "action": {
+        "dtype": "float32",
+        "shape": (12,),
+        "names": [
+            "left_shoulder_pan.pos",
+            "left_shoulder_lift.pos",
+            "left_elbow_flex.pos",
+            "left_wrist_flex.pos",
+            "left_wrist_roll.pos",
+            "left_gripper.pos",
+            "right_shoulder_pan.pos",
+            "right_shoulder_lift.pos",
+            "right_elbow_flex.pos",
+            "right_wrist_flex.pos",
+            "right_wrist_roll.pos",
+            "right_gripper.pos",
+        ]
+    },
+    "observation.state": {
+        "dtype": "float32",
+        "shape": (12,),
+        "names": [
+            "left_shoulder_pan.pos",
+            "left_shoulder_lift.pos",
+            "left_elbow_flex.pos",
+            "left_wrist_flex.pos",
+            "left_wrist_roll.pos",
+            "left_gripper.pos",
+            "right_shoulder_pan.pos",
+            "right_shoulder_lift.pos",
+            "right_elbow_flex.pos",
+            "right_wrist_flex.pos",
+            "right_wrist_roll.pos",
+            "right_gripper.pos",
+        ]
+
+    },
+    "observation.images.left": {
+        "dtype": "video",
+        "shape": [480, 640, 3],
+        "names": ["height", "width", "channels"],
+        "video_info": {
+            "video.height": 480,
+            "video.width": 640,
+            "video.codec": "av1",
+            "video.pix_fmt": "yuv420p",
+            "video.is_depth_map": False,
+            "video.fps": 30.0,
+            "video.channels": 3,
+            "has_audio": False,
+        },
+    },
+    "observation.images.top": {
+        "dtype": "video",
+        "shape": [480, 640, 3],
+        "names": ["height", "width", "channels"],
+        "video_info": {
+            "video.height": 480,
+            "video.width": 640,
+            "video.codec": "av1",
+            "video.pix_fmt": "yuv420p",
+            "video.is_depth_map": False,
+            "video.fps": 30.0,
+            "video.channels": 3,
+            "has_audio": False,
+        },
+    },
+    "observation.images.right": {
+        "dtype": "video",
+        "shape": [480, 640, 3],
+        "names": ["height", "width", "channels"],
+        "video_info": {
+            "video.height": 480,
+            "video.width": 640,
+            "video.codec": "av1",
+            "video.pix_fmt": "yuv420p",
+            "video.is_depth_map": False,
+            "video.fps": 30.0,
+            "video.channels": 3,
+            "has_audio": False,
+        },
+    }
+}
+
 # preprocess actions and joint pos
 ISAACLAB_JOINT_POS_LIMIT_RANGE = [
     (-110.0, 110.0),
@@ -83,6 +175,7 @@ LEROBOT_JOINT_POS_LIMIT_RANGE = [
     (-100, 100),
     (0, 100),
 ]
+
 def preprocess_joint_pos(joint_pos: np.ndarray) -> np.ndarray:
     joint_pos  = joint_pos / np.pi * 180
     for i in range(6):
@@ -91,22 +184,86 @@ def preprocess_joint_pos(joint_pos: np.ndarray) -> np.ndarray:
         joint_pos[:, i] = (joint_pos[:, i] - isaaclab_min) / (isaaclab_max - isaaclab_min) * (lerobot_max - lerobot_min) + lerobot_min
     return joint_pos
 
+def process_single_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Group, demo_name: str) -> bool:
+    try:
+        actions = np.array(demo_group['obs/actions'])
+        joint_pos = np.array(demo_group['obs/joint_pos'])
+        front_images = np.array(demo_group['obs/front'])
+        wrist_images = np.array(demo_group['obs/wrist'])
+    except KeyError as e:
+        print(f'Demo {demo_name} is not valid, skip it')
+        return False
+
+    # preprocess actions and joint pos
+    actions = preprocess_joint_pos(actions)
+    joint_pos = preprocess_joint_pos(joint_pos)
+
+    assert actions.shape[0] == joint_pos.shape[0] == front_images.shape[0] == wrist_images.shape[0]
+    total_state_frames = actions.shape[0]
+    # skip the first 5 frames
+    for frame_index in tqdm(range(5, total_state_frames), desc='Processing each frame'):
+        frame = {
+            "action": actions[frame_index],
+            "observation.state": joint_pos[frame_index],
+            "observation.images.front": front_images[frame_index],
+            "observation.images.wrist": wrist_images[frame_index],
+        }
+        dataset.add_frame(frame=frame, task=task)
+
+    return True
+
+def process_bi_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Group, demo_name: str) -> bool:
+    try:
+        actions = np.array(demo_group['obs/actions'])
+        left_joint_pos = np.array(demo_group['obs/left_joint_pos'])
+        right_joint_pos = np.array(demo_group['obs/right_joint_pos'])
+        left_images = np.array(demo_group['obs/left'])
+        right_images = np.array(demo_group['obs/right'])
+        top_images = np.array(demo_group['obs/top'])
+    except KeyError as e:
+        print(f'Demo {demo_name} is not valid, skip it')
+        return False
+
+    # preprocess actions and joint pos
+    actions = preprocess_joint_pos(actions)
+    left_joint_pos = preprocess_joint_pos(left_joint_pos)
+    right_joint_pos = preprocess_joint_pos(right_joint_pos)
+
+    assert actions.shape[0] == left_joint_pos.shape[0] == right_joint_pos.shape[0] == left_images.shape[0] == right_images.shape[0] == top_images.shape[0]
+    total_state_frames = actions.shape[0]
+    # skip the first 5 frames
+    for frame_index in tqdm(range(5, total_state_frames), desc='Processing each frame'):
+        frame = {
+            "action": actions[frame_index],
+            "observation.state": np.concatenate([left_joint_pos[frame_index], right_joint_pos[frame_index]]),
+            "observation.images.left": left_images[frame_index],
+            "observation.images.top": top_images[frame_index],
+            "observation.images.right": right_images[frame_index],
+        }
+        dataset.add_frame(frame=frame, task=task)
+
+    return True
+
 def convert_isaaclab_to_lerobot():
     """NOTE: Modify the following parameters to fit your own dataset"""
-    repo_id = 'EverNorif/so101_test_orange_pick'
-    robot_type = 'so101_follower'
+    repo_id = 'EverNorif/single-arm-test'
+    robot_type = 'so101_follower' # so101_follower, bi_so101_follower
     fps = 30
     hdf5_root = './datasets'
-    hdf5_files = [os.path.join(hdf5_root, 'dataset.hdf5')]
+    hdf5_files = [os.path.join(hdf5_root, 'single-arm-dataset.hdf5')]
     task = 'Grab orange and place into plate'
     push_to_hub = False
 
+    """parameters check"""
+    assert robot_type in ['so101_follower', 'bi_so101_follower'], 'robot_type must be so101_follower or bi_so101_follower'
+
+    """convert to LeRobotDataset"""
     now_episode_index = 0
     dataset = LeRobotDataset.create(
         repo_id=repo_id,
         fps=fps,
         robot_type=robot_type,
-        features=FEATURES,
+        features=SINGLE_ARM_FEATURES if robot_type == 'so101_follower' else BI_ARM_FEATURES,
     )
 
     for hdf5_id, hdf5_file in enumerate(hdf5_files):
@@ -121,33 +278,15 @@ def convert_isaaclab_to_lerobot():
                     print(f'Demo {demo_name} is not successful, skip it')
                     continue
                 
-                try:
-                    actions = np.array(demo_group['obs/actions'])
-                    joint_pos = np.array(demo_group['obs/joint_pos'])
-                    front_images = np.array(demo_group['obs/front'])
-                    wrist_images = np.array(demo_group['obs/wrist'])
-                except KeyError as error:
-                    print(f'Demo {demo_name} is not valid, skip it')
-                    continue
-
-                # preprocess actions and joint pos
-                actions = preprocess_joint_pos(actions)
-                joint_pos = preprocess_joint_pos(joint_pos)
-
-                assert actions.shape[0] == joint_pos.shape[0] == front_images.shape[0] == wrist_images.shape[0]
-                total_state_frames = actions.shape[0]
-                # skip the first 5 frames
-                for frame_index in tqdm(range(5, total_state_frames), desc='Processing each frame'):
-                    frame = {
-                        "action": actions[frame_index],
-                        "observation.state": joint_pos[frame_index],
-                        "observation.images.front": front_images[frame_index],
-                        "observation.images.wrist": wrist_images[frame_index],
-                    }
-                    dataset.add_frame(frame=frame, task=task)
-                now_episode_index += 1
-                dataset.save_episode()
-                print(f'Saving episode {now_episode_index} successfully')
+                if robot_type == 'so101_follower':
+                    valid = process_single_arm_data(dataset, task, demo_group, demo_name)
+                elif robot_type == 'bi_so101_follower':
+                    valid = process_bi_arm_data(dataset, task, demo_group, demo_name)
+                
+                if valid:
+                    now_episode_index += 1
+                    dataset.save_episode()
+                    print(f'Saving episode {now_episode_index} successfully')
 
     if push_to_hub:
         dataset.push_to_hub()
