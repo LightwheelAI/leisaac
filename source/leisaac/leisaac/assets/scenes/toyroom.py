@@ -7,9 +7,9 @@ from isaaclab.assets import AssetBaseCfg
 
 
 """Configuration for the Toy Room Scene"""
-SCENES_ROOT = Path(ASSETS_ROOT)/"scenes"
+SCENES_ROOT = Path(ASSETS_ROOT) / "scenes"
 
-LIGHTWHEEL_TOYROOM_USD_PATH = str(SCENES_ROOT/"lightwheel_toyroom"/"scene.usd")
+LIGHTWHEEL_TOYROOM_USD_PATH = str(SCENES_ROOT / "lightwheel_toyroom" / "scene.usd")
 
 LIGHTWHEEL_TOYROOM_CFG = AssetBaseCfg(
     spawn=sim_utils.UsdFileCfg(

@@ -1,6 +1,7 @@
 import torch
 import math
 
+
 def dynamic_reset_gripper_effort_limit_sim(env):
     gripper_pos = env.scene['robot'].data.body_link_pos_w[0][-1]
     minm_distance = 1e10
@@ -18,5 +19,3 @@ def dynamic_reset_gripper_effort_limit_sim(env):
         if math.fabs(target_effort_limit_sim - current_effort_limit_sim) > 0.1:
             env.scene['robot'].write_joint_effort_limit_to_sim(limits=target_effort_limit_sim, joint_ids=[5])
     return
-        
-    

@@ -4,13 +4,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Script to print all the available environments in Isaac Lab.
+Script to print all the available environments in LeIsaac.
 
 The script iterates over all registered environments and stores the details in a table.
 It prints the name of the environment, the entry point and the config file.
 
-All the environments are registered in the `isaaclab_tasks` extension. They start
-with `Isaac` in their name.
+All the environments are registered in the `leisaac` package. They start with `LeIsaac` in their name.
 """
 
 """Launch Isaac Sim Simulator first."""
@@ -29,11 +28,12 @@ from prettytable import PrettyTable
 
 import leisaac
 
+
 def main():
-    """Print all environments registered in `isaaclab_tasks` extension."""
+    """Print all environments registered in `leisaac` package."""
     # print all the available environments
     table = PrettyTable(["S. No.", "Task Name", "Entry Point", "Config"])
-    table.title = "Available Environments in Isaac Lab"
+    table.title = "Available Environments in LeIsaac"
     # set alignment of table columns
     table.align["Task Name"] = "l"
     table.align["Entry Point"] = "l"
@@ -41,7 +41,7 @@ def main():
 
     # count of environments
     index = 0
-    # acquire all Isaac environments names
+    # acquire all LeIsaac environments names
     for task_spec in gym.registry.values():
         if "LeIsaac" in task_spec.id:
             # add details to table

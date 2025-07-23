@@ -15,18 +15,18 @@ class StreamingRecorderManager(RecorderManager):
         super().__init__(cfg, env)
 
         assert self.cfg.dataset_export_mode in [DatasetExportMode.EXPORT_ALL, DatasetExportMode.EXPORT_NONE], "only support EXPORT_NONE|EXPORT_ALL"
-        
+
         self._env_steps_record = torch.zeros(self._env.num_envs)
         self._flush_steps = 100
         self._compression = None
         if self._dataset_file_handler is not None:
             self._dataset_file_handler.chunks_length = self._flush_steps
             self._dataset_file_handler.compression = self._compression
-    
+
     @property
     def flush_steps(self) -> int:
         return self._flush_steps
-    
+
     @flush_steps.setter
     def flush_steps(self, flush_steps: int) -> None:
         self._flush_steps = flush_steps
@@ -36,13 +36,13 @@ class StreamingRecorderManager(RecorderManager):
     @property
     def compression(self) -> str | None:
         return self._compression
-    
+
     @compression.setter
     def compression(self, compression: str | None):
         self._compression = compression
         if self._dataset_file_handler is not None:
             self._dataset_file_handler.compression = self._compression
-    
+
     def __str__(self) -> str:
         msg = "[Enhanced] StreamingRecorderManager. \n"
         msg += super().__str__()

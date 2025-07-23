@@ -9,6 +9,7 @@ import omni
 
 from ..device_base import Device
 
+
 class Se3Keyboard(Device):
     """A keyboard controller for sending SE(3) commands as delta poses for lerobot.
 
@@ -32,7 +33,7 @@ class Se3Keyboard(Device):
         """
         # store inputs
         self.sensitivity = sensitivity
-        
+
         # acquire omniverse interfaces
         self._appwindow = omni.appwindow.get_default_app_window()
         self._input = carb.input.acquire_input_interface()
@@ -63,7 +64,7 @@ class Se3Keyboard(Device):
 
     def __str__(self) -> str:
         """Returns: A string containing the information of joystick."""
-        msg = f"Keyboard Controller for SE(3).\n"
+        msg = "Keyboard Controller for SE(3).\n"
         msg += f"\tKeyboard name: {self._input.get_keyboard_name(self._keyboard)}\n"
         msg += "\t----------------------------------------------\n"
         msg += "\tJoint 1 (shoulder_pan):  Q/U\n"
@@ -78,10 +79,10 @@ class Se3Keyboard(Device):
         msg += "\tTask Success and Reset: N\n"
         msg += "\tControl+C: quit"
         return msg
-    
+
     def on_press(self, key):
         pass
-    
+
     def on_release(self, key):
         """
         Key handler for key releases.
@@ -89,23 +90,23 @@ class Se3Keyboard(Device):
             key (str): key that was pressed
         """
         try:
-            if key.char=='b':
+            if key.char == 'b':
                 self.started = True
                 self._reset_state = False
-            elif key.char=='r':
+            elif key.char == 'r':
                 self.started = False
                 self._reset_state = True
                 self._additional_callbacks["R"]()
-            elif key.char=='n':
+            elif key.char == 'n':
                 self.started = False
                 self._reset_state = True
                 self._additional_callbacks["N"]()
-        except AttributeError as e:
+        except AttributeError:
             pass
 
     def get_device_state(self):
         return self._delta_pos
-    
+
     def input2action(self):
         state = {}
         reset = state["reset"] = self._reset_state

@@ -1,6 +1,5 @@
 import enum
 import copy
-from random import shuffle
 import h5py
 
 from concurrent.futures import ThreadPoolExecutor
@@ -26,17 +25,16 @@ class StreamingHDF5DatasetFileHandler(HDF5DatasetFileHandler):
         self._compression = None
         self._writer = self.SingleThreadHDF5DatasetWriter(self)
 
-
     class SingleThreadHDF5DatasetWriter:
         def __init__(self, file_handler):
             self.executor = ThreadPoolExecutor(max_workers=1)
             self.file_handler = file_handler
-        
+
         def write_episode(self, h5_episode_group: h5py.Group, episode: EpisodeData, write_mode: StreamWriteMode):
             episode_copy = copy.deepcopy(episode)
             funture = self.executor.submit(self._do_write_episode, h5_episode_group, episode_copy)
             return funture.result() if write_mode == StreamWriteMode.LAST else funture
-        
+
         def _do_write_episode(self, h5_episode_group: h5py.Group, episode: EpisodeData):
             def create_dataset_helper(group, key, value):
                 """Helper method to create dataset that contains recursive dict objects."""
@@ -51,9 +49,9 @@ class StreamingHDF5DatasetFileHandler(HDF5DatasetFileHandler):
                     data = value.cpu().numpy()
                     if key not in group:
                         dataset = group.create_dataset(
-                            key, 
-                            shape=data.shape, 
-                            maxshape=(None, *data.shape[1:]), 
+                            key,
+                            shape=data.shape,
+                            maxshape=(None, *data.shape[1:]),
                             chunks=(self.file_handler.chunks_length, *data.shape[1:]),
                             dtype=data.dtype,
                             compression=self.file_handler.compression,
@@ -66,17 +64,16 @@ class StreamingHDF5DatasetFileHandler(HDF5DatasetFileHandler):
 
             for key, value in episode.data.items():
                 create_dataset_helper(h5_episode_group, key, value)
-            
+
             self.file_handler.flush()
-        
+
         def shutdown(self):
             self.executor.shutdown(wait=True)
-
 
     @property
     def chunks_length(self) -> int:
         return self._chunks_length
-    
+
     @chunks_length.setter
     def chunks_length(self, chunks_length: int):
         self._chunks_length = chunks_length
@@ -84,7 +81,7 @@ class StreamingHDF5DatasetFileHandler(HDF5DatasetFileHandler):
     @property
     def compression(self) -> str | None:
         return self._compression
-    
+
     @compression.setter
     def compression(self, compression: str | None):
         self._compression = compression
@@ -93,7 +90,7 @@ class StreamingHDF5DatasetFileHandler(HDF5DatasetFileHandler):
         self._raise_if_not_initialized()
         if episode.is_empty():
             return
-        
+
         group_name = f"demo_{self._demo_count}"
         if group_name not in self._hdf5_data_group:
             h5_episode_group = self._hdf5_data_group.create_group(group_name)
@@ -113,7 +110,7 @@ class StreamingHDF5DatasetFileHandler(HDF5DatasetFileHandler):
 
         if episode.success is not None:
             h5_episode_group.attrs["success"] = episode.success
-        
+
         self._writer.write_episode(h5_episode_group, episode, write_mode)
 
         if write_mode == StreamWriteMode.LAST:
@@ -122,7 +119,7 @@ class StreamingHDF5DatasetFileHandler(HDF5DatasetFileHandler):
 
             # increment total demo counts
             self._demo_count += 1
-    
+
     def close(self):
         self._writer.shutdown()
         super().close()

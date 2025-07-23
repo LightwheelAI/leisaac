@@ -8,7 +8,7 @@
 """Launch Isaac Sim Simulator first."""
 import multiprocessing
 if multiprocessing.get_start_method() != "spawn":
-    multiprocessing.set_start_method("spawn",force=True)
+    multiprocessing.set_start_method("spawn", force=True)
 import argparse
 
 from isaaclab.app import AppLauncher
@@ -55,6 +55,7 @@ from leisaac.devices import Se3Keyboard, SO101Leader, BiSO101Leader
 from leisaac.enhance.managers import StreamingRecorderManager
 from leisaac.utils.env_utils import dynamic_reset_gripper_effort_limit_sim
 
+
 class RateLimiter:
     """Convenience class for enforcing rates in loops."""
 
@@ -81,6 +82,7 @@ class RateLimiter:
         if self.last_time < time.time():
             while self.last_time < time.time():
                 self.last_time += self.sleep_duration
+
 
 def main():
     """Running keyboard teleoperation with Isaac Lab manipulation environment."""
@@ -113,7 +115,7 @@ def main():
         env_cfg.terminations.success = TerminationTermCfg(func=lambda env: torch.zeros(env.num_envs, dtype=torch.bool, device=env.device))
     else:
         env_cfg.recorders = None
-   
+
     # create environment
     env: ManagerBasedRLEnv = gym.make(task_name, cfg=env_cfg).unwrapped
     # replace the original recorder manager with the streaming recorder manager
@@ -144,6 +146,7 @@ def main():
 
     # add teleoperation key for task success
     should_reset_task_success = False
+
     def reset_task_success():
         nonlocal should_reset_task_success
         should_reset_task_success = True
@@ -178,7 +181,7 @@ def main():
             if should_reset_recording_instance:
                 env.reset()
                 should_reset_recording_instance = False
-                if start_record_state == True:
+                if start_record_state:
                     if args_cli.record:
                         print("Stop Recording!!!")
                     start_record_state = False
@@ -190,13 +193,13 @@ def main():
                     print(f"Recorded {current_recorded_demo_count} successful demonstrations.")
                 if args_cli.record and args_cli.num_demos > 0 and env.recorder_manager.exported_successful_episode_count >= args_cli.num_demos:
                     print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
-                    break            
-            
+                    break
+
             elif actions is None:
                 env.render()
             # apply actions
             else:
-                if start_record_state == False:
+                if not start_record_state:
                     if args_cli.record:
                         print("Start Recording!!!")
                     start_record_state = True
@@ -207,7 +210,6 @@ def main():
     # close the simulator
     env.close()
     simulation_app.close()
-
 
 
 if __name__ == "__main__":

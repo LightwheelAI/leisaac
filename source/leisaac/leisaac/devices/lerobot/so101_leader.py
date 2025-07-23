@@ -12,6 +12,7 @@ from ..device_base import Device
 class SO101Leader(Device):
     """A SO101 Leader device for SE(3) control.
     """
+
     def __init__(self, env, port: str = '/dev/ttyACM0', recalibrate: bool = False, calibration_file_name: str = 'so101_leader.json'):
         super().__init__(env)
         self.port = port
@@ -54,15 +55,15 @@ class SO101Leader(Device):
         self.listener = Listener(on_press=self.on_press, on_release=self.on_release)
         self.listener.start()
         self._display_controls()
-    
+
     def __str__(self) -> str:
         """Returns: A string containing the information of so101 leader."""
-        msg = f"SO101-Leader device for SE(3) control.\n"
+        msg = "SO101-Leader device for SE(3) control.\n"
         msg += "\t----------------------------------------------\n"
         msg += "\tMove SO101-Leader to control SO101-Follower\n"
         msg += "\tIf SO101-Follower can't synchronize with SO101-Leader, please add --recalibrate and rerun to recalibrate SO101-Leader.\n"
         return msg
-    
+
     def _display_controls(self):
         """
         Method to pretty print controls.
@@ -90,18 +91,18 @@ class SO101Leader(Device):
             key (str): key that was pressed
         """
         try:
-            if key.char=='b':
+            if key.char == 'b':
                 self._started = True
                 self._reset_state = False
-            elif key.char=='r':
+            elif key.char == 'r':
                 self._started = False
                 self._reset_state = True
                 self._additional_callbacks["R"]()
-            elif key.char=='n':
+            elif key.char == 'n':
                 self._started = False
                 self._reset_state = True
                 self._additional_callbacks["N"]()
-        except AttributeError as e:
+        except AttributeError:
             pass
 
     def get_device_state(self):
@@ -131,19 +132,19 @@ class SO101Leader(Device):
 
     def add_callback(self, key: str, func: Callable):
         self._additional_callbacks[key] = func
-    
+
     @property
     def started(self) -> bool:
         return self._started
-    
+
     @property
     def reset_state(self) -> bool:
         return self._reset_state
-    
+
     @reset_state.setter
     def reset_state(self, reset_state: bool):
         self._reset_state = reset_state
-    
+
     @property
     def motor_limits(self) -> Dict[str, Tuple[float, float]]:
         return self._motor_limits
@@ -154,23 +155,23 @@ class SO101Leader(Device):
 
     def disconnect(self):
         if not self.is_connected:
-            raise DeviceNotConnectedError(f"SO101-Leader is not connected.")
+            raise DeviceNotConnectedError("SO101-Leader is not connected.")
         self._bus.disconnect()
         print("SO101-Leader disconnected.")
 
     def connect(self):
         if self.is_connected:
-            raise DeviceAlreadyConnectedError(f"SO101-Leader is already connected.")
+            raise DeviceAlreadyConnectedError("SO101-Leader is already connected.")
         self._bus.connect()
         self.configure()
         print("SO101-Leader connected.")
-    
+
     def configure(self) -> None:
         self._bus.disable_torque()
         self._bus.configure_motors()
         for motor in self._bus.motors:
             self._bus.write("Operating_Mode", motor, OperatingMode.POSITION.value)
-    
+
     def calibrate(self):
         self._bus = FeetechMotorsBus(
             port=self.port,
@@ -189,7 +190,7 @@ class SO101Leader(Device):
         self._bus.disable_torque()
         for motor in self._bus.motors:
             self._bus.write("Operating_Mode", motor, OperatingMode.POSITION.value)
-        
+
         input("Move SO101-Leader to the middle of its range of motion and press ENTER...")
         homing_offset = self._bus.set_half_turn_homings()
         print("Move all joints sequentially through their entire ranges of motion.")

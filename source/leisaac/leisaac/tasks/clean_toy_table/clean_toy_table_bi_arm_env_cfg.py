@@ -21,7 +21,6 @@ from leisaac.assets.robots.lerobot import SO101_FOLLOWER_CFG
 from leisaac.assets.scenes.toyroom import LIGHTWHEEL_TOYROOM_CFG, LIGHTWHEEL_TOYROOM_USD_PATH
 from leisaac.devices.action_process import init_action_cfg, preprocess_device_action
 from leisaac.utils.general_assets import parse_usd_and_create_subassets
-from leisaac.utils.domain_randomization import randomize_object_uniform, randomize_camera_uniform, domain_randomization
 
 
 @configclass
@@ -36,7 +35,7 @@ class CleanToyTableBiArmSceneCfg(InteractiveSceneCfg):
 
     left_wrist: TiledCameraCfg = TiledCameraCfg(
         prim_path="{ENV_REGEX_NS}/Left_Robot/gripper/left_wrist_camera",
-        offset=TiledCameraCfg.OffsetCfg(pos=(-0.001, 0.1, -0.04), rot=(-0.404379, -0.912179, -0.0451242, 0.0486914), convention="ros"), # wxyz
+        offset=TiledCameraCfg.OffsetCfg(pos=(-0.001, 0.1, -0.04), rot=(-0.404379, -0.912179, -0.0451242, 0.0486914), convention="ros"),  # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
             focal_length=36.5,
@@ -47,12 +46,12 @@ class CleanToyTableBiArmSceneCfg(InteractiveSceneCfg):
         ),
         width=640,
         height=480,
-        update_period=1 / 30.0, # 30FPS
+        update_period=1 / 30.0,  # 30FPS
     )
 
     right_wrist: TiledCameraCfg = TiledCameraCfg(
         prim_path="{ENV_REGEX_NS}/Right_Robot/gripper/right_wrist_camera",
-        offset=TiledCameraCfg.OffsetCfg(pos=(-0.001, 0.1, -0.04), rot=(-0.404379, -0.912179, -0.0451242, 0.0486914), convention="ros"), # wxyz
+        offset=TiledCameraCfg.OffsetCfg(pos=(-0.001, 0.1, -0.04), rot=(-0.404379, -0.912179, -0.0451242, 0.0486914), convention="ros"),  # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
             focal_length=36.5,
@@ -63,12 +62,12 @@ class CleanToyTableBiArmSceneCfg(InteractiveSceneCfg):
         ),
         width=640,
         height=480,
-        update_period=1 / 30.0, # 30FPS
+        update_period=1 / 30.0,  # 30FPS
     )
 
     top: TiledCameraCfg = TiledCameraCfg(
         prim_path="{ENV_REGEX_NS}/Right_Robot/base/top_camera",
-        offset=TiledCameraCfg.OffsetCfg(pos=(0.225, -0.5, 0.6), rot=(0.1650476, -0.9862856, 0.0, 0.0), convention="ros"), # wxyz
+        offset=TiledCameraCfg.OffsetCfg(pos=(0.225, -0.5, 0.6), rot=(0.1650476, -0.9862856, 0.0, 0.0), convention="ros"),  # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
             focal_length=28.7,
@@ -79,13 +78,14 @@ class CleanToyTableBiArmSceneCfg(InteractiveSceneCfg):
         ),
         width=640,
         height=480,
-        update_period=1 / 30.0, # 30FPS
+        update_period=1 / 30.0,  # 30FPS
     )
 
     light = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Light",
         spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
     )
+
 
 @configclass
 class ActionsCfg:
@@ -95,12 +95,14 @@ class ActionsCfg:
     right_arm_action: mdp.ActionTermCfg = MISSING
     right_gripper_action: mdp.ActionTermCfg = MISSING
 
+
 @configclass
 class EventCfg:
     """Configuration for the events."""
 
     # reset to default scene
     reset_all = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
+
 
 @configclass
 class ObservationsCfg:
@@ -132,14 +134,17 @@ class ObservationsCfg:
     # observation groups
     policy: PolicyCfg = PolicyCfg()
 
+
 @configclass
 class RewardsCfg:
     """Configuration for the rewards"""
+
 
 @configclass
 class TerminationsCfg:
     """Configuration for the termination"""
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
+
 
 @configclass
 class CleanToyTableBiArmEnvCfg(ManagerBasedRLEnvCfg):
@@ -177,6 +182,6 @@ class CleanToyTableBiArmEnvCfg(ManagerBasedRLEnvCfg):
         self.actions = init_action_cfg(self.actions, device=teleop_device)
         if teleop_device == "keyboard":
             self.scene.robot.spawn.rigid_props.disable_gravity = True
-    
+
     def preprocess_device_action(self, action: dict[str, Any], teleop_device) -> torch.Tensor:
         return preprocess_device_action(action, teleop_device)

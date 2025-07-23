@@ -13,6 +13,7 @@ def get_all_prims(stage, prim=None, prims_list=None):
         get_all_prims(stage, child, prims_list)
     return prims_list
 
+
 def classify_prim(prim):
     if prim.HasAPI(UsdPhysics.ArticulationRootAPI):
         return "Articulation"
@@ -21,14 +22,18 @@ def classify_prim(prim):
     else:
         return "Normal"
 
+
 def is_articulation_root(prim):
     return prim.HasAPI(UsdPhysics.ArticulationRootAPI)
+
 
 def is_rigidbody(prim):
     return prim.HasAPI(UsdPhysics.RigidBodyAPI)
 
+
 def get_all_joints(stage):
     joints = []
+
     def recurse(prim):
         if UsdPhysics.Joint(prim):
             joints.append(prim)
@@ -37,9 +42,11 @@ def get_all_joints(stage):
     recurse(stage.GetPseudoRoot())
     return joints
 
+
 def get_stage(usd_path):
     stage = Usd.Stage.Open(usd_path)
     return stage
+
 
 def get_prim_pos_rot(prim):
     xformable = UsdGeom.Xformable(prim)
@@ -53,11 +60,13 @@ def get_prim_pos_rot(prim):
         rot_list = [1, 0, 0, 0]
     pos = matrix.ExtractTranslation()
     pos_list = list(pos)
-    
+
     return pos_list, rot_list
+
 
 def get_articulation_joints(articulation_prim):
     joints = []
+
     def recurse(prim):
         if UsdPhysics.Joint(prim):
             joints.append(prim)
@@ -66,22 +75,28 @@ def get_articulation_joints(articulation_prim):
     recurse(articulation_prim)
     return joints
 
+
 def get_joint_type(joint_prim):
     joint = UsdPhysics.Joint(joint_prim)
     return joint.GetTypeName()
 
+
 def is_fixed_joint(prim):
     return prim.GetTypeName() == 'PhysicsFixedJoint'
+
 
 def is_revolute_joint(prim):
     return prim.GetTypeName() == 'PhysicsRevoluteJoint'
 
+
 def is_prismatic_joint(prim):
     return prim.GetTypeName() == "PhysicsPrismaticJoint"
+
 
 def get_joint_name_and_qpos(joint_prim):
     joint = UsdPhysics.Joint(joint_prim)
     return joint.GetName(), joint.GetPositionAttr().Get()
+
 
 def get_all_joints_without_fixed(articulation_prim):
     joints = get_articulation_joints(articulation_prim)
@@ -98,6 +113,7 @@ def match_specific_name(prim_path, specific_name_list, exlude_name_list):
 
     return match_specific and not match_exclude
 
+
 def parse_usd_and_create_subassets(usd_path, env_cfg, specific_name_list=None, exclude_name_list=None):
     stage = get_stage(usd_path)
     prims = get_all_prims(stage)
@@ -110,13 +126,13 @@ def parse_usd_and_create_subassets(usd_path, env_cfg, specific_name_list=None, e
             if not joints:
                 continue
             orin_prim_path = prim.GetPath().pathString
-            name=orin_prim_path.split("/")[-1]
+            name = orin_prim_path.split("/")[-1]
             if name not in create_attr_record:
                 create_attr_record[name] = 0
             else:
                 create_attr_record[name] += 1
                 name = f"{name}_{create_attr_record[name]}"
-            sub_prim_path = orin_prim_path[orin_prim_path.find('/', 1)+1: ]
+            sub_prim_path = orin_prim_path[orin_prim_path.find('/', 1) + 1:]
             prim_path = f"{{ENV_REGEX_NS}}/Scene/{sub_prim_path}"
             artcfg = ArticulationCfg(
                 prim_path=prim_path,
@@ -129,7 +145,7 @@ def parse_usd_and_create_subassets(usd_path, env_cfg, specific_name_list=None, e
             )
             setattr(env_cfg.scene, name, artcfg)
             articulation_sub_prims.extend(get_all_prims(stage, prim))
-    for prim in prims:        
+    for prim in prims:
         if is_rigidbody(prim) and match_specific_name(prim.GetPath().pathString, specific_name_list, exclude_name_list):
             if prim in articulation_sub_prims:
                 continue
@@ -141,8 +157,8 @@ def parse_usd_and_create_subassets(usd_path, env_cfg, specific_name_list=None, e
             else:
                 create_attr_record[name] += 1
                 name = f"{name}_{create_attr_record[name]}"
-            sub_prim_path = orin_prim_path[orin_prim_path.find('/', 1)+1: ]
-            prim_path=f"{{ENV_REGEX_NS}}/Scene/{sub_prim_path}"
+            sub_prim_path = orin_prim_path[orin_prim_path.find('/', 1) + 1:]
+            prim_path = f"{{ENV_REGEX_NS}}/Scene/{sub_prim_path}"
             rigidcfg = RigidObjectCfg(
                 prim_path=prim_path,
                 spawn=None,

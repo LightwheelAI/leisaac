@@ -8,7 +8,7 @@ import leisaac.enhance.envs.mdp as enhance_mdp
 
 
 def randomize_object_uniform(
-    name: str, 
+    name: str,
     pose_range: dict[str, tuple[float, float]],
     velocity_range: dict[str, tuple[float, float]] | None = None,
 ) -> EventTerm:
@@ -24,6 +24,7 @@ def randomize_object_uniform(
         }
     )
 
+
 def randomize_camera_uniform(
     name: str,
     pose_range: dict[str, tuple[float, float]],
@@ -38,6 +39,7 @@ def randomize_camera_uniform(
             "convention": convention,
         }
     )
+
 
 def domain_randomization(env_cfg, random_options: List[EventTerm]):
     for idx, event_item in enumerate(random_options):

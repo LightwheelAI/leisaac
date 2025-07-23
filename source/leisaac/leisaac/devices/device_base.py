@@ -62,7 +62,7 @@ class Device(DeviceBase):
                             using this device.
         """
         self.env = env
-    
+
     def get_device_state(self):
         raise NotImplementedError
 

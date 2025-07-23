@@ -175,13 +175,15 @@ LEROBOT_JOINT_POS_LIMIT_RANGE = [
     (0, 100),
 ]
 
+
 def preprocess_joint_pos(joint_pos: np.ndarray) -> np.ndarray:
-    joint_pos  = joint_pos / np.pi * 180
+    joint_pos = joint_pos / np.pi * 180
     for i in range(6):
         isaaclab_min, isaaclab_max = ISAACLAB_JOINT_POS_LIMIT_RANGE[i]
         lerobot_min, lerobot_max = LEROBOT_JOINT_POS_LIMIT_RANGE[i]
         joint_pos[:, i] = (joint_pos[:, i] - isaaclab_min) / (isaaclab_max - isaaclab_min) * (lerobot_max - lerobot_min) + lerobot_min
     return joint_pos
+
 
 def process_single_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Group, demo_name: str) -> bool:
     try:
@@ -189,7 +191,7 @@ def process_single_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py
         joint_pos = np.array(demo_group['obs/joint_pos'])
         front_images = np.array(demo_group['obs/front'])
         wrist_images = np.array(demo_group['obs/wrist'])
-    except KeyError as e:
+    except KeyError:
         print(f'Demo {demo_name} is not valid, skip it')
         return False
 
@@ -211,6 +213,7 @@ def process_single_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py
 
     return True
 
+
 def process_bi_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Group, demo_name: str) -> bool:
     try:
         actions = np.array(demo_group['obs/actions'])
@@ -219,7 +222,7 @@ def process_bi_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Gro
         left_images = np.array(demo_group['obs/left'])
         right_images = np.array(demo_group['obs/right'])
         top_images = np.array(demo_group['obs/top'])
-    except KeyError as e:
+    except KeyError:
         print(f'Demo {demo_name} is not valid, skip it')
         return False
 
@@ -243,10 +246,11 @@ def process_bi_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Gro
 
     return True
 
+
 def convert_isaaclab_to_lerobot():
     """NOTE: Modify the following parameters to fit your own dataset"""
     repo_id = 'EverNorif/so101_test_orange_pick'
-    robot_type = 'so101_follower' # so101_follower, bi_so101_follower
+    robot_type = 'so101_follower'  # so101_follower, bi_so101_follower
     fps = 30
     hdf5_root = './datasets'
     hdf5_files = [os.path.join(hdf5_root, 'dataset.hdf5')]
@@ -270,18 +274,18 @@ def convert_isaaclab_to_lerobot():
         with h5py.File(hdf5_file, 'r') as f:
             demo_names = list(f['data'].keys())
             print(f'Found {len(demo_names)} demos: {demo_names}')
-            
+
             for demo_name in tqdm(demo_names, desc='Processing each demo'):
                 demo_group = f['data'][demo_name]
                 if "success" in demo_group.attrs and not demo_group.attrs["success"]:
                     print(f'Demo {demo_name} is not successful, skip it')
                     continue
-                
+
                 if robot_type == 'so101_follower':
                     valid = process_single_arm_data(dataset, task, demo_group, demo_name)
                 elif robot_type == 'bi_so101_follower':
                     valid = process_bi_arm_data(dataset, task, demo_group, demo_name)
-                
+
                 if valid:
                     now_episode_index += 1
                     dataset.save_episode()
@@ -290,6 +294,6 @@ def convert_isaaclab_to_lerobot():
     if push_to_hub:
         dataset.push_to_hub()
 
+
 if __name__ == '__main__':
     convert_isaaclab_to_lerobot()
-    
