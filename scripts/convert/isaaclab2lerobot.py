@@ -1,5 +1,4 @@
 import os
-from pyexpat import features
 import h5py
 import numpy as np
 
@@ -246,11 +245,11 @@ def process_bi_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Gro
 
 def convert_isaaclab_to_lerobot():
     """NOTE: Modify the following parameters to fit your own dataset"""
-    repo_id = 'EverNorif/single-arm-test'
+    repo_id = 'EverNorif/so101_test_orange_pick'
     robot_type = 'so101_follower' # so101_follower, bi_so101_follower
     fps = 30
     hdf5_root = './datasets'
-    hdf5_files = [os.path.join(hdf5_root, 'single-arm-dataset.hdf5')]
+    hdf5_files = [os.path.join(hdf5_root, 'dataset.hdf5')]
     task = 'Grab orange and place into plate'
     push_to_hub = False
 
