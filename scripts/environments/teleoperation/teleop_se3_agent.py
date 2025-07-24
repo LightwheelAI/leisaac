@@ -170,7 +170,7 @@ def main():
     while simulation_app.is_running():
         # run everything in inference mode
         with torch.inference_mode():
-            dynamic_reset_gripper_effort_limit_sim(env)
+            dynamic_reset_gripper_effort_limit_sim(env, args_cli.teleop_device)
             actions = teleop_interface.advance()
             if should_reset_task_success:
                 print("Task Success!!!")
