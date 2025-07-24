@@ -65,6 +65,8 @@ class StreamingRecorderManager(RecorderManager):
         # Export episode data through dataset exporter
         for env_id in env_ids:
             if env_id in self._episodes and not self._episodes[env_id].is_empty() and (self._env_steps_record[env_id] >= self._flush_steps or not from_step):
+                if self._env.cfg.seed is not None:
+                    self._episodes[env_id].seed = self._env.cfg.seed
                 episode_succeeded = self._episodes[env_id].success
                 target_dataset_file_handler = None
                 if self.cfg.dataset_export_mode == DatasetExportMode.EXPORT_ALL:

@@ -114,7 +114,11 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 
 - `--teleop_device`: Specify the teleoperation device type, e.g., `so101leader`, `bi-so101-leader`, `keyboard`.
 
--  `--port`: Specify the port of teleoperation device, e.g., `/dev/ttyACM0`. only used when teleop_device is `so101leader`.
+-  `--port`: Specify the port of teleoperation device, e.g., `/dev/ttyACM0`. Only used when teleop_device is `so101leader`.
+
+- `--left_arm_port`: Specify the port of left arm, e.g., `/dev/ttyACM0`. Only used when teleop_device is `bi-so101leader`.
+
+- `--right_arm_port`: Specify the port of right arm, e.g., `/dev/ttyACM1`. Only used when teleop_device is `bi-so101leader`.
 
 - `--num_envs`: Set the number of parallel simulation environments, usually `1` for teleoperation.
 

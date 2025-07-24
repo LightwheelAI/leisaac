@@ -11,7 +11,8 @@ def dynamic_reset_gripper_effort_limit_sim(env, teleop_device):
     for arm in need_to_set:
         write_gripper_effort_limit_sim(env, arm)
     return
-        
+
+
 def write_gripper_effort_limit_sim(env, env_arm):
     gripper_pos = env_arm.data.body_link_pos_w[0][-1]
     minm_distance = 1e10

@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Script to run a keyboard teleoperation with Isaac Lab manipulation environments."""
+"""Script to run a leisaac teleoperation with leisaac manipulation environments."""
 
 """Launch Isaac Sim Simulator first."""
 import multiprocessing
@@ -14,13 +14,14 @@ import argparse
 from isaaclab.app import AppLauncher
 
 # add argparse arguments
-parser = argparse.ArgumentParser(description="Keyboard teleoperation for Isaac Lab environments.")
+parser = argparse.ArgumentParser(description="leisaac teleoperation for leisaac environments.")
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
 parser.add_argument("--teleop_device", type=str, default="keyboard", choices=['keyboard', 'so101leader', 'bi-so101leader'], help="Device for interacting with environment")
 parser.add_argument("--port", type=str, default='/dev/ttyACM0', help="Port for the teleop device:so101leader, default is /dev/ttyACM0")
 parser.add_argument("--left_arm_port", type=str, default='/dev/ttyACM0', help="Port for the left teleop device:bi-so101leader, default is /dev/ttyACM0")
 parser.add_argument("--right_arm_port", type=str, default='/dev/ttyACM1', help="Port for the right teleop device:bi-so101leader, default is /dev/ttyACM1")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
+parser.add_argument("--seed", type=int, default=42, help="Seed for the environment.")
 parser.add_argument("--sensitivity", type=float, default=1.0, help="Sensitivity factor.")
 
 # recorder_parameter
@@ -85,7 +86,7 @@ class RateLimiter:
 
 
 def main():
-    """Running keyboard teleoperation with Isaac Lab manipulation environment."""
+    """Running lerobot teleoperation with leisaac manipulation environment."""
 
     # get directory path and file name (without extension) from cli arguments
     output_dir = os.path.dirname(args_cli.dataset_file)
@@ -96,6 +97,7 @@ def main():
 
     env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs)
     env_cfg.use_teleop_device(args_cli.teleop_device)
+    env_cfg.seed = args_cli.seed
     task_name = args_cli.task
 
     # precheck task and teleop device
@@ -105,8 +107,8 @@ def main():
     # modify configuration
     if hasattr(env_cfg.terminations, "time_out"):
         env_cfg.terminations.time_out = None
-    if hasattr(env_cfg.recorders, "success"):
-        env_cfg.recorders.success = None
+    if hasattr(env_cfg.terminations, "success"):
+        env_cfg.terminations.success = None
     if args_cli.record:
         env_cfg.recorders.dataset_export_dir_path = output_dir
         env_cfg.recorders.dataset_filename = output_file_name
