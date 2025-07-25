@@ -168,6 +168,57 @@ python scripts/convert/isaaclab2lerobot.py
 - Then, fine-tune GR00T N1.5 using this data.
 - Finally, deploy the trained policy on real hardware.
 
+## Policy Inference 🧩
+
+We also provide interfaces for running policy inference in simulation. You can start inference with the following script:
+
+```shell
+python scripts/evaluation/policy_inference.py \
+    --task=LeIsaac-SO101-PickOrange-v0 \
+    --policy_type=gr00tn1.5 \
+    --policy_host=localhost \
+    --policy_port=5555 \
+    --policy_timeout_ms=15000 \
+    --policy_action_horizon=8 \
+    --policy_language_instruction="Pick up the orange and place it on the plate" \
+    --policy_checkpoint_path=</path/to/checkpoint> \
+    --device=cuda
+```
+
+**Parameter Descriptions:**
+- `--task`: Name of the task environment to run for inference (e.g., `LeIsaac-SO101-PickOrange-v0`).
+
+- `--policy_type`: Type of policy to use (default: `gr00tn1.5`).
+    - now we support `gr00tn1.5`.
+
+- `--policy_host`: Host address of the policy server (default: `localhost`).
+
+- `--policy_port`: Port of the policy server (default: `5555`).
+
+- `--policy_timeout_ms`: Timeout for the policy server in milliseconds (default: `15000`).
+
+- `--policy_action_horizon`: Number of actions to predict per inference (default: `8`).
+
+- `--policy_language_instruction`: Language instruction for the policy (e.g., task description in natural language).
+
+- `--policy_checkpoint_path`: Path to the policy checkpoint (if required).
+
+- `--device`: Computation device, such as `cpu` or `cuda`.
+
+You may also use additional arguments supported by IsaacLab's `AppLauncher` (see their documentation for details).
+
+
+Depending on your use case, you may need to install additional dependencies to enable inference:
+
+```shell
+pip install pyzmq
+```
+
+**Important:**
+For service-based policies, you must start the corresponding service before running inference.  
+For example, with GR00T, you need to launch the GR00T N1.5 inference server first.  
+You can refer to the [GR00T evaluation documentation](https://github.com/NVIDIA/Isaac-GR00T?tab=readme-ov-file#4-evaluation) for detailed instructions.
+
 ## Acknowledgements 🙏
 
 We gratefully acknowledge [IsaacLab](https://github.com/isaac-sim/IsaacLab) and [LeRobot](https://github.com/huggingface/lerobot) for their excellent work, from which we have borrowed some code.

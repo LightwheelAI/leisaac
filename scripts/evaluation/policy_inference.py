@@ -16,7 +16,7 @@ parser.add_argument("--policy_type", type=str, default="gr00tn1.5", choices=["gr
 parser.add_argument("--policy_host", type=str, default="localhost", help="Host of the policy server.")
 parser.add_argument("--policy_port", type=int, default=5555, help="Port of the policy server.")
 parser.add_argument("--policy_timeout_ms", type=int, default=15000, help="Timeout of the policy server.")
-parser.add_argument("--policy_action_horizon", type=int, default=16, help="Action horizon of the policy.")
+parser.add_argument("--policy_action_horizon", type=int, default=8, help="Action horizon of the policy.")
 parser.add_argument("--policy_language_instruction", type=str, default=None, help="Language instruction of the policy.")
 parser.add_argument("--policy_checkpoint_path", type=str, default=None, help="Checkpoint path of the policy.")
 
