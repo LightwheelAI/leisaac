@@ -8,6 +8,8 @@ from .common.motors import FeetechMotorsBus, Motor, MotorNormMode, MotorCalibrat
 from .common.errors import DeviceAlreadyConnectedError, DeviceNotConnectedError
 from ..device_base import Device
 
+from leisaac.assets.robots.lerobot import SO101_FOLLOWER_MOTOR_LIMITS
+
 
 class SO101Leader(Device):
     """A SO101 Leader device for SE(3) control.
@@ -35,14 +37,7 @@ class SO101Leader(Device):
             },
             calibration=calibration,
         )
-        self._motor_limits = {
-            'shoulder_pan': (-100.0, 100.0),
-            'shoulder_lift': (-100.0, 100.0),
-            'elbow_flex': (-100.0, 100.0),
-            'wrist_flex': (-100.0, 100.0),
-            'wrist_roll': (-100.0, 100.0),
-            'gripper': (0.0, 100.0),
-        }
+        self._motor_limits = SO101_FOLLOWER_MOTOR_LIMITS
 
         # connect
         self.connect()

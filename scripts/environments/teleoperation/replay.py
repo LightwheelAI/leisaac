@@ -36,7 +36,8 @@ import gymnasium as gym
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
 
-import leisaac
+import leisaac  # noqa: F401
+from leisaac.utils.env_utils import get_task_type
 
 
 class RateLimiter:
@@ -100,7 +101,7 @@ def main():
     """Running lerobot teleoperation with leisaac manipulation environment."""
 
     env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs)
-    task_type = "bi-so101leader" if "BiArm" in args_cli.task else "so101leader"
+    task_type = get_task_type(args_cli.task)
     env_cfg.use_teleop_device(task_type)
 
     # modify configuration

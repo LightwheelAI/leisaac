@@ -30,3 +30,13 @@ def write_gripper_effort_limit_sim(env, env_arm):
         if math.fabs(target_effort_limit_sim - current_effort_limit_sim) > 0.1:
             env_arm.write_joint_effort_limit_to_sim(limits=target_effort_limit_sim, joint_ids=[5])
     return
+
+
+def get_task_type(task: str) -> str:
+    """
+    Make sure the task type is in the supported teleop devices.
+    """
+    if "BiArm" in task:
+        return "bi-so101leader"
+    else:
+        return "so101leader"

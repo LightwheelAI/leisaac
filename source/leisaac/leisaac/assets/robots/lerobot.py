@@ -54,6 +54,7 @@ SO101_FOLLOWER_CFG = ArticulationCfg(
     soft_joint_pos_limit_factor=1.0,
 )
 
+# joint limit written in USD (degree)
 SO101_FOLLOWER_USD_JOINT_LIMLITS = {
     "shoulder_pan": (-110.0, 110.0),
     "shoulder_lift": (-100.0, 100.0),
@@ -62,6 +63,17 @@ SO101_FOLLOWER_USD_JOINT_LIMLITS = {
     "wrist_roll": (-160.0, 160.0),
     "gripper": (-10, 100.0),
 }
+
+# motor limit written in real device (normalized to related range)
+SO101_FOLLOWER_MOTOR_LIMITS = {
+    'shoulder_pan': (-100.0, 100.0),
+    'shoulder_lift': (-100.0, 100.0),
+    'elbow_flex': (-100.0, 100.0),
+    'wrist_flex': (-100.0, 100.0),
+    'wrist_roll': (-100.0, 100.0),
+    'gripper': (0.0, 100.0),
+}
+
 
 SO101_FOLLOWER_REST_POSE_RANGE = {
     "shoulder_pan": (0 - 20.0, 0 + 20.0),  # 0 degree
