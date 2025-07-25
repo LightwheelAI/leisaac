@@ -75,7 +75,7 @@ def parse_dataset(dataset_file: str, episode_index: int, task_type: str, device:
 
         seed = int(demo_group.attrs.get("seed", -1))
 
-        if task_type == "bi-arm":
+        if task_type == "bi-so101leader":
             left_joint_pos = torch.tensor(np.array(demo_group['obs/left_joint_pos']), device=device)
             right_joint_pos = torch.tensor(np.array(demo_group['obs/right_joint_pos']), device=device)
             states = torch.cat([left_joint_pos, right_joint_pos], dim=1)
