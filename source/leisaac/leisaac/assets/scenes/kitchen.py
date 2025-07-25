@@ -16,3 +16,11 @@ KITCHEN_WITH_ORANGE_CFG = AssetBaseCfg(
         usd_path=KITCHEN_WITH_ORANGE_USD_PATH,
     )
 )
+
+KITCHEN_WITH_HAMBURGER_USD_PATH = str(SCENES_ROOT / "kitchen_with_hamburger" / "scene.usd")
+
+KITCHEN_WITH_HAMBURGER_CFG = AssetBaseCfg(
+    spawn=sim_utils.UsdFileCfg(
+        usd_path=KITCHEN_WITH_HAMBURGER_USD_PATH,
+    )
+)
