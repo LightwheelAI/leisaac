@@ -13,10 +13,10 @@ class Gr00tServicePolicyClient(ServicePolicy):
 
     def __init__(
         self,
-        host: str,
-        port: int,
-        camera_keys: list[str],
-        timeout_ms: int = 15000,
+        host: str = "localhost",
+        port: int = 5555,
+        timeout_ms: int = 5000,
+        camera_keys: list[str] = ['front', 'wrist'],
         modality_keys: list[str] = ["single_arm", "gripper"],
     ):
         """
@@ -27,12 +27,9 @@ class Gr00tServicePolicyClient(ServicePolicy):
             timeout_ms: Timeout of the policy server.
             modality_keys: Keys of the modality.
         """
-        super().__init__(host=host, port=port, timeout_ms=timeout_ms)
+        super().__init__(host=host, port=port, timeout_ms=timeout_ms, ping_endpoint="ping", kill_endpoint="kill")
         self.camera_keys = camera_keys
         self.modality_keys = modality_keys
-
-        self._ping_endpoint = "ping"
-        self._kill_endpoint = "kill"
 
     def get_action(self, observation_dict: dict) -> torch.Tensor:
         obs_dict = {f"video.{key}": observation_dict[key].cpu().numpy().astype(np.uint8) for key in self.camera_keys}

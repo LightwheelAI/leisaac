@@ -39,8 +39,13 @@ git clone git@github.com:isaac-sim/IsaacLab.git
 sudo apt install cmake build-essential
 
 cd IsaacLab
+# fix isaaclab version for isaacsim4.5
+git checkout v2.1.0
 ./isaaclab.sh --install
 ```
+
+> [!TIP] 
+> If you are using 50 series GPU, we recommand to use isaacsim5.0 and isaaclab with `feature/isaacsim_5_0` branch.
 
 ### 2. Clone This Repository
 
@@ -170,7 +175,7 @@ python scripts/convert/isaaclab2lerobot.py
 
 ## Policy Inference 🧩
 
-We also provide interfaces for running policy inference in simulation. You can start inference with the following script:
+We also provide interfaces for running policy inference in simulation. You can start inference with the following script (take gr00tn1.5 as example):
 
 ```shell
 python scripts/evaluation/policy_inference.py \
@@ -178,10 +183,9 @@ python scripts/evaluation/policy_inference.py \
     --policy_type=gr00tn1.5 \
     --policy_host=localhost \
     --policy_port=5555 \
-    --policy_timeout_ms=15000 \
-    --policy_action_horizon=8 \
+    --policy_timeout_ms=5000 \
+    --policy_action_horizon=16 \
     --policy_language_instruction="Pick up the orange and place it on the plate" \
-    --policy_checkpoint_path=</path/to/checkpoint> \
     --device=cuda
 ```
 
@@ -195,9 +199,9 @@ python scripts/evaluation/policy_inference.py \
 
 - `--policy_port`: Port of the policy server (default: `5555`).
 
-- `--policy_timeout_ms`: Timeout for the policy server in milliseconds (default: `15000`).
+- `--policy_timeout_ms`: Timeout for the policy server in milliseconds (default: `5000`).
 
-- `--policy_action_horizon`: Number of actions to predict per inference (default: `8`).
+- `--policy_action_horizon`: Number of actions to predict per inference (default: `16`).
 
 - `--policy_language_instruction`: Language instruction for the policy (e.g., task description in natural language).
 
@@ -214,10 +218,8 @@ Depending on your use case, you may need to install additional dependencies to e
 pip install pyzmq
 ```
 
-**Important:**
-For service-based policies, you must start the corresponding service before running inference.  
-For example, with GR00T, you need to launch the GR00T N1.5 inference server first.  
-You can refer to the [GR00T evaluation documentation](https://github.com/NVIDIA/Isaac-GR00T?tab=readme-ov-file#4-evaluation) for detailed instructions.
+> [!IMPORTANT]
+> For service-based policies, you must start the corresponding service before running inference. For example, with GR00T, you need to launch the GR00T N1.5 inference server first. You can refer to the [GR00T evaluation documentation](https://github.com/NVIDIA/Isaac-GR00T?tab=readme-ov-file#4-evaluation) for detailed instructions.
 
 ## Acknowledgements 🙏
 

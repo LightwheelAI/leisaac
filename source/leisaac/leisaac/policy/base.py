@@ -42,21 +42,31 @@ class TorchSerializer:
 
 
 class ServicePolicy(Policy):
-    def __init__(self, host: str, port: int, timeout_ms: int = 15000):
+    def __init__(self, host: str, port: int, timeout_ms: int = 5000, ping_endpoint: str = "ping", kill_endpoint: str = "kill"):
         super().__init__("service")
         self.host = host
         self.port = port
+        self.timeout_ms = timeout_ms
         self.context = zmq.Context()
         self._init_socket()
-        self._ping_endpoint = None
-        self._kill_endpoint = None
+        self._ping_endpoint = ping_endpoint
+        self._kill_endpoint = kill_endpoint
+        self.check_service_status()
 
     def _init_socket(self):
         """Initialize or reinitialize the socket with current settings"""
         self.socket = self.context.socket(zmq.REQ)
         self.socket.connect(f"tcp://{self.host}:{self.port}")
+        self.socket.setsockopt(zmq.RCVTIMEO, self.timeout_ms)
+        self.socket.setsockopt(zmq.SNDTIMEO, self.timeout_ms)
 
-    def ping(self) -> bool:
+    def check_service_status(self):
+        if not self._ping():
+            raise RuntimeError("Service is not running, please start the service first.")
+        else:
+            print("Service is running.")
+
+    def _ping(self) -> bool:
         if self._ping_endpoint is None:
             raise ValueError("ping_endpoint is not set")
         try:

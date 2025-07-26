@@ -16,7 +16,7 @@ parser.add_argument("--policy_type", type=str, default="gr00tn1.5", choices=["gr
 parser.add_argument("--policy_host", type=str, default="localhost", help="Host of the policy server.")
 parser.add_argument("--policy_port", type=int, default=5555, help="Port of the policy server.")
 parser.add_argument("--policy_timeout_ms", type=int, default=15000, help="Timeout of the policy server.")
-parser.add_argument("--policy_action_horizon", type=int, default=8, help="Action horizon of the policy.")
+parser.add_argument("--policy_action_horizon", type=int, default=16, help="Action horizon of the policy.")
 parser.add_argument("--policy_language_instruction", type=str, default=None, help="Language instruction of the policy.")
 parser.add_argument("--policy_checkpoint_path", type=str, default=None, help="Checkpoint path of the policy.")
 
@@ -42,7 +42,7 @@ from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
 
 import leisaac  # noqa: F401
-from leisaac.utils.env_utils import get_task_type, dynamic_reset_gripper_effort_limit_sim
+from leisaac.utils.env_utils import get_task_type
 
 
 class RateLimiter:
@@ -151,7 +151,6 @@ def main():
             obs_dict = preprocess_obs_dict(obs_dict['policy'], args_cli.policy_type, args_cli.policy_language_instruction)
             actions = policy.get_action(obs_dict).to(env.device)
             for i in range(args_cli.policy_action_horizon):
-                dynamic_reset_gripper_effort_limit_sim(env, task_type)
                 action = actions[i, :, :]
                 obs_dict, _, _, _, _ = env.step(action)
                 if rate_limiter:
