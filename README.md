@@ -45,7 +45,7 @@ git checkout v2.1.0
 ```
 
 > [!TIP] 
-> If you are using 50 series GPU, we recommand to use isaacsim5.0 and isaaclab with `feature/isaacsim_5_0` branch.
+> If you are using 50 series GPU, we recommend to use isaacsim5.0 and isaaclab with `feature/isaacsim_5_0` branch.
 
 ### 2. Clone This Repository
 
@@ -84,7 +84,7 @@ We provide an example USD asset—a kitchen scene. Please download related scene
 
 ### Scene Assets Download Table
 
-| Scene Name           | Description                        | Download Link                                                                             |
+| Scene Name           | Description                        | Download Link                                                                            |
 |----------------------|------------------------------------|------------------------------------------------------------------------------------------|
 | Kitchen with Orange  | Example kitchen scene with oranges | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.0)                  |
 | Lightwheel Toyroom   | Modern room with many toys         | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.1)                  |
@@ -113,13 +113,14 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
     --dataset_file=./datasets/dataset.hdf5
 ```
 
-**Parameter Descriptions:**
+<details>
+<summary><strong>Parameter descriptions for teleop_se3_agent.py</strong></summary><p></p>
 
 - `--task`: Specify the task environment name to run, e.g., `LeIsaac-SO101-PickOrange-v0`.
 
 - `--seed`: Specify the seed for environment, e.g., `42`.
 
-- `--teleop_device`: Specify the teleoperation device type, e.g., `so101leader`, `bi-so101-leader`, `keyboard`.
+- `--teleop_device`: Specify the teleoperation device type, e.g., `so101leader`, `bi-so101leader`, `keyboard`.
 
 -  `--port`: Specify the port of teleoperation device, e.g., `/dev/ttyACM0`. Only used when teleop_device is `so101leader`.
 
@@ -136,7 +137,10 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 - `--record`: Enable data recording; saves teleoperation data to an HDF5 file.
 
 - `--dataset_file`: Path to save the recorded dataset, e.g., `./datasets/record_data.hdf5`.
-  
+
+</details>
+
+
 If the calibration file does not exist at the specified cache path, or if you launch with `--recalibrate`, you will be prompted to calibrate the SO101Leader.  Please refer to the [documentation](https://huggingface.co/docs/lerobot/so101#calibration-video) for calibration steps.
 
 After entering the IsaacLab window, press the `b` key on your keyboard to start teleoperation. You can then use the specified teleop_device to control the robot in the simulation. If you need to reset the environment after completing your operation, simply press the `r` or `n` key. `r` means resetting the environment and marking the task as failed, while `n` means resetting the environment and marking the task as successful.
@@ -151,6 +155,37 @@ sudo chmod 666 /dev/ttyACM0
 # or just add your user in related groups
 sudo usermod -aG dialout $USER
 ```
+
+## Dataset Replay 📺
+
+After teleoperation, you can replay the collected dataset in the simulation environment using the following script:
+
+```shell
+python scripts/environments/teleoperation/replay.py \
+    --task=LeIsaac-SO101-PickOrange-v0 \
+    --num_envs=1 \
+    --device=cpu \
+    --enable_cameras \
+    --dataset_file=./datasets/dataset.hdf5 \
+    --episode_index=0
+```
+
+<details>
+<summary><strong>Parameter descriptions for replay.py</strong></summary><p></p>
+
+- `--task`: Specify the task environment name to run, e.g., `LeIsaac-SO101-PickOrange-v0`.
+
+- `--num_envs`: Set the number of parallel simulation environments, usually `1` for replay.
+
+- `--device`: Specify the computation device, such as `cpu` or `cuda` (GPU).
+
+- `--enable_cameras`: Enable camera sensors to visualize when replay.
+
+- `--dataset_file`: Path to the recorded dataset, e.g., `./datasets/record_data.hdf5`.
+
+- `--episode_index`: Index of the episode to replay from the dataset, e.g., `0`.
+
+</details>
 
 ## Data Convention & Conversion 📊
 
@@ -189,7 +224,9 @@ python scripts/evaluation/policy_inference.py \
     --device=cuda
 ```
 
-**Parameter Descriptions:**
+<details>
+<summary><strong>Parameter descriptions for policy_inference.py</strong></summary><p></p>
+
 - `--task`: Name of the task environment to run for inference (e.g., `LeIsaac-SO101-PickOrange-v0`).
 
 - `--policy_type`: Type of policy to use (default: `gr00tn1.5`).
@@ -211,6 +248,7 @@ python scripts/evaluation/policy_inference.py \
 
 You may also use additional arguments supported by IsaacLab's `AppLauncher` (see their documentation for details).
 
+</details>
 
 Depending on your use case, you may need to install additional dependencies to enable inference:
 
