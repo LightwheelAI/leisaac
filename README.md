@@ -166,6 +166,7 @@ python scripts/environments/teleoperation/replay.py \
     --num_envs=1 \
     --device=cpu \
     --enable_cameras \
+    --replay_mode=action \
     --dataset_file=./datasets/dataset.hdf5 \
     --select_episodes 1 2
 ```
@@ -180,6 +181,8 @@ python scripts/environments/teleoperation/replay.py \
 - `--device`: Specify the computation device, such as `cpu` or `cuda` (GPU).
 
 - `--enable_cameras`: Enable camera sensors to visualize when replay.
+
+- `--replay_mode`: Replay mode, we support replay `action` or `state`.
 
 - `--dataset_file`: Path to the recorded dataset, e.g., `./datasets/record_data.hdf5`.
 

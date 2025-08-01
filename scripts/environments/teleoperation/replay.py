@@ -14,6 +14,7 @@ parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
 parser.add_argument("--step_hz", type=int, default=60, help="Environment stepping rate in Hz.")
 parser.add_argument("--dataset_file", type=str, default="./datasets/dataset.hdf5", help="File path to load recorded demos.")
+parser.add_argument("--replay_mode", type=str, default="action", choices=["action", "state"], help="Replay mode, action: replay the action, state: replay the state.")
 parser.add_argument("--select_episodes", type=int, nargs="+", default=[], help="A list of episode indices to replayed. Keep empty to replay all episodes.")
 
 # append AppLauncher cli args
@@ -38,7 +39,7 @@ from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab.utils.datasets import HDF5DatasetFileHandler, EpisodeData
 
 import leisaac  # noqa: F401
-from leisaac.utils.env_utils import get_task_type
+from leisaac.utils.env_utils import get_task_type, dynamic_reset_gripper_effort_limit_sim
 
 
 class RateLimiter:
@@ -138,7 +139,7 @@ def main():
                 actions = idle_action
                 has_next_action = False
                 for env_id in range(num_envs):
-                    env_next_action = get_next_action(env_episode_data_map[env_id], return_state=True, task_type=task_type)
+                    env_next_action = get_next_action(env_episode_data_map[env_id], return_state=args_cli.replay_mode == "state", task_type=task_type)
                     if env_next_action is None:
                         next_episode_index = None
                         while episode_indices_to_replay:
@@ -158,13 +159,15 @@ def main():
                             initial_state = episode_data.get_initial_state()
                             env.reset_to(initial_state, torch.tensor([env_id], device=env.device), seed=int(episode_data.seed), is_relative=True)
                             # Get the first action for the new episode
-                            env_next_action = get_next_action(env_episode_data_map[env_id], return_state=True, task_type=task_type)
+                            env_next_action = get_next_action(env_episode_data_map[env_id], return_state=args_cli.replay_mode == "state", task_type=task_type)
                             has_next_action = True
                         else:
                             continue
                     else:
                         has_next_action = True
                     actions[env_id] = env_next_action
+                if args_cli.replay_mode == "action":
+                    dynamic_reset_gripper_effort_limit_sim(env, task_type)
                 env.step(actions)
                 rate_limiter.sleep(env)
             break
