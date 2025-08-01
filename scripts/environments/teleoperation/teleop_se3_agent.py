@@ -21,7 +21,7 @@ parser.add_argument("--port", type=str, default='/dev/ttyACM0', help="Port for t
 parser.add_argument("--left_arm_port", type=str, default='/dev/ttyACM0', help="Port for the left teleop device:bi-so101leader, default is /dev/ttyACM0")
 parser.add_argument("--right_arm_port", type=str, default='/dev/ttyACM1', help="Port for the right teleop device:bi-so101leader, default is /dev/ttyACM1")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
-parser.add_argument("--seed", type=int, default=42, help="Seed for the environment.")
+parser.add_argument("--seed", type=int, default=None, help="Seed for the environment.")
 parser.add_argument("--sensitivity", type=float, default=1.0, help="Sensitivity factor.")
 
 # recorder_parameter
@@ -97,7 +97,7 @@ def main():
 
     env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs)
     env_cfg.use_teleop_device(args_cli.teleop_device)
-    env_cfg.seed = args_cli.seed
+    env_cfg.seed = args_cli.seed if args_cli.seed is not None else int(time.time())
     task_name = args_cli.task
 
     # precheck task and teleop device
