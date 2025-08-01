@@ -14,7 +14,7 @@ parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
 parser.add_argument("--step_hz", type=int, default=60, help="Environment stepping rate in Hz.")
 parser.add_argument("--dataset_file", type=str, default="./datasets/dataset.hdf5", help="File path to load recorded demos.")
-parser.add_argument("--episode_index", type=int, default=0, help="Replay the episode with the given index.")
+parser.add_argument("--select_episodes", type=int, nargs="+", default=[], help="A list of episode indices to replayed. Keep empty to replay all episodes.")
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -27,14 +27,15 @@ app_launcher_args = vars(args_cli)
 app_launcher = AppLauncher(app_launcher_args)
 simulation_app = app_launcher.app
 
+import os
 import time
 import torch
-import h5py
-import numpy as np
 import gymnasium as gym
+import contextlib
 
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
+from isaaclab.utils.datasets import HDF5DatasetFileHandler, EpisodeData
 
 import leisaac  # noqa: F401
 from leisaac.utils.env_utils import get_task_type
@@ -68,75 +69,109 @@ class RateLimiter:
                 self.last_time += self.sleep_duration
 
 
-def parse_dataset(dataset_file: str, episode_index: int, task_type: str, device: str):
-    with h5py.File(dataset_file, 'r') as f:
-        demo_names = list(f['data'].keys())
-        demo_name = demo_names[episode_index]
-        demo_group = f['data'][demo_name]
-
-        seed = int(demo_group.attrs.get("seed", -1))
-
+def get_next_action(episode_data: EpisodeData, return_state: bool = False, task_type: str = None):
+    if return_state:
+        next_state = episode_data.get_next_state()
+        if next_state is None:
+            return None
         if task_type == "bi-so101leader":
-            left_joint_pos = torch.tensor(np.array(demo_group['obs/left_joint_pos']), device=device)
-            right_joint_pos = torch.tensor(np.array(demo_group['obs/right_joint_pos']), device=device)
-            states = torch.cat([left_joint_pos, right_joint_pos], dim=1)
+            left_joint_pos = next_state['articulation']['left_arm']['joint_position']
+            right_joint_pos = next_state['articulation']['right_arm']['joint_position']
+            return torch.cat([left_joint_pos, right_joint_pos], dim=0)
         else:
-            states = torch.tensor(np.array(demo_group['obs/joint_pos']), device=device)
-
-        init_object_state = {}
-        for key in list(demo_group['initial_state/rigid_object'].keys()):
-            root_state = torch.tensor(demo_group[f'initial_state/rigid_object/{key}/root_pose'], device=device)
-            root_velocity = torch.tensor(demo_group[f'initial_state/rigid_object/{key}/root_velocity'], device=device)
-            init_object_state[key] = torch.cat([root_state, root_velocity], dim=1)
-
-        return states, init_object_state, seed
-
-
-def reset_object_state(env: ManagerBasedRLEnv, init_object_state: dict):
-    for key, root_state in init_object_state.items():
-        env.scene[key].write_root_state_to_sim(root_state)
+            return next_state['articulation']['robot']['joint_position']
+    else:
+        return episode_data.get_next_action()
 
 
 def main():
-    """Running lerobot teleoperation with leisaac manipulation environment."""
+    """Replay episodes loaded from a file."""
 
-    env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs)
+    # Load dataset
+    if not os.path.exists(args_cli.dataset_file):
+        raise FileNotFoundError(f"The dataset file {args_cli.dataset_file} does not exist.")
+    dataset_file_handler = HDF5DatasetFileHandler()
+    dataset_file_handler.open(args_cli.dataset_file)
+    episode_count = dataset_file_handler.get_num_episodes()
+
+    if episode_count == 0:
+        print("No episodes found in the dataset.")
+        exit()
+
+    episode_indices_to_replay = args_cli.select_episodes
+    if len(episode_indices_to_replay) == 0:
+        episode_indices_to_replay = list(range(episode_count))
+
+    num_envs = args_cli.num_envs
+
+    env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=num_envs)
     task_type = get_task_type(args_cli.task)
     env_cfg.use_teleop_device(task_type)
 
-    # modify configuration
-    if hasattr(env_cfg.terminations, "time_out"):
-        env_cfg.terminations.time_out = None
-    if hasattr(env_cfg.terminations, "success"):
-        env_cfg.terminations.success = None
-    env_cfg.recorders = None
+    # Disable all recorders and terminations
+    env_cfg.recorders = {}
+    env_cfg.terminations = {}
 
-    # create environment
+    # create environment from loaded config
     env: ManagerBasedRLEnv = gym.make(args_cli.task, cfg=env_cfg).unwrapped
+
+    # Get idle action (idle actions are applied to envs without next action)
+    if hasattr(env_cfg, "idle_action"):
+        idle_action = env_cfg.idle_action.repeat(num_envs, 1)
+    else:
+        idle_action = torch.zeros(env.action_space.shape)
+
+    # reset before starting
+    env.reset()
 
     rate_limiter = RateLimiter(args_cli.step_hz)
 
-    states, init_object_state, seed = parse_dataset(args_cli.dataset_file, args_cli.episode_index, task_type, args_cli.device)
+    # simulate environment -- run everything in inference mode
+    episode_names = list(dataset_file_handler.get_episode_names())
+    replayed_episode_count = 0
+    with contextlib.suppress(KeyboardInterrupt) and torch.inference_mode():
+        while simulation_app.is_running() and not simulation_app.is_exiting():
+            env_episode_data_map = {index: EpisodeData() for index in range(num_envs)}
+            has_next_action = True
+            while has_next_action:
+                # initialize actions with idle action so those without next action will not move
+                actions = idle_action
+                has_next_action = False
+                for env_id in range(num_envs):
+                    env_next_action = get_next_action(env_episode_data_map[env_id], return_state=True, task_type=task_type)
+                    if env_next_action is None:
+                        next_episode_index = None
+                        while episode_indices_to_replay:
+                            next_episode_index = episode_indices_to_replay.pop(0)
+                            if next_episode_index < episode_count:
+                                break
+                            next_episode_index = None
 
-    # reset environment
-    env.seed(seed)
-    env.reset()
-    reset_object_state(env, init_object_state)
-
-    # simulate environment
-    while simulation_app.is_running():
-        # run everything in inference mode
-        with torch.inference_mode():
-            for state in states:
-                env.step(state.unsqueeze(0))
-                if rate_limiter:
-                    rate_limiter.sleep(env)
-            env.reset()
-            reset_object_state(env, init_object_state)
-
-    # close the simulator
+                        if next_episode_index is not None:
+                            replayed_episode_count += 1
+                            print(f"{replayed_episode_count :4}: Loading #{next_episode_index} episode to env_{env_id}")
+                            episode_data = dataset_file_handler.load_episode(
+                                episode_names[next_episode_index], env.device
+                            )
+                            env_episode_data_map[env_id] = episode_data
+                            # Set initial state for the new episode
+                            initial_state = episode_data.get_initial_state()
+                            env.reset_to(initial_state, torch.tensor([env_id], device=env.device), seed=int(episode_data.seed), is_relative=True)
+                            # Get the first action for the new episode
+                            env_next_action = get_next_action(env_episode_data_map[env_id], return_state=True, task_type=task_type)
+                            has_next_action = True
+                        else:
+                            continue
+                    else:
+                        has_next_action = True
+                    actions[env_id] = env_next_action
+                env.step(actions)
+                rate_limiter.sleep(env)
+            break
+    # Close environment after replay in complete
+    plural_trailing_s = "s" if replayed_episode_count > 1 else ""
+    print(f"Finished replaying {replayed_episode_count} episode{plural_trailing_s}.")
     env.close()
-    simulation_app.close()
 
 
 if __name__ == "__main__":

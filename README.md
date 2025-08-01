@@ -167,7 +167,7 @@ python scripts/environments/teleoperation/replay.py \
     --device=cpu \
     --enable_cameras \
     --dataset_file=./datasets/dataset.hdf5 \
-    --episode_index=0
+    --select_episodes 1 2
 ```
 
 <details>
@@ -183,7 +183,7 @@ python scripts/environments/teleoperation/replay.py \
 
 - `--dataset_file`: Path to the recorded dataset, e.g., `./datasets/record_data.hdf5`.
 
-- `--episode_index`: Index of the episode to replay from the dataset, e.g., `0`.
+- `--select_episodes`: A list of episode indices to replayed, Keep empty to replay all episodes.
 
 </details>
 
