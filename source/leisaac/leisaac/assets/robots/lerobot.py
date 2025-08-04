@@ -79,7 +79,7 @@ SO101_FOLLOWER_REST_POSE_RANGE = {
     "shoulder_pan": (0 - 20.0, 0 + 20.0),  # 0 degree
     "shoulder_lift": (-100.0 - 20.0, -100.0 + 20.0),  # -100 degree
     "elbow_flex": (90.0 - 20.0, 90.0 + 20.0),  # 90 degree
-    "wrist_flex": (50.0 - 20.0, 50.0 + 20.0),  # 50 degree
+    "wrist_flex": (50.0 - 30.0, 50.0 + 30.0),  # 50 degree
     "wrist_roll": (0.0 - 20.0, 0.0 + 20.0),  # 0 degree
     "gripper": (-10.0 - 20.0, -10.0 + 20.0),  # -10 degree
 }

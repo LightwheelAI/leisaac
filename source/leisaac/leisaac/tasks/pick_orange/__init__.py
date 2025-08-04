@@ -8,3 +8,12 @@ gym.register(
         "env_cfg_entry_point": f"{__name__}.pick_orange_env_cfg:PickOrangeEnvCfg",
     },
 )
+
+gym.register(
+    id='LeIsaac-SO101-PickOrange-Mimic-v0',
+    entry_point=f"{__name__}.pick_orange_mimic_env:PickOrangMimicEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.pick_orange_mimic_env_cfg:PickOrangeMimicEnvCfg",
+    },
+)
