@@ -9,6 +9,7 @@ from leisaac.utils.robot_utils import convert_leisaac_action_to_lerobot, convert
 class Gr00tServicePolicyClient(ServicePolicy):
     """
     Service policy client for GR00T N1.5: https://github.com/NVIDIA/Isaac-GR00T
+    Target Commit: https://github.com/NVIDIA/Isaac-GR00T/commit/4ea96a16b15cfdbbd787b6b4f519a12687281330
     """
 
     def __init__(
@@ -36,11 +37,11 @@ class Gr00tServicePolicyClient(ServicePolicy):
 
         if "single_arm" in self.modality_keys:
             joint_pos = convert_leisaac_action_to_lerobot(observation_dict["joint_pos"])
-            obs_dict["state.single_arm"] = joint_pos[:, 0:5]
-            obs_dict["state.gripper"] = joint_pos[:, 5:6]
+            obs_dict["state.single_arm"] = joint_pos[:, 0:5].astype(np.float64)
+            obs_dict["state.gripper"] = joint_pos[:, 5:6].astype(np.float64)
         # TODO: add bi-arm support
 
-        obs_dict["annotation.human.task_description"] = observation_dict["task_description"]
+        obs_dict["annotation.human.task_description"] = [observation_dict["task_description"]]
 
         """
             Example of obs_dict for single arm task:
