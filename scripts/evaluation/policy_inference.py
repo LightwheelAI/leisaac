@@ -42,7 +42,7 @@ from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
 
 import leisaac  # noqa: F401
-from leisaac.utils.env_utils import get_task_type
+from leisaac.utils.env_utils import get_task_type, dynamic_reset_gripper_effort_limit_sim
 
 
 class RateLimiter:
@@ -152,6 +152,7 @@ def main():
             actions = policy.get_action(obs_dict).to(env.device)
             for i in range(args_cli.policy_action_horizon):
                 action = actions[i, :, :]
+                dynamic_reset_gripper_effort_limit_sim(env, task_type)
                 obs_dict, _, _, _, _ = env.step(action)
                 if rate_limiter:
                     rate_limiter.sleep(env)
