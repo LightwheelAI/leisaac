@@ -4,7 +4,6 @@ from dataclasses import MISSING
 from typing import Any
 
 import isaaclab.sim as sim_utils
-import isaaclab.envs.mdp as mdp
 from isaaclab.envs.mdp.recorders.recorders_cfg import ActionStateRecorderManagerCfg as RecordTerm
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
@@ -22,6 +21,8 @@ from leisaac.assets.scenes.simple import TABLE_WITH_CUBE_CFG, TABLE_WITH_CUBE_US
 from leisaac.devices.action_process import init_action_cfg, preprocess_device_action
 from leisaac.utils.general_assets import parse_usd_and_create_subassets
 from leisaac.utils.domain_randomization import randomize_object_uniform, randomize_camera_uniform, domain_randomization
+
+from . import mdp
 
 
 @configclass
@@ -102,6 +103,13 @@ class TerminationsCfg:
     """Configuration for the termination"""
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
 
+    success = DoneTerm(func=mdp.cube_height_above_base, params={
+        "cube_cfg": SceneEntityCfg("cube"),
+        "robot_cfg": SceneEntityCfg("robot"),
+        "robot_base_name": "base",
+        "height_threshold": 0.20
+    })
+
 
 @configclass
 class LiftCubeEnvCfg(ManagerBasedRLEnvCfg):
@@ -135,7 +143,7 @@ class LiftCubeEnvCfg(ManagerBasedRLEnvCfg):
         parse_usd_and_create_subassets(TABLE_WITH_CUBE_USD_PATH, self)
 
         domain_randomization(self, random_options=[
-            randomize_object_uniform("cube", pose_range={"x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (0.0, 0.0)}),
+            randomize_object_uniform("cube", pose_range={"x": (-0.1, 0.1), "y": (-0.1, 0.1), "z": (0.0, 0.0)}),
             randomize_camera_uniform("front", pose_range={
                 "x": (-0.005, 0.005), "y": (-0.005, 0.005), "z": (-0.005, 0.005),
                 "roll": (-0.05 * torch.pi / 180, 0.05 * torch.pi / 180),
