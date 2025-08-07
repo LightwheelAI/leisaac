@@ -40,7 +40,7 @@ sudo apt install cmake build-essential
 
 cd IsaacLab
 # fix isaaclab version for isaacsim4.5
-git checkout v2.1.0
+git checkout v2.1.1
 ./isaaclab.sh --install
 ```
 
