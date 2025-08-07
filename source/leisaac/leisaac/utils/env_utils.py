@@ -14,22 +14,44 @@ def dynamic_reset_gripper_effort_limit_sim(env, teleop_device):
 
 
 def write_gripper_effort_limit_sim(env, env_arm):
-    gripper_pos = env_arm.data.body_link_pos_w[0][-1]
-    minm_distance = 1e10
-    target_name = None
+    gripper_pos = env_arm.data.body_link_pos_w[:, -1]  # [num_envs, 3]
+    num_envs = gripper_pos.shape[0]
+
+    object_positions = []
+    object_masses = []
+    object_names = []
+
     for name, obj in env.scene._rigid_objects.items():
-        pos = obj.data.body_link_pos_w[0][0]
-        distance = torch.sqrt(torch.sum((gripper_pos - pos) ** 2))
-        if distance < minm_distance:
-            minm_distance = distance
-            target_name = name
-    if target_name is not None:
-        target_mass = env.scene._rigid_objects[target_name].data.default_mass
-        target_effort_limit_sim = target_mass / 0.15
-        current_effort_limit_sim = env_arm._data.joint_effort_limits[0][-1].item()
-        if math.fabs(target_effort_limit_sim - current_effort_limit_sim) > 0.1:
-            env_arm.write_joint_effort_limit_to_sim(limits=target_effort_limit_sim, joint_ids=[5])
-    return
+        pos = obj.data.body_link_pos_w[:, 0]  # [num_envs, 3]
+        object_positions.append(pos)
+        object_masses.append(obj.data.default_mass)
+        object_names.append(name)
+
+    if not object_positions:
+        return
+
+    object_positions = torch.stack(object_positions)  # [num_objects, num_envs, 3]
+    object_masses = torch.stack(object_masses)  # [num_objects, num_envs, 1]
+
+    distances = torch.sqrt(torch.sum((object_positions - gripper_pos.unsqueeze(0)) ** 2, dim=2))
+
+    min_distances, min_indices = torch.min(distances, dim=0)  # [num_envs]
+
+    target_masses = object_masses[min_indices.cpu(), 0, 0]  # [num_envs]
+
+    target_effort_limits = (target_masses / 0.15).to(env_arm._data.joint_effort_limits.device)
+
+    current_effort_limit_sim = env_arm._data.joint_effort_limits[:, -1]  # [num_envs]
+    need_update = torch.abs(target_effort_limits - current_effort_limit_sim) > 0.1
+
+    if torch.any(need_update):
+        new_limits = current_effort_limit_sim.clone()
+        new_limits[need_update] = target_effort_limits[need_update]
+
+        env_arm.write_joint_effort_limit_to_sim(
+            limits=new_limits,
+            joint_ids=[5 for _ in range(num_envs)]
+        )
 
 
 def get_task_type(task: str) -> str:

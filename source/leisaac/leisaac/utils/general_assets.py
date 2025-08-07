@@ -105,6 +105,11 @@ def get_all_joints_without_fixed(articulation_prim):
 
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.assets.rigid_object import RigidObjectCfg
+from isaaclab.sim.spawners.spawner_cfg import RigidObjectSpawnerCfg
+
+from isaaclab.sim.utils import clone
+
+import isaacsim.core.utils.prims as prim_utils
 
 
 def match_specific_name(prim_path, specific_name_list, exlude_name_list):
@@ -112,6 +117,11 @@ def match_specific_name(prim_path, specific_name_list, exlude_name_list):
     match_exclude = False if exlude_name_list is None else any([exclude in prim_path for exclude in exlude_name_list])
 
     return match_specific and not match_exclude
+
+
+@clone
+def spawn_from_prim_path(prim_path, spawn, translation, orientation):
+    return prim_utils.get_prim_at_path(prim_path)
 
 
 def parse_usd_and_create_subassets(usd_path, env_cfg, specific_name_list=None, exclude_name_list=None):
@@ -161,7 +171,7 @@ def parse_usd_and_create_subassets(usd_path, env_cfg, specific_name_list=None, e
             prim_path = f"{{ENV_REGEX_NS}}/Scene/{sub_prim_path}"
             rigidcfg = RigidObjectCfg(
                 prim_path=prim_path,
-                spawn=None,
+                spawn=RigidObjectSpawnerCfg(func=spawn_from_prim_path),
                 init_state=RigidObjectCfg.InitialStateCfg(
                     pos=pos,
                     rot=rot,
