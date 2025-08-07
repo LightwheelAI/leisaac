@@ -48,7 +48,6 @@ def write_gripper_effort_limit_sim(env, env_arm):
         new_limits = current_effort_limit_sim.clone()
         new_limits[need_update] = target_effort_limits[need_update]
 
-        # 更新到仿真
         env_arm.write_joint_effort_limit_to_sim(
             limits=new_limits,
             joint_ids=[5 for _ in range(num_envs)]
