@@ -1,7 +1,7 @@
 import torch
 
 from dataclasses import MISSING
-from typing import Any
+from typing import Any, Dict, List
 
 import isaaclab.sim as sim_utils
 from isaaclab.envs.mdp.recorders.recorders_cfg import ActionStateRecorderManagerCfg as RecordTerm
@@ -21,6 +21,7 @@ from leisaac.assets.scenes.simple import TABLE_WITH_CUBE_CFG, TABLE_WITH_CUBE_US
 from leisaac.devices.action_process import init_action_cfg, preprocess_device_action
 from leisaac.utils.general_assets import parse_usd_and_create_subassets
 from leisaac.utils.domain_randomization import randomize_object_uniform, randomize_camera_uniform, domain_randomization
+from leisaac.enhance.envs.manager_based_rl_digital_twin_env_cfg import ManagerBasedRLDigitalTwinEnvCfg
 
 from . import mdp
 
@@ -158,3 +159,19 @@ class LiftCubeEnvCfg(ManagerBasedRLEnvCfg):
 
     def preprocess_device_action(self, action: dict[str, Any], teleop_device) -> torch.Tensor:
         return preprocess_device_action(action, teleop_device)
+
+
+@configclass
+class LiftCubeDigitalTwinEnvCfg(LiftCubeEnvCfg, ManagerBasedRLDigitalTwinEnvCfg):
+    """Configuration for the lift cube digital twin environment."""
+
+    rgb_overlay_mode: str = "background"
+
+    rgb_overlay_paths: Dict[str, str] = {
+        "front": "greenscreen/background-lift-cube.jpg"
+    }
+
+    render_objects: List[SceneEntityCfg] = [
+        SceneEntityCfg("cube"),
+        SceneEntityCfg("robot"),
+    ]
