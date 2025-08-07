@@ -74,3 +74,6 @@ assets/scenes/*
 !assets/scenes/.gitkeep
 assets/robots/*
 !assets/robots/.gitkeep
+
+# greenscreen
+greenscreen/*
