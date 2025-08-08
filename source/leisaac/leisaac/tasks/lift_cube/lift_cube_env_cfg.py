@@ -36,10 +36,10 @@ class LiftCubeSceneCfg(InteractiveSceneCfg):
 
     front: TiledCameraCfg = TiledCameraCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base/front_camera",
-        offset=TiledCameraCfg.OffsetCfg(pos=(0.65, -0.3, 0.45), rot=(0.6432, 0.40646, 0.32495, 0.56169), convention="opengl"),  # wxyz
+        offset=TiledCameraCfg.OffsetCfg(pos=(-0.6, -0.75, 0.38), rot=(0.77337, 0.55078, -0.2374, -0.20537), convention="opengl"),  # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
-            focal_length=37.8,
+            focal_length=40.6,
             focus_distance=400.0,
             horizontal_aperture=38.11,
             clipping_range=(0.01, 50.0),
@@ -52,7 +52,7 @@ class LiftCubeSceneCfg(InteractiveSceneCfg):
 
     light = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Light",
-        spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
+        spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=1000.0),
     )
 
 
@@ -168,7 +168,7 @@ class LiftCubeDigitalTwinEnvCfg(LiftCubeEnvCfg, ManagerBasedRLDigitalTwinEnvCfg)
     rgb_overlay_mode: str = "background"
 
     rgb_overlay_paths: Dict[str, str] = {
-        "front": "greenscreen/background-lift-cube.jpg"
+        "front": "greenscreen/background-lift-cube.png"
     }
 
     render_objects: List[SceneEntityCfg] = [

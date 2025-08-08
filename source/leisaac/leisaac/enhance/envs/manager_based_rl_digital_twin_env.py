@@ -38,7 +38,7 @@ class ManagerBasedRLDigitalTwinEnv(ManagerBasedRLEnv):
         Returns:
             the resized overlay image.(C, H, W)
         """
-        image = torch.from_numpy(cv2.imread(path))
+        image = torch.from_numpy(cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB))
 
         if image.dim() == 3 and image.shape[2] in [3, 4]:  # [H, W, C]
             image = image.permute(2, 0, 1)  # [C, H, W]
