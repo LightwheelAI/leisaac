@@ -1,12 +1,13 @@
 import torch
+from collections.abc import Sequence
+
+from leisaac.enhance.envs.manager_based_rl_leisaac_mimic_env import ManagerBasedRLLeIsaacMimicEnv
 
 
-from isaaclab.envs import ManagerBasedRLMimicEnv
-
-
-class PickOrangMimicEnv(ManagerBasedRLMimicEnv):
+class PickOrangeMimicEnv(ManagerBasedRLLeIsaacMimicEnv):
     """
     Environment for the pick orange task with mimic environment.
     """
 
-    pass
+    def get_subtask_term_signals(self, env_ids: Sequence[int] | None = None) -> dict[str, torch.Tensor]:
+        pass
