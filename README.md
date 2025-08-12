@@ -107,7 +107,7 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
     --teleop_device=so101leader \
     --port=/dev/ttyACM0 \
     --num_envs=1 \
-    --device=cpu \
+    --device=cuda \
     --enable_cameras \
     --record \
     --dataset_file=./datasets/dataset.hdf5
@@ -164,7 +164,7 @@ After teleoperation, you can replay the collected dataset in the simulation envi
 python scripts/environments/teleoperation/replay.py \
     --task=LeIsaac-SO101-PickOrange-v0 \
     --num_envs=1 \
-    --device=cpu \
+    --device=cuda \
     --enable_cameras \
     --replay_mode=action \
     --dataset_file=./datasets/dataset.hdf5 \
