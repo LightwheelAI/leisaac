@@ -154,8 +154,8 @@ class LiftCubeEnvCfg(ManagerBasedRLEnvCfg):
 
         domain_randomization(self, random_options=[
             randomize_object_uniform("cube", pose_range={
-                "x": (-0.1, 0.1), "y": (-0.1, 0.1), "z": (0.0, 0.0),
-                "yaw": (-90 * torch.pi / 180, 90 * torch.pi / 180)}),
+                "x": (-0.075, 0.075), "y": (-0.075, 0.075), "z": (0.0, 0.0),
+                "yaw": (-30 * torch.pi / 180, 30 * torch.pi / 180)}),
             randomize_camera_uniform("front", pose_range={
                 "x": (-0.005, 0.005), "y": (-0.005, 0.005), "z": (-0.005, 0.005),
                 "roll": (-0.05 * torch.pi / 180, 0.05 * torch.pi / 180),

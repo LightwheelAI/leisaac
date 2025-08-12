@@ -43,7 +43,7 @@ class LiftCubeMimicEnvCfg(LiftCubeEnvCfg, MimicEnvCfg):
                 # Optional parameters for the selection strategy function
                 selection_strategy_kwargs={"nn_k": 3},
                 # Amount of action noise to apply during this subtask
-                action_noise=0.03,
+                action_noise=0.003,
                 # Number of interpolation steps to bridge to this subtask segment
                 num_interpolation_steps=5,
                 # Additional fixed steps for the robot to reach the necessary pose
@@ -61,7 +61,7 @@ class LiftCubeMimicEnvCfg(LiftCubeEnvCfg, MimicEnvCfg):
                 subtask_term_offset_range=(0, 0),
                 selection_strategy="random",
                 selection_strategy_kwargs={},
-                action_noise=0.03,
+                action_noise=0.0001,
                 num_interpolation_steps=5,
                 num_fixed_steps=0,
                 apply_noise_during_interpolation=False,

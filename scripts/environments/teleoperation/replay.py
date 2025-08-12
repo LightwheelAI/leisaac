@@ -157,7 +157,7 @@ def main():
                             env_episode_data_map[env_id] = episode_data
                             # Set initial state for the new episode
                             initial_state = episode_data.get_initial_state()
-                            env.reset_to(initial_state, torch.tensor([env_id], device=env.device), seed=int(episode_data.seed), is_relative=True)
+                            env.reset_to(initial_state, torch.tensor([env_id], device=env.device), seed=int(episode_data.seed) if episode_data.seed is not None else None, is_relative=True)
                             # Get the first action for the new episode
                             env_next_action = get_next_action(env_episode_data_map[env_id], return_state=args_cli.replay_mode == "state", task_type=task_type)
                             has_next_action = True
