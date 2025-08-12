@@ -7,6 +7,9 @@ import isaaclab.utils.math as PoseUtils
 
 
 def ee_frame_state(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"), robot_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """
+    Return the state of the end effector frame in the robot coordinate system.
+    """
     robot = env.scene[robot_cfg.name]
     robot_root_pos, robot_root_quat = robot.data.root_pos_w, robot.data.root_quat_w
     ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]

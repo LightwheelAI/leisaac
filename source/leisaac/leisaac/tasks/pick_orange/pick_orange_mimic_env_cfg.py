@@ -137,4 +137,4 @@ class PickOrangeMimicEnvCfg(PickOrangeEnvCfg, MimicEnvCfg):
                 apply_noise_during_interpolation=False,
             )
         )
-        self.subtask_configs["so101"] = subtask_configs
+        self.subtask_configs["so101_follower"] = subtask_configs
