@@ -50,6 +50,18 @@ def init_action_cfg(action_cfg, device):
             joint_names=["gripper"],
             scale=1.0,
         )
+    elif device in ['mimic_ik_abs_so101_leader']:
+        action_cfg.arm_action = mdp.DifferentialInverseKinematicsActionCfg(
+            asset_name="robot",
+            joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
+            body_name="gripper",
+            controller=mdp.DifferentialIKControllerCfg(command_type="pose", ik_method="dls", use_relative_mode=False),
+        )
+        action_cfg.gripper_action = mdp.JointPositionActionCfg(
+            asset_name="robot",
+            joint_names=["gripper"],
+            scale=1.0,
+        )
     else:
         action_cfg.arm_action = None
         action_cfg.gripper_action = None

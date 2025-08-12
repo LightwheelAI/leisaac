@@ -75,6 +75,8 @@ from isaaclab_mimic.datagen.utils import get_env_name_from_dataset, setup_output
 
 import isaaclab_tasks  # noqa: F401
 
+import leisaac  # noqa: F401
+
 
 def main():
     num_envs = args_cli.num_envs

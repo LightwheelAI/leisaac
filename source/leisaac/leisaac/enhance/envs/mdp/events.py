@@ -26,13 +26,13 @@ def randomize_camera_uniform(
     """
     asset: Camera = env.scene[asset_cfg.name]
 
-    ori_pos_w = asset.data.pos_w
+    ori_pos_w = asset.data.pos_w[env_ids]
     if convention == "ros":
-        ori_quat_w = asset.data.quat_w_ros
+        ori_quat_w = asset.data.quat_w_ros[env_ids]
     elif convention == "opengl":
-        ori_quat_w = asset.data.quat_w_opengl
+        ori_quat_w = asset.data.quat_w_opengl[env_ids]
     elif convention == "world":
-        ori_quat_w = asset.data.quat_w_world
+        ori_quat_w = asset.data.quat_w_world[env_ids]
 
     range_list = [pose_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z", "roll", "pitch", "yaw"]]
     ranges = torch.tensor(range_list, device=asset.device)

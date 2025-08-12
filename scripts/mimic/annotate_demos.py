@@ -73,10 +73,15 @@ from isaaclab.utils.datasets import EpisodeData, HDF5DatasetFileHandler
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils.parse_cfg import parse_env_cfg
 
+import leisaac  # noqa: F401
+from leisaac.utils.env_utils import get_task_type, dynamic_reset_gripper_effort_limit_sim
+
+
 is_paused = False
 current_action_index = 0
 marked_subtask_action_indices = []
 skip_episode = False
+task_type = None
 
 
 def play_cb():
@@ -147,7 +152,7 @@ class MimicRecorderManagerCfg(ActionStateRecorderManagerCfg):
 
 def main():
     """Add Isaac Lab Mimic annotations to the given demo dataset file."""
-    global is_paused, current_action_index, marked_subtask_action_indices
+    global is_paused, current_action_index, marked_subtask_action_indices, task_type
 
     # Load input dataset to be annotated
     if not os.path.exists(args_cli.input_file):
@@ -174,6 +179,7 @@ def main():
         raise ValueError("Task/env name was not specified nor found in the dataset.")
 
     env_cfg = parse_env_cfg(env_name, device=args_cli.device, num_envs=1)
+    task_type = get_task_type(args_cli.task)
 
     env_cfg.env_name = env_name
 
@@ -293,10 +299,11 @@ def replay_episode(
         True if the episode was successfully replayed and the success condition was met (if provided),
         False otherwise.
     """
-    global current_action_index, skip_episode, is_paused
+    global current_action_index, skip_episode, is_paused, task_type
     # read initial state and actions from the loaded episode
     initial_state = episode.data["initial_state"]
     actions = episode.data["actions"]
+    env.seed(int(episode.seed))
     env.sim.reset()
     env.recorder_manager.reset()
     env.reset_to(initial_state, None, is_relative=True)
@@ -312,6 +319,7 @@ def replay_episode(
                     return False
                 continue
         action_tensor = torch.Tensor(action).reshape([1, action.shape[0]])
+        dynamic_reset_gripper_effort_limit_sim(env, task_type)
         env.step(torch.Tensor(action_tensor))
     if success_term is not None:
         if not bool(success_term.func(env, **success_term.params)[0]):
