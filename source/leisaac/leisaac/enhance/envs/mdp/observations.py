@@ -1,7 +1,11 @@
 import torch
 
+import isaaclab.utils.math as math_utils
+
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.envs import ManagerBasedEnv
+from isaaclab.sensors import FrameTransformer
+from isaaclab.assets import Articulation
+from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
 from isaaclab.envs.mdp.observations import image
 
 
@@ -82,3 +86,29 @@ def overlay_image(
             )
 
     return sim_image
+
+
+def ee_frame_state(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"), robot_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """
+    Return the state of the end effector frame in the robot coordinate system.
+    """
+    robot = env.scene[robot_cfg.name]
+    robot_root_pos, robot_root_quat = robot.data.root_pos_w, robot.data.root_quat_w
+    ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
+    ee_frame_pos, ee_frame_quat = ee_frame.data.target_pos_w[:, 0, :], ee_frame.data.target_quat_w[:, 0, :]
+    ee_frame_pos_robot, ee_frame_quat_robot = math_utils.subtract_frame_transforms(
+        robot_root_pos, robot_root_quat, ee_frame_pos, ee_frame_quat
+    )
+    ee_frame_state = torch.cat([ee_frame_pos_robot, ee_frame_quat_robot], dim=1)
+
+    return ee_frame_state
+
+
+def joint_pos_target(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """The joint positions target of the asset.
+
+    Note: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their positions returned.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    return asset.data.joint_pos_target[:, asset_cfg.joint_ids]

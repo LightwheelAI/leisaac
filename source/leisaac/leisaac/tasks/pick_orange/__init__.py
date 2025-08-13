@@ -11,7 +11,7 @@ gym.register(
 
 gym.register(
     id='LeIsaac-SO101-PickOrange-Mimic-v0',
-    entry_point=f"{__name__}.pick_orange_mimic_env:PickOrangeMimicEnv",
+    entry_point=f"leisaac.enhance.envs:ManagerBasedRLLeIsaacMimicEnv",
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": f"{__name__}.pick_orange_mimic_env_cfg:PickOrangeMimicEnvCfg",

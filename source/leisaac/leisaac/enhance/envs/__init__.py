@@ -2,3 +2,4 @@ from . import mdp
 
 from .manager_based_rl_digital_twin_env import ManagerBasedRLDigitalTwinEnv
 from .manager_based_rl_digital_twin_env_cfg import ManagerBasedRLDigitalTwinEnvCfg
+from .manager_based_rl_leisaac_mimic_env import ManagerBasedRLLeIsaacMimicEnv

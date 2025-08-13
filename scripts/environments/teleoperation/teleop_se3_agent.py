@@ -189,6 +189,7 @@ def main():
                     start_record_state = False
                 if args_cli.record:
                     env.termination_manager.set_term_cfg("success", TerminationTermCfg(func=lambda env: torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)))
+                    env.termination_manager.compute()
                 # print out the current demo count if it has changed
                 if args_cli.record and env.recorder_manager.exported_successful_episode_count > current_recorded_demo_count:
                     current_recorded_demo_count = env.recorder_manager.exported_successful_episode_count

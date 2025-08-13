@@ -2,21 +2,26 @@ import torch
 
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import FrameTransformer
+from isaaclab.assets import Articulation, RigidObject
 from isaaclab.envs import ManagerBasedRLEnv
-import isaaclab.utils.math as PoseUtils
 
 
-def ee_frame_state(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"), robot_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
-    """
-    Return the state of the end effector frame in the robot coordinate system.
-    """
-    robot = env.scene[robot_cfg.name]
-    robot_root_pos, robot_root_quat = robot.data.root_pos_w, robot.data.root_quat_w
+def object_grasped(
+        env: ManagerBasedRLEnv,
+        robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+        ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
+        object_cfg: SceneEntityCfg = SceneEntityCfg("cube"),
+        diff_threshold: float = 0.02,
+        grasp_threshold: float = 0.26) -> torch.Tensor:
+    """Check if an object is grasped by the specified robot."""
+    robot: Articulation = env.scene[robot_cfg.name]
     ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
-    ee_frame_pos, ee_frame_quat = ee_frame.data.target_pos_w[:, 0, :], ee_frame.data.target_quat_w[:, 0, :]
-    ee_frame_pos_robot, ee_frame_quat_robot = PoseUtils.subtract_frame_transforms(
-        robot_root_pos, robot_root_quat, ee_frame_pos, ee_frame_quat
-    )
-    ee_frame_state = torch.cat([ee_frame_pos_robot, ee_frame_quat_robot], dim=1)
+    object: RigidObject = env.scene[object_cfg.name]
 
-    return ee_frame_state
+    object_pos = object.data.root_pos_w
+    end_effector_pos = ee_frame.data.target_pos_w[:, 1, :]
+    pos_diff = torch.linalg.vector_norm(object_pos - end_effector_pos, dim=1)
+
+    grasped = torch.logical_and(pos_diff < diff_threshold, robot.data.joint_pos[:, -1] < grasp_threshold)
+
+    return grasped

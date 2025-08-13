@@ -187,12 +187,16 @@ def preprocess_joint_pos(joint_pos: np.ndarray) -> np.ndarray:
 
 def process_single_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Group, demo_name: str) -> bool:
     try:
-        actions = np.array(demo_group['obs/actions'])
+        actions = np.array(demo_group['actions'])
         joint_pos = np.array(demo_group['obs/joint_pos'])
         front_images = np.array(demo_group['obs/front'])
         wrist_images = np.array(demo_group['obs/wrist'])
     except KeyError:
         print(f'Demo {demo_name} is not valid, skip it')
+        return False
+
+    if actions.shape[0] < 10:
+        print(f'Demo {demo_name} has less than 10 frames, skip it')
         return False
 
     # preprocess actions and joint pos
@@ -216,7 +220,7 @@ def process_single_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py
 
 def process_bi_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Group, demo_name: str) -> bool:
     try:
-        actions = np.array(demo_group['obs/actions'])
+        actions = np.array(demo_group['actions'])
         left_joint_pos = np.array(demo_group['obs/left_joint_pos'])
         right_joint_pos = np.array(demo_group['obs/right_joint_pos'])
         left_images = np.array(demo_group['obs/left'])
@@ -224,6 +228,10 @@ def process_bi_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Gro
         top_images = np.array(demo_group['obs/top'])
     except KeyError:
         print(f'Demo {demo_name} is not valid, skip it')
+        return False
+
+    if actions.shape[0] < 10:
+        print(f'Demo {demo_name} has less than 10 frames, skip it')
         return False
 
     # preprocess actions and joint pos

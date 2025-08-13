@@ -4,6 +4,8 @@ from collections.abc import Sequence
 import isaaclab.utils.math as PoseUtils
 from isaaclab.envs import ManagerBasedRLMimicEnv, ManagerBasedRLEnvCfg
 
+from leisaac.utils.env_utils import get_task_type, dynamic_reset_gripper_effort_limit_sim
+
 
 class ManagerBasedRLLeIsaacMimicEnv(ManagerBasedRLMimicEnv):
     """
@@ -15,6 +17,7 @@ class ManagerBasedRLLeIsaacMimicEnv(ManagerBasedRLMimicEnv):
         super().__init__(cfg, render_mode, **kwargs)
         self.robot_root_pos = self.scene['robot'].data.root_pos_w
         self.robot_root_quat = self.scene['robot'].data.root_quat_w
+        self.task_type = get_task_type(cfg.env_name)
 
     def get_robot_eef_pose(self, eef_name: str, env_ids: Sequence[int] | None = None) -> torch.Tensor:
         if env_ids is None:
@@ -79,3 +82,18 @@ class ManagerBasedRLLeIsaacMimicEnv(ManagerBasedRLMimicEnv):
             object_pose_matrix[obj_name] = PoseUtils.make_pose(obj_pos_robot, PoseUtils.matrix_from_quat(obj_quat_robot))
 
         return object_pose_matrix
+
+    def get_subtask_term_signals(self, env_ids: Sequence[int] | None = None) -> dict[str, torch.Tensor]:
+        if env_ids is None:
+            env_ids = slice(None)
+
+        signals = dict()
+        subtask_terms = self.obs_buf["subtask_terms"]
+        for term_name, term_signal in subtask_terms.items():
+            signals[term_name] = term_signal[env_ids]
+
+        return signals
+
+    def step(self, action: torch.Tensor):
+        dynamic_reset_gripper_effort_limit_sim(self, self.task_type)
+        return super().step(action)

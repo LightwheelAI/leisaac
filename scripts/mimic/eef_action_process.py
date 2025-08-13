@@ -48,7 +48,7 @@ def joint_action_to_ik(episode_data: EpisodeData) -> EpisodeData:
 
 def ik_action_to_joint(episode_data: EpisodeData) -> EpisodeData:
     """Convert the action to joint action."""
-    joint_pos = episode_data.data['obs']['joint_pos']
+    joint_pos = episode_data.data['obs']['joint_pos_target']
 
     new_actions = joint_pos
     episode_data.data['actions'] = new_actions
