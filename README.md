@@ -88,6 +88,7 @@ We provide an example USD asset—a kitchen scene. Please download related scene
 |----------------------|------------------------------------|------------------------------------------------------------------------------------------|
 | Kitchen with Orange  | Example kitchen scene with oranges | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.0)                  |
 | Lightwheel Toyroom   | Modern room with many toys         | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.1)                  |
+| Table with Cube      | Simple table with one cube         | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.2)                  |
 
 
 > [!TIP] 
@@ -261,6 +262,77 @@ pip install pyzmq
 
 > [!IMPORTANT]
 > For service-based policies, you must start the corresponding service before running inference. For example, with GR00T, you need to launch the GR00T N1.5 inference server first. You can refer to the [GR00T evaluation documentation](https://github.com/NVIDIA/Isaac-GR00T?tab=readme-ov-file#4-evaluation) for detailed instructions.
+
+
+## Extra Feature ✨
+
+We also provide some additional features. You can refer to the following instructions to try them out.
+
+<details>
+<summary><strong>DigitalTwin Env: Make Sim2Real Simple</strong></summary><p></p>
+
+Inspired by the greenscreening functionality from [SIMPLER](https://simpler-env.github.io/) and [ManiSkill](https://github.com/haosulab/ManiSkill), we have implemented DigitalTwin Env. This feature allows you to replace the background in simulation environments with real background images while preserving the foreground elements such as robotic arms and interactive objects. This approach significantly reduces the gap between simulation and reality, enabling better sim2real transfer.
+
+To use this feature, simply create a task configuration class that inherits from `ManagerBasedRLDigitalTwinEnvCfg` and launch it through the corresponding environment. In the configuration class, you can specify relevant parameters including overlay_mode, background images path, and foreground environment components to preserve. 
+
+For usage examples, please refer to the sample task: [LiftCubeDigitalTwinEnvCfg](https://github.com/LightwheelAI/leisaac/blob/main/source/leisaac/leisaac/tasks/lift_cube/lift_cube_env_cfg.py).
+
+</details>
+
+<details>
+<summary><strong>MimicGen Env: Generate Data From Demonstrations</strong></summary><p></p>
+
+We have integrated [IsaacLab MimicGen](https://isaac-sim.github.io/IsaacLab/main/source/overview/teleop_imitation.html), a powerful feature that automatically generates additional demonstrations from expert demonstrations.
+
+To use this functionality, you first need to record some demonstrations. Recording scripts can be referenced from the instructions above. (Below we use the MimicGen for the `LeIsaac-SO101-LiftCube-v0` task as an example).
+
+>[!NOTE] 
+> Pay attention to the `input_file` and `output_file` parameters in the following scripts. Typically, the `output_file` from the previous script becomes the `input_file` for the next script.
+
+Since MimicGen requires trajectory generalization based on end-effector pose and object pose, we first convert joint-position-based action data to IK-based action data. The conversion process is as follows, where `input_file` specifies the collected demonstration data:
+
+```shell
+python scripts/mimic/eef_action_process.py \
+    --input_file ./datasets/mimic-lift-cube-example.hdf5 \
+    --output_file ./datasets/processed_mimic-lift-cube-example.hdf5 \
+    --to_ik --headless
+```
+
+Next, we perform sub-task annotation based on the converted action data. Annotation can be done in two ways: automatic and manual. If you want to use automatic annotation, please add the `--auto` startup option.
+
+```shell
+python scripts/mimic/annotate_demos.py \
+    --device cuda \
+    --task LeIsaac-SO101-LiftCube-Mimic-v0 \
+    --input_file ./datasets/processed_mimic-lift-cube-example.hdf5 \
+    --output_file ./datasets/annotated_mimic-lift-cube-example.hdf5 \
+    --enable_cameras
+```
+
+After annotation is complete, we can proceed with data generation. The generation process is as follows:
+
+```shell
+python scripts/mimic/generate_dataset.py \
+    --device cuda \
+    --num_envs 1 \
+    --generation_num_trials 10 \
+    --input_file ./datasets/annotated_mimic-lift-cube-example.hdf5 \
+    --output_file ./datasets/generated_mimic-lift-cube-example.hdf5 \
+    --enable_cameras
+```
+
+After obtaining the generated data, we also provide a conversion script to transform it from IK-based action data back to joint-position-based action data, as follows:
+
+```shell
+python scripts/mimic/eef_action_process.py \
+    --input_file ./datasets/generated_mimic-lift-cube-example.hdf5 \
+    --output_file ./datasets/final_generated_mimic-lift-cube-example.hdf5 \
+    --to_joint --headless
+```
+
+Finally, you can use replay to view the effects of the generated data. It's worth noting that due to the inherent randomness in IsaacLab simulation, the replay performance may vary.
+
+</details>
 
 ## Acknowledgements 🙏
 
