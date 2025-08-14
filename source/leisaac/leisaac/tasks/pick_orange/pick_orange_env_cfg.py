@@ -12,7 +12,7 @@ from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
-from isaaclab.sensors import TiledCameraCfg
+from isaaclab.sensors import TiledCameraCfg, FrameTransformerCfg, OffsetCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.utils import configclass
 
@@ -32,6 +32,15 @@ class PickOrangeSceneCfg(InteractiveSceneCfg):
     scene: AssetBaseCfg = KITCHEN_WITH_ORANGE_CFG.replace(prim_path="{ENV_REGEX_NS}/Scene")
 
     robot: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
+    ee_frame: FrameTransformerCfg = FrameTransformerCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/base",
+        debug_vis=False,
+        target_frames=[
+            FrameTransformerCfg.FrameCfg(prim_path="{ENV_REGEX_NS}/Robot/gripper", name="gripper"),
+            FrameTransformerCfg.FrameCfg(prim_path="{ENV_REGEX_NS}/Robot/jaw", name="jaw", offset=OffsetCfg(pos=(-0.021, -0.070, 0.02)))
+        ]
+    )
 
     wrist: TiledCameraCfg = TiledCameraCfg(
         prim_path="{ENV_REGEX_NS}/Robot/gripper/wrist_camera",
@@ -100,6 +109,8 @@ class ObservationsCfg:
         actions = ObsTerm(func=mdp.last_action)
         wrist = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("wrist"), "data_type": "rgb", "normalize": False})
         front = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("front"), "data_type": "rgb", "normalize": False})
+        ee_frame_state = ObsTerm(func=mdp.ee_frame_state, params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "robot_cfg": SceneEntityCfg("robot")})
+        joint_pos_target = ObsTerm(func=mdp.joint_pos_target, params={"asset_cfg": SceneEntityCfg("robot")})
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -152,18 +163,20 @@ class PickOrangeEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physx.friction_correlation_distance = 0.00625
         self.sim.render.enable_translucency = True
 
+        self.scene.ee_frame.visualizer_cfg.markers['frame'].scale = (0.05, 0.05, 0.05)
+
         parse_usd_and_create_subassets(KITCHEN_WITH_ORANGE_USD_PATH, self, specific_name_list=['Orange001', 'Orange002', 'Orange003', 'Plate'])
 
         domain_randomization(self, random_options=[
-            randomize_object_uniform("Orange001", pose_range={"x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (0.0, 0.0)}),
-            randomize_object_uniform("Orange002", pose_range={"x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (0.0, 0.0)}),
-            randomize_object_uniform("Orange003", pose_range={"x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (0.0, 0.0)}),
-            randomize_object_uniform("Plate", pose_range={"x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (0.0, 0.0)}),
+            randomize_object_uniform("Orange001", pose_range={"x": (-0.03, 0.03), "y": (-0.03, 0.03), "z": (0.0, 0.0)}),
+            randomize_object_uniform("Orange002", pose_range={"x": (-0.03, 0.03), "y": (-0.03, 0.03), "z": (0.0, 0.0)}),
+            randomize_object_uniform("Orange003", pose_range={"x": (-0.03, 0.03), "y": (-0.03, 0.03), "z": (0.0, 0.0)}),
+            randomize_object_uniform("Plate", pose_range={"x": (-0.03, 0.03), "y": (-0.03, 0.03), "z": (0.0, 0.0)}),
             randomize_camera_uniform("front", pose_range={
-                "x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (-0.05, 0.05),
-                "roll": (-5 * torch.pi / 180, 5 * torch.pi / 180),
-                "pitch": (-5 * torch.pi / 180, 5 * torch.pi / 180),
-                "yaw": (-5 * torch.pi / 180, 5 * torch.pi / 180)}, convention="ros"),
+                "x": (-0.025, 0.025), "y": (-0.025, 0.025), "z": (-0.025, 0.025),
+                "roll": (-2.5 * torch.pi / 180, 2.5 * torch.pi / 180),
+                "pitch": (-2.5 * torch.pi / 180, 2.5 * torch.pi / 180),
+                "yaw": (-2.5 * torch.pi / 180, 2.5 * torch.pi / 180)}, convention="ros"),
         ])
 
     def use_teleop_device(self, teleop_device) -> None:

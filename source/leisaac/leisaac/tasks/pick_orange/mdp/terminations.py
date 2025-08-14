@@ -58,7 +58,4 @@ def task_done(
     joint_names = env.scene["robot"].data.joint_names
     done = torch.logical_and(done, is_so101_at_rest_pose(joint_pos, joint_names))
 
-    if done.any():
-        print("Task completed!")
-
     return done
