@@ -286,7 +286,7 @@ We have integrated [IsaacLab MimicGen](https://isaac-sim.github.io/IsaacLab/main
 
 To use this functionality, you first need to record some demonstrations. Recording scripts can be referenced from the instructions above. (Below we use the MimicGen for the `LeIsaac-SO101-LiftCube-v0` task as an example).
 
->[!NOTE] 
+> [!NOTE] 
 > Pay attention to the `input_file` and `output_file` parameters in the following scripts. Typically, the `output_file` from the previous script becomes the `input_file` for the next script.
 
 Since MimicGen requires trajectory generalization based on end-effector pose and object pose, we first convert joint-position-based action data to IK-based action data. The conversion process is as follows, where `input_file` specifies the collected demonstration data:
