@@ -45,7 +45,13 @@ git checkout v2.1.1
 ```
 
 > [!TIP] 
-> If you are using 50 series GPU, we recommend to use isaacsim5.0 and isaaclab with `feature/isaacsim_5_0` branch.
+> If you are using 50 series GPU, we recommend to use isaacsim5.0 and isaaclab with `v2.2.0`. We have tested it on isaacsim5.0 and it works properly. Below are some important dependency versions:
+> - python 3.11
+> - cuda 12.8
+> - torch 2.7.0
+> - isaacsim 5.0
+> - isaaclab 2.2.0
+
 
 ### 2. Clone This Repository
 
