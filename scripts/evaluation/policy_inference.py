@@ -120,6 +120,7 @@ def main():
     # create policy
     if args_cli.policy_type == "gr00tn1.5":
         from leisaac.policy import Gr00tServicePolicyClient
+        from isaaclab.sensors import Camera
 
         if task_type == "so101leader":
             modality_keys = ["single_arm", "gripper"]
@@ -130,7 +131,7 @@ def main():
             host=args_cli.policy_host,
             port=args_cli.policy_port,
             timeout_ms=args_cli.policy_timeout_ms,
-            camera_keys=list(env.scene.sensors.keys()),
+            camera_keys=[key for key, sensor in env.scene.sensors.items() if isinstance(sensor, Camera)],
             modality_keys=modality_keys,
         )
 
