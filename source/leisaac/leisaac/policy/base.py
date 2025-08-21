@@ -1,8 +1,18 @@
 import torch
-import zmq
+import warnings
 
 from abc import ABC, abstractmethod
 from io import BytesIO
+
+try:
+    import zmq
+except ImportError:
+    warnings.warn("zmq is not installed, please install it with `pip install pyzmq` for full functionality of ZMQServicePolicy", ImportWarning)
+
+try:
+    import grpc
+except ImportError:
+    warnings.warn("grpc is not installed, please install it with `pip install grpcio` for full functionality of GRPCServicePolicy", ImportWarning)
 
 
 class Policy(ABC):
@@ -41,8 +51,8 @@ class TorchSerializer:
         return obj
 
 
-class ServicePolicy(Policy):
-    def __init__(self, host: str, port: int, timeout_ms: int = 5000, ping_endpoint: str = "ping", kill_endpoint: str = "kill"):
+class ZMQServicePolicy(Policy):
+    def __init__(self, host: str, port: int, timeout_ms: int = 5000, ping_endpoint: str = "ping"):
         super().__init__("service")
         self.host = host
         self.port = port
@@ -50,7 +60,6 @@ class ServicePolicy(Policy):
         self.context = zmq.Context()
         self._init_socket()
         self._ping_endpoint = ping_endpoint
-        self._kill_endpoint = kill_endpoint
         self.check_service_status()
 
     def _init_socket(self):
@@ -76,11 +85,6 @@ class ServicePolicy(Policy):
             self._init_socket()  # Recreate socket for next attempt
             return False
 
-    def kill_server(self):
-        if self._kill_endpoint is None:
-            raise ValueError("kill_endpoint is not set")
-        self.call_endpoint(self._kill_endpoint, requires_input=False)
-
     def call_endpoint(self, endpoint: str, data: dict | None = None, requires_input: bool = True) -> dict:
         """
         Call an endpoint on the server.
@@ -104,3 +108,15 @@ class ServicePolicy(Policy):
         """Cleanup resources on destruction"""
         self.socket.close()
         self.context.term()
+
+
+class GRPCServicePolicy(Policy):
+    def __init__(self, host: str, port: int, timeout_ms: int = 5000, ping_endpoint: str = "ping"):
+        super().__init__("service")
+        self.host = host
+        self.port = port
+        self.timeout_ms = timeout_ms
+        self.context = zmq.Context()
+        self._init_socket()
+        self._ping_endpoint = ping_endpoint
+        self.check_service_status()

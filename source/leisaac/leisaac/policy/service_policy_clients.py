@@ -1,12 +1,12 @@
 import torch
 import numpy as np
 
-from .base import ServicePolicy
+from .base import ZMQServicePolicy
 
 from leisaac.utils.robot_utils import convert_leisaac_action_to_lerobot, convert_lerobot_action_to_leisaac
 
 
-class Gr00tServicePolicyClient(ServicePolicy):
+class Gr00tServicePolicyClient(ZMQServicePolicy):
     """
     Service policy client for GR00T N1.5: https://github.com/NVIDIA/Isaac-GR00T
     Target Commit: https://github.com/NVIDIA/Isaac-GR00T/commit/4ea96a16b15cfdbbd787b6b4f519a12687281330
@@ -28,7 +28,7 @@ class Gr00tServicePolicyClient(ServicePolicy):
             timeout_ms: Timeout of the policy server.
             modality_keys: Keys of the modality.
         """
-        super().__init__(host=host, port=port, timeout_ms=timeout_ms, ping_endpoint="ping", kill_endpoint="kill")
+        super().__init__(host=host, port=port, timeout_ms=timeout_ms, ping_endpoint="ping")
         self.camera_keys = camera_keys
         self.modality_keys = modality_keys
 

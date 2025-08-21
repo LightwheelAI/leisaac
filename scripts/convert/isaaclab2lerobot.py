@@ -9,7 +9,7 @@ from lerobot.datasets.lerobot_dataset import LeRobotDataset
 NOTE: Please use the environment of lerobot.
 
 Because lerobot is rapidly developing, we don't guarantee the compatibility for the latest version of lerobot.
-Currently, the commit we used is https://github.com/huggingface/lerobot/commit/26cb4614c961e6da04e4b83b6178331f4150650d
+Currently, the commit we used is https://github.com/huggingface/lerobot/tree/v0.3.3
 """
 
 # Feature definition for single-arm so101_follower

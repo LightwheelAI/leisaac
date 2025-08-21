@@ -1,4 +1,4 @@
-"""Script to run a leisaac replay with leisaac in the simulation."""
+"""Script to run eef action process for mimic recorded demos."""
 
 """Launch Isaac Sim Simulator first."""
 import multiprocessing
@@ -9,7 +9,7 @@ import argparse
 from isaaclab.app import AppLauncher
 
 # add argparse arguments
-parser = argparse.ArgumentParser(description="leisaac replay for leisaac in the simulation.")
+parser = argparse.ArgumentParser(description="eef action process for mimic recorded demos.")
 parser.add_argument("--input_file", type=str, default="./datasets/mimic-lift-cube-example.hdf5", help="File path to load mimic recorded demos.")
 parser.add_argument("--output_file", type=str, default="./datasets/processed_mimic-lift-cube-example.hdf5", help="File path to save processed mimic recorded demos.")
 parser.add_argument("--to_ik", action="store_true", help="Whether to convert the action to ik action.")
