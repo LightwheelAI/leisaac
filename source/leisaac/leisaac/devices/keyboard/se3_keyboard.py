@@ -1,14 +1,23 @@
+import os
 import weakref
 import numpy as np
 
 from collections.abc import Callable
-from pynput.keyboard import Listener
 
 import carb
 import omni
 
 from ..device_base import Device
 
+Listener = None
+try:
+    if os.environ.get("DISPLAY"):
+        from pynput.keyboard import Listener
+    else:
+        print("[Se3Keyboard] No DISPLAY found, skipping keyboard listener.")
+except ImportError:
+    print("[Se3Keyboard] pynput not available, skipping keyboard listener.")
+    Listener = None
 
 class Se3Keyboard(Device):
     """A keyboard controller for sending SE(3) commands as delta poses for lerobot.
@@ -54,8 +63,15 @@ class Se3Keyboard(Device):
         self._reset_state = 0
         self._additional_callbacks = {}
 
-        self.listener = Listener(on_press=self.on_press, on_release=self.on_release)
-        self.listener.start()
+        if Listener is not None:
+            try:
+                self.listener = Listener(on_press=self.on_press, on_release=self.on_release)
+                self.listener.start()
+                print("[Se3Keyboard] Keyboard listener started.")
+            except Exception as e:
+                print(f"[Se3Keyboard] Failed to start keyboard listener: {e}")
+        else:
+            print("[Se3Keyboard] Keyboard listener disabled.")
 
     def __del__(self):
         """Release the keyboard interface."""

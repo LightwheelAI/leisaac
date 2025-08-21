@@ -2,13 +2,23 @@ import os
 import json
 from collections.abc import Callable
 from typing import Dict, Tuple
-from pynput.keyboard import Listener
 
 from .common.motors import FeetechMotorsBus, Motor, MotorNormMode, MotorCalibration, OperatingMode
 from .common.errors import DeviceAlreadyConnectedError, DeviceNotConnectedError
 from ..device_base import Device
 
 from leisaac.assets.robots.lerobot import SO101_FOLLOWER_MOTOR_LIMITS
+
+Listener = None
+try:
+    # 只有在有 DISPLAY 环境时才尝试加载 pynput
+    if os.environ.get("DISPLAY"):
+        from pynput.keyboard import Listener
+    else:
+        print("[SO101Leader] No DISPLAY found, skipping keyboard listener.")
+except ImportError:
+    print("[SO101Leader] pynput not available, skipping keyboard listener.")
+    Listener = None
 
 
 class SO101Leader(Device):
@@ -47,8 +57,17 @@ class SO101Leader(Device):
         self._reset_state = False
         self._additional_callbacks = {}
 
-        self.listener = Listener(on_press=self.on_press, on_release=self.on_release)
-        self.listener.start()
+        self.listener = None
+        if Listener is not None:
+            try:
+                self.listener = Listener(on_press=self.on_press, on_release=self.on_release)
+                self.listener.start()
+                print("[SO101Leader] Keyboard listener started.")
+            except Exception as e:
+                print(f"[SO101Leader] Failed to start keyboard listener: {e}")
+        else:
+            print("[SO101Leader] Keyboard listener disabled (no pynput).")
+
         self._display_controls()
 
     def __str__(self) -> str:
