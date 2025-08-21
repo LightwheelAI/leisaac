@@ -9,11 +9,6 @@ try:
 except ImportError:
     warnings.warn("zmq is not installed, please install it with `pip install pyzmq` for full functionality of ZMQServicePolicy", ImportWarning)
 
-try:
-    import grpc
-except ImportError:
-    warnings.warn("grpc is not installed, please install it with `pip install grpcio` for full functionality of GRPCServicePolicy", ImportWarning)
-
 
 class Policy(ABC):
     def __init__(self, type: str):
@@ -108,15 +103,3 @@ class ZMQServicePolicy(Policy):
         """Cleanup resources on destruction"""
         self.socket.close()
         self.context.term()
-
-
-class GRPCServicePolicy(Policy):
-    def __init__(self, host: str, port: int, timeout_ms: int = 5000, ping_endpoint: str = "ping"):
-        super().__init__("service")
-        self.host = host
-        self.port = port
-        self.timeout_ms = timeout_ms
-        self.context = zmq.Context()
-        self._init_socket()
-        self._ping_endpoint = ping_endpoint
-        self.check_service_status()

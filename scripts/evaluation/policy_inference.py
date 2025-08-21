@@ -12,7 +12,7 @@ from isaaclab.app import AppLauncher
 parser = argparse.ArgumentParser(description="leisaac inference for leisaac in the simulation.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--step_hz", type=int, default=60, help="Environment stepping rate in Hz.")
-parser.add_argument("--policy_type", type=str, default="gr00tn1.5", choices=["gr00tn1.5"], help="Type of policy to use.")
+parser.add_argument("--policy_type", type=str, default="gr00tn1.5", help="Type of policy to use. support gr00tn1.5, lerobot-<model_type>")
 parser.add_argument("--policy_host", type=str, default="localhost", help="Host of the policy server.")
 parser.add_argument("--policy_port", type=int, default=5555, help="Port of the policy server.")
 parser.add_argument("--policy_timeout_ms", type=int, default=15000, help="Timeout of the policy server.")
@@ -93,13 +93,13 @@ class Controller:
         pass
 
 
-def preprocess_obs_dict(obs_dict: dict, policy_type: str, language_instruction: str):
+def preprocess_obs_dict(obs_dict: dict, model_type: str, language_instruction: str):
     """Preprocess the observation dictionary to the format expected by the policy."""
-    if policy_type == "gr00tn1.5":
+    if model_type in ["gr00tn1.5", "lerobot"]:
         obs_dict["task_description"] = language_instruction
         return obs_dict
     else:
-        raise ValueError(f"Policy type {policy_type} not supported")
+        raise ValueError(f"Model type {model_type} not supported")
 
 
 def main():
@@ -118,6 +118,7 @@ def main():
     env: ManagerBasedRLEnv = gym.make(args_cli.task, cfg=env_cfg).unwrapped
 
     # create policy
+    model_type = args_cli.policy_type
     if args_cli.policy_type == "gr00tn1.5":
         from leisaac.policy import Gr00tServicePolicyClient
         from isaaclab.sensors import Camera
@@ -134,6 +135,24 @@ def main():
             camera_keys=[key for key, sensor in env.scene.sensors.items() if isinstance(sensor, Camera)],
             modality_keys=modality_keys,
         )
+    elif "lerobot" in args_cli.policy_type:
+        from leisaac.policy import LeRobotServicePolicyClient
+        from isaaclab.sensors import Camera
+
+        model_type = 'lerobot'
+
+        policy_type = args_cli.policy_type.split("-")[1]
+        policy = LeRobotServicePolicyClient(
+            host=args_cli.policy_host,
+            port=args_cli.policy_port,
+            timeout_ms=args_cli.policy_timeout_ms,
+            camera_infos={key: sensor.image_shape for key, sensor in env.scene.sensors.items() if isinstance(sensor, Camera)},
+            task_type=task_type,
+            policy_type=policy_type,
+            pretrained_name_or_path=args_cli.policy_checkpoint_path,
+            actions_per_chunk=args_cli.policy_action_horizon,
+            device=args_cli.device,
+        )
 
     rate_limiter = RateLimiter(args_cli.step_hz)
     controller = Controller()
@@ -149,7 +168,7 @@ def main():
             if controller.reset_state:
                 controller.reset()
                 obs_dict, _ = env.reset()
-            obs_dict = preprocess_obs_dict(obs_dict['policy'], args_cli.policy_type, args_cli.policy_language_instruction)
+            obs_dict = preprocess_obs_dict(obs_dict['policy'], model_type, args_cli.policy_language_instruction)
             actions = policy.get_action(obs_dict).to(env.device)
             for i in range(args_cli.policy_action_horizon):
                 action = actions[i, :, :]
