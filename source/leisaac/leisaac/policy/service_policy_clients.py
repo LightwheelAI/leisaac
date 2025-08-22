@@ -103,10 +103,10 @@ class LeRobotServicePolicyClient(Policy):
             host: Host of the policy server.
             port: Port of the policy server.
             timeout_ms: Timeout of the policy server.
-            camera_infos: List of camera information.
+            camera_infos: List of camera information. {camera_key: (height, width)}
             task_type: Type of task.
             policy_type: Type of policy.
-            pretrained_name_or_path: Path to the pretrained model.
+            pretrained_name_or_path: Path to the pretrained model in the remote policy server.
             actions_per_chunk: Number of actions per chunk.
             device: Device to use.
         """
