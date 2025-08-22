@@ -36,13 +36,14 @@ import time
 import torch
 import gymnasium as gym
 
-from pynput.keyboard import Listener
-
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
 
 import leisaac  # noqa: F401
 from leisaac.utils.env_utils import get_task_type, dynamic_reset_gripper_effort_limit_sim
+
+import carb
+import omni
 
 
 class RateLimiter:
@@ -75,23 +76,30 @@ class RateLimiter:
 
 class Controller:
     def __init__(self):
-        self.listener = Listener(on_press=self.on_press, on_release=self.on_release)
+        self._appwindow = omni.appwindow.get_default_app_window()
+        self._input = carb.input.acquire_input_interface()
+        self._keyboard = self._appwindow.get_keyboard()
+        self._keyboard_sub = self._input.subscribe_to_keyboard_events(
+            self._keyboard,
+            self._on_keyboard_event,
+        )
         self.reset_state = False
-        self.listener.start()
+
+    def __del__(self):
+        """Release the keyboard interface."""
+        if hasattr(self, '_input') and hasattr(self, '_keyboard') and hasattr(self, '_keyboard_sub'):
+            self._input.unsubscribe_from_keyboard_events(self._keyboard, self._keyboard_sub)
+            self._keyboard_sub = None
 
     def reset(self):
         self.reset_state = False
 
-    def on_press(self, key):
-        try:
-            if key.char == 'r':
+    def _on_keyboard_event(self, event, *args, **kwargs):
+        """Handle keyboard events using carb."""
+        if event.type == carb.input.KeyboardEventType.KEY_PRESS:
+            if event.input.name == "R":
                 self.reset_state = True
-        except AttributeError:
-            pass
-
-    def on_release(self, key):
-        pass
-
+        return True
 
 def preprocess_obs_dict(obs_dict: dict, policy_type: str, language_instruction: str):
     """Preprocess the observation dictionary to the format expected by the policy."""
@@ -166,3 +174,4 @@ def main():
 if __name__ == "__main__":
     # run the main function
     main()
+

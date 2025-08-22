@@ -2,13 +2,15 @@ import os
 import json
 from collections.abc import Callable
 from typing import Dict, Tuple
-from pynput.keyboard import Listener
 
 from .common.motors import FeetechMotorsBus, Motor, MotorNormMode, MotorCalibration, OperatingMode
 from .common.errors import DeviceAlreadyConnectedError, DeviceNotConnectedError
 from ..device_base import Device
 
 from leisaac.assets.robots.lerobot import SO101_FOLLOWER_MOTOR_LIMITS
+
+import carb
+import omni
 
 
 class SO101Leader(Device):
@@ -42,14 +44,26 @@ class SO101Leader(Device):
         # connect
         self.connect()
 
+        self._appwindow = omni.appwindow.get_default_app_window()
+        self._input = carb.input.acquire_input_interface()
+        self._keyboard = self._appwindow.get_keyboard()
+        self._keyboard_sub = self._input.subscribe_to_keyboard_events(
+            self._keyboard,
+            self._on_keyboard_event,
+        )
+
         # some flags and callbacks
         self._started = False
         self._reset_state = False
         self._additional_callbacks = {}
 
-        self.listener = Listener(on_press=self.on_press, on_release=self.on_release)
-        self.listener.start()
         self._display_controls()
+
+    def __del__(self):
+        """Release the keyboard interface."""
+        if hasattr(self, '_input') and hasattr(self, '_keyboard') and hasattr(self, '_keyboard_sub'):
+            self._input.unsubscribe_from_keyboard_events(self._keyboard, self._keyboard_sub)
+            self._keyboard_sub = None
 
     def __str__(self) -> str:
         """Returns: A string containing the information of so101 leader."""
@@ -76,29 +90,23 @@ class SO101Leader(Device):
         print_command("Control+C", "quit")
         print("")
 
-    def on_press(self, key):
-        pass
-
-    def on_release(self, key):
-        """
-        Key handler for key releases.
-        Args:
-            key (str): key that was pressed
-        """
-        try:
-            if key.char == 'b':
+    def _on_keyboard_event(self, event, *args, **kwargs):
+        """Handle keyboard events using carb."""
+        if event.type == carb.input.KeyboardEventType.KEY_PRESS:
+            if event.input.name == "B":
                 self._started = True
                 self._reset_state = False
-            elif key.char == 'r':
+            elif event.input.name == "R":
                 self._started = False
                 self._reset_state = True
-                self._additional_callbacks["R"]()
-            elif key.char == 'n':
+                if "R" in self._additional_callbacks:
+                    self._additional_callbacks["R"]()
+            elif event.input.name == "N":
                 self._started = False
                 self._reset_state = True
-                self._additional_callbacks["N"]()
-        except AttributeError:
-            pass
+                if "N" in self._additional_callbacks:
+                    self._additional_callbacks["N"]()
+        return True
 
     def get_device_state(self):
         return self._bus.sync_read("Present_Position")
@@ -233,3 +241,4 @@ class SO101Leader(Device):
             os.makedirs(os.path.dirname(self.calibration_path))
         with open(self.calibration_path, 'w') as f:
             json.dump(save_calibration, f, indent=4)
+

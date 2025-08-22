@@ -2,7 +2,6 @@ import weakref
 import numpy as np
 
 from collections.abc import Callable
-from pynput.keyboard import Listener
 
 import carb
 import omni
@@ -54,9 +53,6 @@ class Se3Keyboard(Device):
         self._reset_state = 0
         self._additional_callbacks = {}
 
-        self.listener = Listener(on_press=self.on_press, on_release=self.on_release)
-        self.listener.start()
-
     def __del__(self):
         """Release the keyboard interface."""
         self._input.unsubscribe_from_keyboard_events(self._keyboard, self._keyboard_sub)
@@ -79,30 +75,6 @@ class Se3Keyboard(Device):
         msg += "\tTask Success and Reset: N\n"
         msg += "\tControl+C: quit"
         return msg
-
-    def on_press(self, key):
-        pass
-
-    def on_release(self, key):
-        """
-        Key handler for key releases.
-        Args:
-            key (str): key that was pressed
-        """
-        try:
-            if key.char == 'b':
-                self.started = True
-                self._reset_state = False
-            elif key.char == 'r':
-                self.started = False
-                self._reset_state = True
-                self._additional_callbacks["R"]()
-            elif key.char == 'n':
-                self.started = False
-                self._reset_state = True
-                self._additional_callbacks["N"]()
-        except AttributeError:
-            pass
 
     def get_device_state(self):
         return self._delta_pos
@@ -136,6 +108,19 @@ class Se3Keyboard(Device):
         if event.type == carb.input.KeyboardEventType.KEY_PRESS:
             if event.input.name in self._INPUT_KEY_MAPPING.keys():
                 self._delta_pos += self._INPUT_KEY_MAPPING[event.input.name]
+            elif event.input.name == "B":
+                self.started = True
+                self._reset_state = False
+            elif event.input.name == "R":
+                self.started = False
+                self._reset_state = True
+                if "R" in self._additional_callbacks:
+                    self._additional_callbacks["R"]()
+            elif event.input.name == "N":
+                self.started = False
+                self._reset_state = True
+                if "N" in self._additional_callbacks:
+                    self._additional_callbacks["N"]()
         # remove the command when un-pressed
         if event.type == carb.input.KeyboardEventType.KEY_RELEASE:
             if event.input.name in self._INPUT_KEY_MAPPING.keys():
@@ -158,3 +143,4 @@ class Se3Keyboard(Device):
             "K": np.asarray([0.0, 0.0, 0.0, 0.0, -1.0, 0.0]) * self.sensitivity,
             "L": np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, -1.0]) * self.sensitivity,
         }
+
