@@ -21,7 +21,6 @@ classifiers = [
 requires-python = ">=3.10"
 dependencies = [
     "psutil",
-    "pynput",
     "pyserial",
     "deepdiff",
     "feetech-servo-sdk",
