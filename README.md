@@ -55,7 +55,7 @@ git checkout v2.1.1
 > | IsaacLab   | 2.2.0   |
 
 
-### 2. Clone This Repository
+### 2. Clone This Repository and Install
 
 Clone this repository and install it as dependency.
 
@@ -63,12 +63,6 @@ Clone this repository and install it as dependency.
 git clone https://github.com/LightwheelAI/leisaac.git
 cd leisaac
 pip install -e source/leisaac
-```
-
-### 3. Install Extra Dependencies
-
-```bash
-pip install pynput pyserial deepdiff feetech-servo-sdk
 ```
 
 ## Asset Preparation 🏠
@@ -265,7 +259,8 @@ You may also use additional arguments supported by IsaacLab's `AppLauncher` (see
 Depending on your use case, you may need to install additional dependencies to enable inference:
 
 ```shell
-pip install pyzmq
+pip install -e "source/leisaac[gr00t]"
+pip install -e "source/leisaac[lerobot-async]"
 ```
 
 > [!IMPORTANT]

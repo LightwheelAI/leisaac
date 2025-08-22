@@ -1,3 +1,42 @@
 [build-system]
 requires = ["setuptools", "wheel", "toml"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "leisaac"
+version = "0.1.3"
+description = "leisaac: Lerobot & IsaacLab Integration"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Yinghao Shuai", email = "yinghao.shuai@lightwheel.ai"}
+]
+maintainers = []
+keywords = ["extension", "isaaclab", "leisaac", "lerobot"]
+classifiers = [
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3.10",
+    "Isaac Sim :: 4.5.0",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "psutil",
+    "pynput",
+    "pyserial",
+    "deepdiff",
+    "feetech-servo-sdk",
+]
+
+[project.urls]
+Homepage = "https://github.com/LightwheelAI/leisaac"
+Repository = "https://github.com/LightwheelAI/leisaac"
+
+[tool.setuptools]
+packages = ["leisaac"]
+include-package-data = true
+zip-safe = false
+
+
+[project.optional-dependencies]
+gr00t = ["pyzmq>=27.0.0"]
+lerobot-async = ["grpcio==1.74.0", "protobuf==6.32.0"] # original isaaclab install protobuf version is 3.20.3
