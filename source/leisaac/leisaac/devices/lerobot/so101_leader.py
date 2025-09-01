@@ -61,8 +61,11 @@ class SO101Leader(Device):
 
     def __del__(self):
         """Release the keyboard interface."""
+        self.stop_keyboard_listener()
+
+    def stop_keyboard_listener(self):
         if hasattr(self, '_input') and hasattr(self, '_keyboard') and hasattr(self, '_keyboard_sub'):
-            self._input.unsubscribe_from_keyboard_events(self._keyboard, self._keyboard_sub)
+            self._input.unsubscribe_to_keyboard_events(self._keyboard, self._keyboard_sub)
             self._keyboard_sub = None
 
     def __str__(self) -> str:
@@ -241,4 +244,3 @@ class SO101Leader(Device):
             os.makedirs(os.path.dirname(self.calibration_path))
         with open(self.calibration_path, 'w') as f:
             json.dump(save_calibration, f, indent=4)
-

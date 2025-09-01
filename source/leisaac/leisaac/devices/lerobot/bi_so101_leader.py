@@ -14,7 +14,7 @@ class BiSO101Leader(Device):
         print("Connecting to right_so101_leader...")
         self.right_so101_leader = SO101Leader(env, right_port, recalibrate, "right_so101_leader.json")
 
-        self.right_so101_leader.listener.stop()
+        self.right_so101_leader.stop_keyboard_listener()
 
     def __str__(self) -> str:
         """Returns: A string containing the information of bi-so101 leader."""
