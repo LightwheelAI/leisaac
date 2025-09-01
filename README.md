@@ -221,6 +221,7 @@ We also provide interfaces for running policy inference in simulation. You can s
 ```shell
 python scripts/evaluation/policy_inference.py \
     --task=LeIsaac-SO101-PickOrange-v0 \
+    --eval_rounds=10 \
     --policy_type=gr00tn1.5 \
     --policy_host=localhost \
     --policy_port=5555 \
@@ -234,6 +235,12 @@ python scripts/evaluation/policy_inference.py \
 <summary><strong>Parameter descriptions for policy_inference.py</strong></summary><p></p>
 
 - `--task`: Name of the task environment to run for inference (e.g., `LeIsaac-SO101-PickOrange-v0`).
+
+- `--seed`: Seed of environment (default: current time).
+
+- `--episode_length_s`: Episode length in seconds (default: `60`).
+
+- `--eval_rounts`: Number of evaluation rounds. 0 means don't add time out termination, policy will run until success or manual reset (default: `0`) 
 
 - `--policy_type`: Type of policy to use (default: `gr00tn1.5`).
     - now we support `gr00tn1.5`, `lerobot-<model_type>`

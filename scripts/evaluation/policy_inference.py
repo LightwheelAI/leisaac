@@ -12,6 +12,9 @@ from isaaclab.app import AppLauncher
 parser = argparse.ArgumentParser(description="leisaac inference for leisaac in the simulation.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--step_hz", type=int, default=60, help="Environment stepping rate in Hz.")
+parser.add_argument("--seed", type=int, default=None, help="Seed of the environment.")
+parser.add_argument("--episode_length_s", type=float, default=60.0, help="Episode length in seconds.")
+parser.add_argument("--eval_rounds", type=int, default=0, help="Number of evaluation rounds. 0 means don't add time out termination, policy will run until success or manual reset.")
 parser.add_argument("--policy_type", type=str, default="gr00tn1.5", help="Type of policy to use. support gr00tn1.5, lerobot-<model_type>")
 parser.add_argument("--policy_host", type=str, default="localhost", help="Host of the policy server.")
 parser.add_argument("--policy_port", type=int, default=5555, help="Port of the policy server.")
@@ -101,6 +104,7 @@ class Controller:
                 self.reset_state = True
         return True
 
+
 def preprocess_obs_dict(obs_dict: dict, model_type: str, language_instruction: str):
     """Preprocess the observation dictionary to the format expected by the policy."""
     if model_type in ["gr00tn1.5", "lerobot"]:
@@ -116,10 +120,14 @@ def main():
     env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=1)
     task_type = get_task_type(args_cli.task)
     env_cfg.use_teleop_device(task_type)
+    env_cfg.seed = args_cli.seed if args_cli.seed is not None else int(time.time())
+    env_cfg.episode_length_s = args_cli.episode_length_s
 
     # modify configuration
-    if hasattr(env_cfg.terminations, "time_out"):
-        env_cfg.terminations.time_out = None
+    if args_cli.eval_rounds <= 0:
+        if hasattr(env_cfg.terminations, "time_out"):
+            env_cfg.terminations.time_out = None
+    max_episode_count = args_cli.eval_rounds
     env_cfg.recorders = None
 
     # create environment
@@ -169,21 +177,47 @@ def main():
     obs_dict, _ = env.reset()
     controller.reset()
 
+    # record the results
+    success_count, episode_count = 0, 1
+
     # simulate environment
-    while simulation_app.is_running():
-        # run everything in inference mode
-        with torch.inference_mode():
-            if controller.reset_state:
-                controller.reset()
-                obs_dict, _ = env.reset()
-            obs_dict = preprocess_obs_dict(obs_dict['policy'], model_type, args_cli.policy_language_instruction)
-            actions = policy.get_action(obs_dict).to(env.device)
-            for i in range(args_cli.policy_action_horizon):
-                action = actions[i, :, :]
-                dynamic_reset_gripper_effort_limit_sim(env, task_type)
-                obs_dict, _, _, _, _ = env.step(action)
-                if rate_limiter:
-                    rate_limiter.sleep(env)
+    while max_episode_count <= 0 or episode_count <= max_episode_count:
+        print(f"[Evaluation] Evaluating episode {episode_count}...")
+        success, time_out = False, False
+        while simulation_app.is_running():
+            # run everything in inference mode
+            with torch.inference_mode():
+                if controller.reset_state:
+                    controller.reset()
+                    obs_dict, _ = env.reset()
+                    episode_count += 1
+                    break
+
+                obs_dict = preprocess_obs_dict(obs_dict['policy'], model_type, args_cli.policy_language_instruction)
+                actions = policy.get_action(obs_dict).to(env.device)
+                for i in range(args_cli.policy_action_horizon):
+                    action = actions[i, :, :]
+                    dynamic_reset_gripper_effort_limit_sim(env, task_type)
+                    obs_dict, _, reset_terminated, reset_time_outs, _ = env.step(action)
+                    if reset_terminated[0]:
+                        success = True
+                        break
+                    if reset_time_outs[0]:
+                        time_out = True
+                        break
+                    if rate_limiter:
+                        rate_limiter.sleep(env)
+            if success:
+                print(f"[Evaluation] Episode {episode_count} is successful!")
+                episode_count += 1
+                success_count += 1
+                break
+            if time_out:
+                print(f"[Evaluation] Episode {episode_count} timed out!")
+                episode_count += 1
+                break
+        print(f"[Evaluation] now success rate: {success_count / (episode_count - 1)}  [{success_count}/{episode_count - 1}]")
+    print(f"[Evaluation] Final success rate: {success_count / max_episode_count:.3f}  [{success_count}/{max_episode_count}]")
 
     # close the simulator
     env.close()
@@ -193,4 +227,3 @@ def main():
 if __name__ == "__main__":
     # run the main function
     main()
-
