@@ -16,7 +16,7 @@ def task_done(
     plate_cfg: SceneEntityCfg,
     x_range: tuple[float, float] = (-0.10, 0.10),
     y_range: tuple[float, float] = (-0.10, 0.10),
-    height_range: tuple[float, float] = (-0.05, 0.05),
+    height_range: tuple[float, float] = (-0.07, 0.07),
 ) -> torch.Tensor:
     """Determine if the orange picking task is complete.
 
