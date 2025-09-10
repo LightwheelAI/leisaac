@@ -142,6 +142,8 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 
 - `--dataset_file`: Path to save the recorded dataset, e.g., `./datasets/record_data.hdf5`.
 
+- `--task-type`: Specify task type. If your dataset is recorded with keyboard, you should set it to `keyboard`, otherwise not to set it and keep default value None.
+
 - `--quality`: Whether to enable quality render mode.
 
 </details>
@@ -189,6 +191,8 @@ python scripts/environments/teleoperation/replay.py \
 - `--enable_cameras`: Enable camera sensors to visualize when replay.
 
 - `--replay_mode`: Replay mode, we support replay `action` or `state`.
+
+- `--task-type`: Specify task type. If your dataset is recorded with keyboard, you should set it to `keyboard`, otherwise not to set it and keep default value None.
 
 - `--dataset_file`: Path to the recorded dataset, e.g., `./datasets/record_data.hdf5`.
 

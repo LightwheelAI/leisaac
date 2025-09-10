@@ -28,6 +28,7 @@ parser.add_argument(
     default="./datasets/output_dataset.hdf5",
     help="File path to export recorded and generated episodes.",
 )
+parser.add_argument("--task_type", type=str, default=None, help="Specify task type. If your annotated dataset is recorded with keyboard, you should set it to 'keyboard', otherwise not to set it and keep default value None.")
 parser.add_argument(
     "--pause_subtask",
     action="store_true",
@@ -77,6 +78,8 @@ import isaaclab_tasks  # noqa: F401
 
 import leisaac  # noqa: F401
 
+from leisaac.utils.env_utils import get_task_type
+
 
 def main():
     num_envs = args_cli.num_envs
@@ -97,6 +100,7 @@ def main():
         device=args_cli.device,
         generation_num_trials=args_cli.generation_num_trials,
     )
+    setattr(env_cfg, 'task_type', get_task_type(task_name, args_cli.task_type))
 
     # create environment
     env = gym.make(env_name, cfg=env_cfg).unwrapped
