@@ -322,7 +322,7 @@ For usage examples, please refer to the sample task: [LiftCubeDigitalTwinEnvCfg]
 <details>
 <summary><strong>MimicGen Env: Generate Data From Demonstrations</strong></summary><p></p>
 
-We have integrated [IsaacLab MimicGen](https://isaac-sim.github.io/IsaacLab/main/source/overview/teleop_imitation.html), a powerful feature that automatically generates additional demonstrations from expert demonstrations.
+We have integrated [IsaacLab MimicGen](https://isaac-sim.github.io/IsaacLab/main/source/overview/imitation-learning/teleop_imitation.html), a powerful feature that automatically generates additional demonstrations from expert demonstrations.
 
 To use this functionality, you first need to record some demonstrations. Recording scripts can be referenced from the instructions above. (Below we use the MimicGen for the `LeIsaac-SO101-LiftCube-v0` task as an example).
 
