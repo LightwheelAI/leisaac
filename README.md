@@ -141,6 +141,8 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 
 - `--dataset_file`: Path to save the recorded dataset, e.g., `./datasets/record_data.hdf5`.
 
+- `--quality`: Whether to enable quality render mode.
+
 </details>
 
 

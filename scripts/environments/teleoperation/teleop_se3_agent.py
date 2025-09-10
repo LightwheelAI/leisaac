@@ -25,12 +25,13 @@ parser.add_argument("--seed", type=int, default=None, help="Seed for the environ
 parser.add_argument("--sensitivity", type=float, default=1.0, help="Sensitivity factor.")
 
 # recorder_parameter
-parser.add_argument("--record", action="store_true", default=False, help="whether to enable record function")
+parser.add_argument("--record", action="store_true", help="whether to enable record function")
 parser.add_argument("--step_hz", type=int, default=60, help="Environment stepping rate in Hz.")
 parser.add_argument("--dataset_file", type=str, default="./datasets/dataset.hdf5", help="File path to export recorded demos.")
 parser.add_argument("--num_demos", type=int, default=0, help="Number of demonstrations to record. Set to 0 for infinite.")
 
-parser.add_argument("--recalibrate", action="store_true", default=False, help="recalibrate SO101-Leader or Bi-SO101Leader")
+parser.add_argument("--recalibrate", action="store_true", help="recalibrate SO101-Leader or Bi-SO101Leader")
+parser.add_argument("--quality", action="store_true", help="whether to enable quality render mode.")
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -99,6 +100,10 @@ def main():
     env_cfg.use_teleop_device(args_cli.teleop_device)
     env_cfg.seed = args_cli.seed if args_cli.seed is not None else int(time.time())
     task_name = args_cli.task
+
+    if args_cli.quality:
+        env_cfg.sim.render.antialiasing_mode = 'FXAA'
+        env_cfg.sim.render.rendering_mode = 'quality'
 
     # precheck task and teleop device
     if "BiArm" in task_name:
