@@ -25,7 +25,7 @@ from leisaac.utils.general_assets import parse_usd_and_create_subassets
 
 @configclass
 class AssembleHamburgerBiArmSceneCfg(InteractiveSceneCfg):
-    """Scene configuration for the clean top table task using two arms."""
+    """Scene configuration for the assemble hamburger task using two arms."""
 
     scene: AssetBaseCfg = KITCHEN_WITH_HAMBURGER_CFG.replace(prim_path="{ENV_REGEX_NS}/Scene")
 
@@ -148,7 +148,7 @@ class TerminationsCfg:
 
 @configclass
 class AssembleHamburgerBiArmEnvCfg(ManagerBasedRLEnvCfg):
-    """Configuration for the clean top table environment."""
+    """Configuration for the assemble hamburger environment."""
 
     scene: AssembleHamburgerBiArmSceneCfg = AssembleHamburgerBiArmSceneCfg(env_spacing=8.0)
 
