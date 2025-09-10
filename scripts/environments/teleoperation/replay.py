@@ -16,6 +16,7 @@ parser.add_argument("--step_hz", type=int, default=60, help="Environment steppin
 parser.add_argument("--dataset_file", type=str, default="./datasets/dataset.hdf5", help="File path to load recorded demos.")
 parser.add_argument("--replay_mode", type=str, default="action", choices=["action", "state"], help="Replay mode, action: replay the action, state: replay the state.")
 parser.add_argument("--select_episodes", type=int, nargs="+", default=[], help="A list of episode indices to replayed. Keep empty to replay all episodes.")
+parser.add_argument("--task_type", type=str, default=None, help="specfic task type. If your dataset is recorded with keyboard, you should set it to 'keyboard', otherwise not to set it and keep default value None.")
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -106,7 +107,7 @@ def main():
     num_envs = args_cli.num_envs
 
     env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=num_envs)
-    task_type = get_task_type(args_cli.task)
+    task_type = get_task_type(args_cli.task, args_cli.task_type)
     env_cfg.use_teleop_device(task_type)
 
     # Disable all recorders and terminations

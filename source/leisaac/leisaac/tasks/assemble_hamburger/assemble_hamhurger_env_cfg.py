@@ -150,6 +150,7 @@ class AssembleHamburgerEnvCfg(ManagerBasedRLEnvCfg):
         parse_usd_and_create_subassets(KITCHEN_WITH_HAMBURGER_USD_PATH, self)
 
     def use_teleop_device(self, teleop_device) -> None:
+        self.task_type = teleop_device
         self.actions = init_action_cfg(self.actions, device=teleop_device)
         if teleop_device == "keyboard":
             self.scene.robot.spawn.rigid_props.disable_gravity = True
