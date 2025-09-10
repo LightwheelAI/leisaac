@@ -91,6 +91,7 @@ We provide an example USD asset—a kitchen scene. Please download related scene
 | Kitchen with Orange  | Example kitchen scene with oranges | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.0)                  |
 | Lightwheel Toyroom   | Modern room with many toys         | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.1)                  |
 | Table with Cube      | Simple table with one cube         | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.2)                  |
+| Lightwheel Bedroom   | Realistic bedroom scene with cloth | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.2.0)                  |
 
 
 > [!TIP] 
