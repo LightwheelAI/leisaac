@@ -1,5 +1,4 @@
 import torch
-import math
 
 
 def dynamic_reset_gripper_effort_limit_sim(env, teleop_device):
@@ -64,3 +63,8 @@ def get_task_type(task: str, task_type: str | None = None) -> str:
         return "bi-so101leader"
     else:
         return "so101leader"
+
+
+def delete_attribute(obj, attr_name):
+    if hasattr(obj, attr_name):
+        delattr(obj, attr_name)
