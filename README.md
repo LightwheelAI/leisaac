@@ -142,7 +142,7 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 
 - `--dataset_file`: Path to save the recorded dataset, e.g., `./datasets/record_data.hdf5`.
 
-- `--task-type`: Specify task type. If your dataset is recorded with keyboard, you should set it to `keyboard`, otherwise not to set it and keep default value None.
+- `--task_type`: Specify task type. If your dataset is recorded with keyboard, you should set it to `keyboard`, otherwise not to set it and keep default value None.
 
 - `--quality`: Whether to enable quality render mode.
 
@@ -192,7 +192,7 @@ python scripts/environments/teleoperation/replay.py \
 
 - `--replay_mode`: Replay mode, we support replay `action` or `state`.
 
-- `--task-type`: Specify task type. If your dataset is recorded with keyboard, you should set it to `keyboard`, otherwise not to set it and keep default value None.
+- `--task_type`: Specify task type. If your dataset is recorded with keyboard, you should set it to `keyboard`, otherwise not to set it and keep default value None.
 
 - `--dataset_file`: Path to the recorded dataset, e.g., `./datasets/record_data.hdf5`.
 
@@ -378,6 +378,11 @@ python scripts/mimic/eef_action_process.py \
 ```
 
 Finally, you can use replay to view the effects of the generated data. It's worth noting that due to the inherent randomness in IsaacLab simulation, the replay performance may vary.
+
+> **[NOTE]** 
+> Depending on the device used to collect the data, you need to specify the corresponding task type with `--task_type`. For example, if your demonstrations were collected using the keyboard, add `--task_type=keyboard` when running `annotate_demos` and `generate_dataset`.
+>
+> `task_type` dose not need to be provided during replay the results `final_generated_dataset.hdf5`.
 
 </details>
 
