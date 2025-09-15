@@ -379,6 +379,7 @@ python scripts/mimic/eef_action_process.py \
 
 Finally, you can use replay to view the effects of the generated data. It's worth noting that due to the inherent randomness in IsaacLab simulation, the replay performance may vary.
 
+> **[NOTE]** 
 > Depending on the device used to collect the data, you need to specify the corresponding task type with `--task_type`. For example, if your demonstrations were collected using the keyboard, add `--task_type=keyboard` when running `annotate_demos` and `generate_dataset`.
 >
 > `task_type` dose not need to be provided during replay the results `final_generated_dataset.hdf5`.
