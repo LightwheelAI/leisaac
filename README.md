@@ -235,7 +235,8 @@ python scripts/evaluation/policy_inference.py \
     --policy_timeout_ms=5000 \
     --policy_action_horizon=16 \
     --policy_language_instruction="Pick up the orange and place it on the plate" \
-    --device=cuda
+    --device=cuda \
+    --enable_cameras
 ```
 
 <details>
@@ -275,6 +276,7 @@ Depending on your use case, you may need to install additional dependencies to e
 ```shell
 pip install -e "source/leisaac[gr00t]"
 pip install -e "source/leisaac[lerobot-async]"
+pip install -e "source/leisaac[openpi]"
 ```
 
 > [!IMPORTANT]
@@ -304,6 +306,25 @@ python scripts/evaluation/policy_inference.py \
     --policy_language_instruction='Pick the orange to the plate' \
     --policy_checkpoint_path=outputs/smolvla/leisaac-pick-orange/checkpoints/last/pretrained_model \
     --policy_action_horizon=50 \
+    --device=cuda \
+    --enable_cameras
+```
+
+</details>
+
+<details>
+<summary><strong>finetuned openpi</strong></summary><p></p>
+
+We utilize openpi's remote inference capabilities for policy execution. For detailed information, please refer to the [official documentation](https://github.com/Physical-Intelligence/openpi/blob/main/docs/remote_inference.md). Prior to execution, ensure that the policy server is running.
+
+```shell
+python scripts/evaluation/policy_inference.py \
+    --task=LeIsaac-SO101-PickOrange-v0 \
+    --policy_type=openpi \
+    --policy_host=localhost \
+    --policy_port=8000 \
+    --policy_timeout_ms=5000 \
+    --policy_language_instruction='Pick the orange to the plate' \
     --device=cuda \
     --enable_cameras
 ```
