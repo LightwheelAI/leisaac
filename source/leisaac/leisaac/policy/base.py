@@ -3,11 +3,18 @@ import warnings
 
 from abc import ABC, abstractmethod
 from io import BytesIO
+from typing import Dict, Optional, Tuple
 
 try:
     import zmq
 except ImportError:
     warnings.warn("zmq is not installed, please install it with `pip install pyzmq` for full functionality of ZMQServicePolicy", ImportWarning)
+try:
+    import websockets.sync.client
+except ImportError:
+    warnings.warn("websockets is not installed, please install it with `pip install websockets` for full functionality of WebsocketServicePolicy", ImportWarning)
+
+from .openpi import msgpack_numpy
 
 
 class Policy(ABC):
@@ -103,3 +110,36 @@ class ZMQServicePolicy(Policy):
         """Cleanup resources on destruction"""
         self.socket.close()
         self.context.term()
+
+
+class WebsocketServicePolicy(Policy):
+    def __init__(self, host: str, port: Optional[int] = None, timeout_ms: int = 5000, api_key: Optional[str] = None):
+        super().__init__("service")
+        self._uri = f"ws://{host}"
+        if port is not None:
+            self._uri += f":{port}"
+        self._packer = msgpack_numpy.Packer()
+        self._timeout_ms = timeout_ms
+        self._api_key = api_key
+        self._ws, self._server_metadata = self._wait_for_server()
+
+    def _wait_for_server(self) -> Tuple[websockets.sync.client.ClientConnection, Dict]:
+        print(f"Waiting for server at {self._uri}...")
+        try:
+            headers = {"Authorization": f"Api-Key {self._api_key}"} if self._api_key else None
+            conn = websockets.sync.client.connect(
+                self._uri, compression=None, max_size=None, additional_headers=headers
+            )
+            metadata = msgpack_numpy.unpackb(conn.recv())
+            return conn, metadata
+        except ConnectionRefusedError:
+            raise RuntimeError("Failed to connect to policy server.")
+
+    def infer(self, obs: Dict) -> Dict:  # noqa: UP006
+        data = self._packer.pack(obs)
+        self._ws.send(data)
+        response = self._ws.recv()
+        if isinstance(response, str):
+            # we're expecting bytes; if the server sends a string, it's an error.
+            raise RuntimeError(f"Error in inference server:\n{response}")
+        return msgpack_numpy.unpackb(response)

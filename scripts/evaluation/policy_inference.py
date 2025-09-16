@@ -15,7 +15,7 @@ parser.add_argument("--step_hz", type=int, default=60, help="Environment steppin
 parser.add_argument("--seed", type=int, default=None, help="Seed of the environment.")
 parser.add_argument("--episode_length_s", type=float, default=60.0, help="Episode length in seconds.")
 parser.add_argument("--eval_rounds", type=int, default=0, help="Number of evaluation rounds. 0 means don't add time out termination, policy will run until success or manual reset.")
-parser.add_argument("--policy_type", type=str, default="gr00tn1.5", help="Type of policy to use. support gr00tn1.5, lerobot-<model_type>")
+parser.add_argument("--policy_type", type=str, default="gr00tn1.5", help="Type of policy to use. support gr00tn1.5, lerobot-<model_type>, openpi")
 parser.add_argument("--policy_host", type=str, default="localhost", help="Host of the policy server.")
 parser.add_argument("--policy_port", type=int, default=5555, help="Port of the policy server.")
 parser.add_argument("--policy_timeout_ms", type=int, default=15000, help="Timeout of the policy server.")
@@ -107,7 +107,7 @@ class Controller:
 
 def preprocess_obs_dict(obs_dict: dict, model_type: str, language_instruction: str):
     """Preprocess the observation dictionary to the format expected by the policy."""
-    if model_type in ["gr00tn1.5", "lerobot"]:
+    if model_type in ["gr00tn1.5", "lerobot", "openpi"]:
         obs_dict["task_description"] = language_instruction
         return obs_dict
     else:
@@ -169,6 +169,16 @@ def main():
             actions_per_chunk=args_cli.policy_action_horizon,
             device=args_cli.device,
         )
+    elif args_cli.policy_type == "openpi":
+        from leisaac.policy import OpenPIServicePolicyClient
+        from isaaclab.sensors import Camera
+
+        policy = OpenPIServicePolicyClient(
+            host=args_cli.policy_host,
+            port=args_cli.policy_port,
+            camera_keys=[key for key, sensor in env.scene.sensors.items() if isinstance(sensor, Camera)],
+            task_type=task_type,
+        )
 
     rate_limiter = RateLimiter(args_cli.step_hz)
     controller = Controller()
@@ -195,7 +205,7 @@ def main():
 
                 obs_dict = preprocess_obs_dict(obs_dict['policy'], model_type, args_cli.policy_language_instruction)
                 actions = policy.get_action(obs_dict).to(env.device)
-                for i in range(args_cli.policy_action_horizon):
+                for i in range(min(args_cli.policy_action_horizon, actions.shape[0])):
                     action = actions[i, :, :]
                     dynamic_reset_gripper_effort_limit_sim(env, task_type)
                     obs_dict, _, reset_terminated, reset_time_outs, _ = env.step(action)
