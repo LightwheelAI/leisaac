@@ -17,7 +17,7 @@ from leisaac.utils.constant import SINGLE_ARM_JOINT_NAMES
 class Gr00tServicePolicyClient(ZMQServicePolicy):
     """
     Service policy client for GR00T N1.5: https://github.com/NVIDIA/Isaac-GR00T
-    Target Commit: https://github.com/NVIDIA/Isaac-GR00T/commit/4ea96a16b15cfdbbd787b6b4f519a12687281330
+    Target Commit: https://github.com/NVIDIA/Isaac-GR00T/commit/b211007ed6698e6642d2fd7679dabab1d97e9e6c
     """
 
     def __init__(

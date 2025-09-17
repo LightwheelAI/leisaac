@@ -2,7 +2,6 @@ import torch
 import warnings
 
 from abc import ABC, abstractmethod
-from io import BytesIO
 from typing import Dict, Optional, Tuple
 
 try:
@@ -14,6 +13,7 @@ try:
 except ImportError:
     warnings.warn("websockets is not installed, please install it with `pip install websockets` for full functionality of WebsocketServicePolicy", ImportWarning)
 
+from .gr00t import serialization
 from .openpi import msgpack_numpy
 
 
@@ -37,20 +37,6 @@ class CheckpointPolicy(Policy):
 
     def get_action(self, *args, **kwargs) -> torch.Tensor:
         pass
-
-
-class TorchSerializer:
-    @staticmethod
-    def to_bytes(data: dict) -> bytes:
-        buffer = BytesIO()
-        torch.save(data, buffer)
-        return buffer.getvalue()
-
-    @staticmethod
-    def from_bytes(data: bytes) -> dict:
-        buffer = BytesIO(data)
-        obj = torch.load(buffer, weights_only=False)
-        return obj
 
 
 class ZMQServicePolicy(Policy):
@@ -100,11 +86,11 @@ class ZMQServicePolicy(Policy):
         if requires_input:
             request["data"] = data
 
-        self.socket.send(TorchSerializer.to_bytes(request))
+        self.socket.send(serialization.MsgSerializer.to_bytes(request))
         message = self.socket.recv()
         if message == b"ERROR":
             raise RuntimeError("Server error")
-        return TorchSerializer.from_bytes(message)
+        return serialization.MsgSerializer.from_bytes(message)
 
     def __del__(self):
         """Cleanup resources on destruction"""
