@@ -1,6 +1,7 @@
 import enum
 import copy
 import h5py
+import os
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -24,6 +25,29 @@ class StreamingHDF5DatasetFileHandler(HDF5DatasetFileHandler):
         self._chunks_length = 100
         self._compression = None
         self._writer = self.SingleThreadHDF5DatasetWriter(self)
+
+    def create(self, file_path: str, env_name: str = None, resume: bool = False):
+        """Create a new dataset file."""
+        if self._hdf5_file_stream is not None:
+            raise RuntimeError("HDF5 dataset file stream is already in use")
+        if not file_path.endswith(".hdf5"):
+            file_path += ".hdf5"
+        dir_path = os.path.dirname(file_path)
+        if not os.path.isdir(dir_path):
+            os.makedirs(dir_path)
+        if resume:
+            self._hdf5_file_stream = h5py.File(file_path, "a")
+            self._hdf5_data_group = self._hdf5_file_stream["data"]
+            self._demo_count = len(self._hdf5_data_group)
+        else:
+            self._hdf5_file_stream = h5py.File(file_path, "w")
+            # set up a data group in the file
+            self._hdf5_data_group = self._hdf5_file_stream.create_group("data")
+            self._hdf5_data_group.attrs["total"] = 0
+            self._demo_count = 0
+
+            env_name = env_name if env_name is not None else ""
+            self.add_env_args({"env_name": env_name, "type": 2})
 
     class SingleThreadHDF5DatasetWriter:
         def __init__(self, file_handler):
@@ -111,14 +135,14 @@ class StreamingHDF5DatasetFileHandler(HDF5DatasetFileHandler):
         if episode.success is not None:
             h5_episode_group.attrs["success"] = episode.success
 
-        self._writer.write_episode(h5_episode_group, episode, write_mode)
-
         if write_mode == StreamWriteMode.LAST:
             # increment total step counts
             self._hdf5_data_group.attrs["total"] += h5_episode_group.attrs["num_samples"]
 
             # increment total demo counts
             self._demo_count += 1
+
+        self._writer.write_episode(h5_episode_group, episode, write_mode)
 
     def close(self):
         self._writer.shutdown()

@@ -28,6 +28,7 @@ parser.add_argument("--sensitivity", type=float, default=1.0, help="Sensitivity 
 parser.add_argument("--record", action="store_true", help="whether to enable record function")
 parser.add_argument("--step_hz", type=int, default=60, help="Environment stepping rate in Hz.")
 parser.add_argument("--dataset_file", type=str, default="./datasets/dataset.hdf5", help="File path to export recorded demos.")
+parser.add_argument("--resume", action="store_true", help="whether to resume recording in the existing dataset file")
 parser.add_argument("--num_demos", type=int, default=0, help="Number of demonstrations to record. Set to 0 for infinite.")
 
 parser.add_argument("--recalibrate", action="store_true", help="recalibrate SO101-Leader or Bi-SO101Leader")
@@ -51,10 +52,10 @@ import gymnasium as gym
 
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
-from isaaclab.managers import TerminationTermCfg
+from isaaclab.managers import TerminationTermCfg, DatasetExportMode
 
 from leisaac.devices import Se3Keyboard, SO101Leader, BiSO101Leader
-from leisaac.enhance.managers import StreamingRecorderManager
+from leisaac.enhance.managers import StreamingRecorderManager, EnhanceDatasetExportMode
 from leisaac.utils.env_utils import dynamic_reset_gripper_effort_limit_sim
 
 
@@ -115,6 +116,12 @@ def main():
     if hasattr(env_cfg.terminations, "success"):
         env_cfg.terminations.success = None
     if args_cli.record:
+        if args_cli.resume:
+            env_cfg.recorders.dataset_export_mode = EnhanceDatasetExportMode.EXPORT_ALL_RESUME
+            assert os.path.exists(args_cli.dataset_file), "the dataset file does not exist, please don't use '--resume' if you want to record a new dataset"
+        else:
+            env_cfg.recorders.dataset_export_mode = DatasetExportMode.EXPORT_ALL
+            assert not os.path.exists(args_cli.dataset_file), "the dataset file already exists, please use '--resume' to resume recording"
         env_cfg.recorders.dataset_export_dir_path = output_dir
         env_cfg.recorders.dataset_filename = output_file_name
         if not hasattr(env_cfg.terminations, "success"):
@@ -169,7 +176,11 @@ def main():
     env.reset()
     teleop_interface.reset()
 
-    current_recorded_demo_count = 0
+    resume_recorded_demo_count = 0
+    if args_cli.record and args_cli.resume:
+        resume_recorded_demo_count = env.recorder_manager._dataset_file_handler.get_num_episodes()
+        print(f"Resume recording from existing dataset file with {resume_recorded_demo_count} demonstrations.")
+    current_recorded_demo_count = resume_recorded_demo_count
 
     start_record_state = False
 
@@ -196,10 +207,10 @@ def main():
                     env.termination_manager.set_term_cfg("success", TerminationTermCfg(func=lambda env: torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)))
                     env.termination_manager.compute()
                 # print out the current demo count if it has changed
-                if args_cli.record and env.recorder_manager.exported_successful_episode_count > current_recorded_demo_count:
-                    current_recorded_demo_count = env.recorder_manager.exported_successful_episode_count
+                if args_cli.record and env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count > current_recorded_demo_count:
+                    current_recorded_demo_count = env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
                     print(f"Recorded {current_recorded_demo_count} successful demonstrations.")
-                if args_cli.record and args_cli.num_demos > 0 and env.recorder_manager.exported_successful_episode_count >= args_cli.num_demos:
+                if args_cli.record and args_cli.num_demos > 0 and env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count >= args_cli.num_demos:
                     print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
                     break
 
