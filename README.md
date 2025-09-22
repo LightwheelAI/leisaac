@@ -142,6 +142,8 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 
 - `--dataset_file`: Path to save the recorded dataset, e.g., `./datasets/record_data.hdf5`.
 
+- `--resume`: Enable resume data recording from the existing dataset file.
+
 - `--task_type`: Specify task type. If your dataset is recorded with keyboard, you should set it to `keyboard`, otherwise not to set it and keep default value None.
 
 - `--quality`: Whether to enable quality render mode.
