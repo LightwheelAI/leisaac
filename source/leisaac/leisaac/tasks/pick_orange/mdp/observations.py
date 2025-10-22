@@ -3,11 +3,11 @@ import torch
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import FrameTransformer
 from isaaclab.assets import Articulation, RigidObject
-from isaaclab.envs import ManagerBasedRLEnv
+from isaaclab.envs import ManagerBasedRLEnv, DirectRLEnv
 
 
 def orange_grasped(
-        env: ManagerBasedRLEnv,
+        env: ManagerBasedRLEnv | DirectRLEnv,
         robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
         ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
         object_cfg: SceneEntityCfg = SceneEntityCfg("Orange001"),
@@ -28,7 +28,7 @@ def orange_grasped(
 
 
 def put_orange_to_plate(
-        env: ManagerBasedRLEnv,
+        env: ManagerBasedRLEnv | DirectRLEnv,
         robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
         ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
         object_cfg: SceneEntityCfg = SceneEntityCfg("Orange001"),

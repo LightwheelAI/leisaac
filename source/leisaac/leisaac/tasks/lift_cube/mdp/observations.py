@@ -3,11 +3,11 @@ import torch
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import FrameTransformer
 from isaaclab.assets import Articulation, RigidObject
-from isaaclab.envs import ManagerBasedRLEnv
+from isaaclab.envs import ManagerBasedRLEnv, DirectRLEnv
 
 
 def object_grasped(
-        env: ManagerBasedRLEnv,
+        env: ManagerBasedRLEnv | DirectRLEnv,
         robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
         ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
         object_cfg: SceneEntityCfg = SceneEntityCfg("cube"),

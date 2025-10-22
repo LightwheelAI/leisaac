@@ -5,13 +5,13 @@ from typing import List
 
 from isaaclab.assets import RigidObject
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.envs import ManagerBasedRLEnv
+from isaaclab.envs import ManagerBasedRLEnv, DirectRLEnv
 
 from leisaac.utils.robot_utils import is_so101_at_rest_pose
 
 
 def task_done(
-    env: ManagerBasedRLEnv,
+    env: ManagerBasedRLEnv | DirectRLEnv,
     oranges_cfg: List[SceneEntityCfg],
     plate_cfg: SceneEntityCfg,
     x_range: tuple[float, float] = (-0.10, 0.10),
