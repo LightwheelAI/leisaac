@@ -3,3 +3,6 @@ from . import mdp
 from .manager_based_rl_digital_twin_env import ManagerBasedRLDigitalTwinEnv
 from .manager_based_rl_digital_twin_env_cfg import ManagerBasedRLDigitalTwinEnvCfg
 from .manager_based_rl_leisaac_mimic_env import ManagerBasedRLLeIsaacMimicEnv
+
+from .direct_rl_env import RecorderEnhanceDirectRLEnv
+from .direct_rl_env_cfg import RecorderEnhanceDirectRLEnvCfg

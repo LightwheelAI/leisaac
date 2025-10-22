@@ -50,7 +50,7 @@ import time
 import torch
 import gymnasium as gym
 
-from isaaclab.envs import ManagerBasedRLEnv
+from isaaclab.envs import ManagerBasedRLEnv, DirectRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab.managers import TerminationTermCfg, DatasetExportMode
 
@@ -87,7 +87,19 @@ class RateLimiter:
                 self.last_time += self.sleep_duration
 
 
-def main():
+def manual_terminate(env: ManagerBasedRLEnv | DirectRLEnv, success: bool):
+    if hasattr(env, "termination_manager"):
+        if success:
+            env.termination_manager.set_term_cfg("success", TerminationTermCfg(func=lambda env: torch.ones(env.num_envs, dtype=torch.bool, device=env.device)))
+        else:
+            env.termination_manager.set_term_cfg("success", TerminationTermCfg(func=lambda env: torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)))
+        env.termination_manager.compute()
+    elif hasattr(env, "_get_dones"):
+        assert env.cfg.manual_terminate, "manual_terminate is not enabled for this environment"
+        env.cfg.return_success_status = success
+
+
+def main():  # noqa: C901
     """Running lerobot teleoperation with leisaac manipulation environment."""
 
     # get directory path and file name (without extension) from cli arguments
@@ -109,12 +121,21 @@ def main():
     # precheck task and teleop device
     if "BiArm" in task_name:
         assert args_cli.teleop_device == "bi-so101leader", "only support bi-so101leader for bi-arm task"
+    is_direct_env = "Direct" in task_name
+    if is_direct_env:
+        assert args_cli.teleop_device in ["so101leader", "bi-so101leader"], "only support so101leader or bi-so101leader for direct task"
 
-    # modify configuration
-    if hasattr(env_cfg.terminations, "time_out"):
-        env_cfg.terminations.time_out = None
-    if hasattr(env_cfg.terminations, "success"):
-        env_cfg.terminations.success = None
+    # timeout and terminate preprocess
+    if is_direct_env:
+        env_cfg.never_time_out = True
+        env_cfg.manual_terminate = True
+    else:
+        # modify configuration
+        if hasattr(env_cfg.terminations, "time_out"):
+            env_cfg.terminations.time_out = None
+        if hasattr(env_cfg.terminations, "success"):
+            env_cfg.terminations.success = None
+    # recorder preprocess & manual success terminate preprocess
     if args_cli.record:
         if args_cli.resume:
             env_cfg.recorders.dataset_export_mode = EnhanceDatasetExportMode.EXPORT_ALL_RESUME
@@ -124,14 +145,17 @@ def main():
             assert not os.path.exists(args_cli.dataset_file), "the dataset file already exists, please use '--resume' to resume recording"
         env_cfg.recorders.dataset_export_dir_path = output_dir
         env_cfg.recorders.dataset_filename = output_file_name
-        if not hasattr(env_cfg.terminations, "success"):
-            setattr(env_cfg.terminations, "success", None)
-        env_cfg.terminations.success = TerminationTermCfg(func=lambda env: torch.zeros(env.num_envs, dtype=torch.bool, device=env.device))
+        if is_direct_env:
+            env_cfg.return_success_status = False
+        else:
+            if not hasattr(env_cfg.terminations, "success"):
+                setattr(env_cfg.terminations, "success", None)
+            env_cfg.terminations.success = TerminationTermCfg(func=lambda env: torch.zeros(env.num_envs, dtype=torch.bool, device=env.device))
     else:
         env_cfg.recorders = None
 
     # create environment
-    env: ManagerBasedRLEnv = gym.make(task_name, cfg=env_cfg).unwrapped
+    env: ManagerBasedRLEnv | DirectRLEnv = gym.make(task_name, cfg=env_cfg).unwrapped
     # replace the original recorder manager with the streaming recorder manager
     if args_cli.record:
         del env.recorder_manager
@@ -194,8 +218,7 @@ def main():
                 print("Task Success!!!")
                 should_reset_task_success = False
                 if args_cli.record:
-                    env.termination_manager.set_term_cfg("success", TerminationTermCfg(func=lambda env: torch.ones(env.num_envs, dtype=torch.bool, device=env.device)))
-                    env.termination_manager.compute()
+                    manual_terminate(env, True)
             if should_reset_recording_instance:
                 env.reset()
                 should_reset_recording_instance = False
@@ -204,8 +227,7 @@ def main():
                         print("Stop Recording!!!")
                     start_record_state = False
                 if args_cli.record:
-                    env.termination_manager.set_term_cfg("success", TerminationTermCfg(func=lambda env: torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)))
-                    env.termination_manager.compute()
+                    manual_terminate(env, False)
                 # print out the current demo count if it has changed
                 if args_cli.record and env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count > current_recorded_demo_count:
                     current_recorded_demo_count = env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count

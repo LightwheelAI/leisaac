@@ -35,7 +35,7 @@ import torch
 import gymnasium as gym
 import contextlib
 
-from isaaclab.envs import ManagerBasedRLEnv
+from isaaclab.envs import ManagerBasedRLEnv, DirectRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab.utils.datasets import HDF5DatasetFileHandler, EpisodeData
 
@@ -111,11 +111,17 @@ def main():
     env_cfg.use_teleop_device(task_type)
 
     # Disable all recorders and terminations
-    env_cfg.recorders = {}
-    env_cfg.terminations = {}
+    is_direct_env = "Direct" in args_cli.task
+    if is_direct_env:
+        env_cfg.never_time_out = True
+        env_cfg.manual_terminate = True
+        env_cfg.recorders = {}
+    else:
+        env_cfg.recorders = {}
+        env_cfg.terminations = {}
 
     # create environment from loaded config
-    env: ManagerBasedRLEnv = gym.make(args_cli.task, cfg=env_cfg).unwrapped
+    env: ManagerBasedRLEnv | DirectRLEnv = gym.make(args_cli.task, cfg=env_cfg).unwrapped
 
     # Get idle action (idle actions are applied to envs without next action)
     if hasattr(env_cfg, "idle_action"):

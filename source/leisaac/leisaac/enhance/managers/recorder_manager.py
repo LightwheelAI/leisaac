@@ -104,3 +104,35 @@ class StreamingRecorderManager(RecorderManager):
             del self._episodes[env_id]._data
             self._episodes[env_id].data = dict()
             self._env_steps_record[env_id] = 0
+
+    def record_pre_reset(self, env_ids: Sequence[int] | None, force_export_or_skip=None) -> None:
+        """
+        Modified from super().record_pre_reset() with additional logic to retrieve success status values from _get_dones()
+        to adapt to RecorderEnhanceDirectRLEnv.
+        """
+        # Do nothing if no active recorder terms are provided
+        if len(self.active_terms) == 0:
+            return
+
+        if env_ids is None:
+            env_ids = list(range(self._env.num_envs))
+        if isinstance(env_ids, torch.Tensor):
+            env_ids = env_ids.tolist()
+
+        for term in self._terms.values():
+            key, value = term.record_pre_reset(env_ids)
+            self.add_to_episodes(key, value, env_ids)
+
+        # Set task success values for the relevant episodes
+        success_results = torch.zeros(len(env_ids), dtype=bool, device=self._env.device)
+        # Check success indicator from termination terms
+        if hasattr(self._env, "termination_manager"):  # for ManagerBasedEnv
+            if "success" in self._env.termination_manager.active_terms:
+                success_results |= self._env.termination_manager.get_term("success")[env_ids]
+        elif hasattr(self._env, "_get_dones"):  # for DriectEnv
+            done, _ = self._env._get_dones()
+            success_results |= done[env_ids]
+        self.set_success_to_episodes(env_ids, success_results)
+
+        if force_export_or_skip or (force_export_or_skip is None and self.cfg.export_in_record_pre_reset):
+            self.export_episodes(env_ids)

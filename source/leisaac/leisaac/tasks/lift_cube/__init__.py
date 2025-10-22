@@ -26,3 +26,12 @@ gym.register(
         "env_cfg_entry_point": f"{__name__}.lift_cube_mimic_env_cfg:LiftCubeMimicEnvCfg",
     },
 )
+
+gym.register(
+    id="LeIsaac-SO101-LiftCube-Direct-v0",
+    entry_point=f"{__name__}.direct.lift_cube_env:LiftCubeEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.direct.lift_cube_env:LiftCubeEnvCfg",
+    },
+)
