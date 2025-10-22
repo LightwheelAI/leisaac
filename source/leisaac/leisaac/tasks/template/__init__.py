@@ -1,3 +1,4 @@
 from .single_arm_env_cfg import SingleArmTaskSceneCfg, SingleArmTaskEnvCfg, SingleArmObservationsCfg, SingleArmTerminationsCfg
 from .bi_arm_env_cfg import BiArmTaskSceneCfg, BiArmTaskEnvCfg, BiArmObservationsCfg, BiArmTerminationsCfg
 from .direct.single_arm_env import SingleArmTaskDirectEnvCfg, SingleArmTaskDirectEnv
+from .direct.bi_arm_env import BiArmTaskDirectEnvCfg, BiArmTaskDirectEnv

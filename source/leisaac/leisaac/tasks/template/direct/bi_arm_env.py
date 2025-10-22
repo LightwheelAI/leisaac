@@ -12,34 +12,40 @@ from leisaac.enhance.envs.mdp.recorders.recorders_cfg import DirectEnvActionStat
 from leisaac.devices.action_process import preprocess_device_action
 
 from .. import mdp
-from ..single_arm_env_cfg import SingleArmTaskSceneCfg, SingleArmEventCfg
+from ..bi_arm_env_cfg import BiArmTaskSceneCfg, BiArmEventCfg
 
 
 @configclass
-class SingleArmTaskDirectEnvCfg(DirectRLEnvCfg):
-    """Configuration for the single arm direct task environment."""
+class BiArmTaskDirectEnvCfg(DirectRLEnvCfg):
+    """Configuration for the bi arm direct task environment."""
 
-    scene: SingleArmTaskSceneCfg = MISSING
+    scene: BiArmTaskSceneCfg = MISSING
 
-    events: SingleArmEventCfg = SingleArmEventCfg()
+    events: BiArmEventCfg = BiArmEventCfg()
 
     recorders: RecordTerm = RecordTerm()
 
     # space
-    action_space = 6
+    action_space = 12
     state_space = {
-        "joint_pos": 6,
-        "joint_vel": 6,
-        "joint_pos_rel": 6,
-        "joint_vel_rel": 6,
+        "left_joint_pos": 6,
+        "left_joint_vel": 6,
+        "left_joint_pos_rel": 6,
+        "left_joint_vel_rel": 6,
+        "left_joint_pos_target": 6,
+        "right_joint_pos": 6,
+        "right_joint_vel": 6,
+        "right_joint_pos_rel": 6,
+        "right_joint_vel_rel": 6,
+        "right_joint_pos_target": 6,
         "actions": action_space,
-        "ee_frame_state": 7,
-        "joint_pos_target": 6,
     }
     observation_space = {
-        "joint_pos": 6,
+        "left_joint_pos": 6,
+        "right_joint_pos": 6,
+        "left_joint_pos_target": 6,
+        "right_joint_pos_target": 6,
         "actions": action_space,
-        "joint_pos_target": 6,
     }
 
     action_scale = 1.0
@@ -49,30 +55,29 @@ class SingleArmTaskDirectEnvCfg(DirectRLEnvCfg):
 
         self.decimation = 1
         self.episode_length_s = 8.0
-        self.viewer.eye = (1.4, -0.9, 1.2)
-        self.viewer.lookat = (2.0, -0.5, 1.0)
+        self.viewer.eye = (2.5, -1.0, 1.3)
+        self.viewer.lookat = (3.6, -0.4, 1.0)
 
         self.sim.physx.bounce_threshold_velocity = 0.01
         self.sim.physx.friction_correlation_distance = 0.00625
         self.sim.render.enable_translucency = True
 
-        self.scene.ee_frame.visualizer_cfg.markers['frame'].scale = (0.05, 0.05, 0.05)
+        self.scene.left_arm.init_state.pos = (3.4, -0.65, 0.89)
+        self.scene.right_arm.init_state.pos = (3.8, -0.65, 0.89)
 
     def use_teleop_device(self, teleop_device) -> None:
         self.task_type = teleop_device
         # self.actions = init_action_cfg(self.actions, device=teleop_device)
-        if teleop_device == "keyboard":
-            self.scene.robot.spawn.rigid_props.disable_gravity = True
 
     def preprocess_device_action(self, action: dict[str, Any], teleop_device) -> torch.Tensor:
         return preprocess_device_action(action, teleop_device)
 
 
-class SingleArmTaskDirectEnv(DirectRLEnv):
-    """Direct RL Environment for single arm task"""
-    cfg: SingleArmTaskDirectEnvCfg
+class BiArmTaskDirectEnv(DirectRLEnv):
+    """Direct RL Environment for bi arm task"""
+    cfg: BiArmTaskDirectEnvCfg
 
-    def __init__(self, cfg: SingleArmTaskDirectEnvCfg, render_mode: str | None = None, **kwargs):
+    def __init__(self, cfg: BiArmTaskDirectEnvCfg, render_mode: str | None = None, **kwargs):
         super().__init__(cfg, render_mode, **kwargs)
 
     def close(self):
@@ -88,18 +93,25 @@ class SingleArmTaskDirectEnv(DirectRLEnv):
         self.actions = actions.clone() * self.cfg.action_scale
 
     def _apply_action(self) -> None:
-        self.scene['robot'].set_joint_position_target(self.actions)
+        left_arm_action = self.actions[:, 0:6]
+        right_arm_action = self.actions[:, 6:12]
+        self.scene['left_arm'].set_joint_position_target(left_arm_action)
+        self.scene['right_arm'].set_joint_position_target(right_arm_action)
 
     def _get_observations(self) -> dict:
         return {
             "policy": {
-                "joint_pos": mdp.joint_pos(self),
-                "joint_vel": mdp.joint_vel(self),
-                "joint_pos_rel": mdp.joint_pos_rel(self),
-                "joint_vel_rel": mdp.joint_vel_rel(self),
+                "left_joint_pos": mdp.joint_pos(self, asset_cfg=SceneEntityCfg("left_arm")),
+                "left_joint_vel": mdp.joint_vel(self, asset_cfg=SceneEntityCfg("left_arm")),
+                "left_joint_pos_rel": mdp.joint_pos_rel(self, asset_cfg=SceneEntityCfg("left_arm")),
+                "left_joint_vel_rel": mdp.joint_vel_rel(self, asset_cfg=SceneEntityCfg("left_arm")),
+                "left_joint_pos_target": mdp.joint_pos_target(self, asset_cfg=SceneEntityCfg("left_arm")),
+                "right_joint_pos": mdp.joint_pos(self, asset_cfg=SceneEntityCfg("right_arm")),
+                "right_joint_vel": mdp.joint_vel(self, asset_cfg=SceneEntityCfg("right_arm")),
+                "right_joint_pos_rel": mdp.joint_pos_rel(self, asset_cfg=SceneEntityCfg("right_arm")),
+                "right_joint_vel_rel": mdp.joint_vel_rel(self, asset_cfg=SceneEntityCfg("right_arm")),
+                "right_joint_pos_target": mdp.joint_pos_target(self, asset_cfg=SceneEntityCfg("right_arm")),
                 "actions": self.actions,
-                "ee_frame_state": mdp.ee_frame_state(self, ee_frame_cfg=SceneEntityCfg("ee_frame"), robot_cfg=SceneEntityCfg("robot")),
-                "joint_pos_target": mdp.joint_pos_target(self, asset_cfg=SceneEntityCfg("robot")),
             }
         }
 

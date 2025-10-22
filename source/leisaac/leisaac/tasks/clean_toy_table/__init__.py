@@ -17,3 +17,12 @@ gym.register(
         "env_cfg_entry_point": f"{__name__}.clean_toy_table_bi_arm_env_cfg:CleanToyTableBiArmEnvCfg",
     },
 )
+
+gym.register(
+    id='LeIsaac-SO101-CleanToyTable-BiArm-Direct-v0',
+    entry_point=f"{__name__}.direct.clean_toy_table_bi_arm_env:CleanToyTableBiArmEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.direct.clean_toy_table_bi_arm_env:CleanToyTableBiArmEnvCfg",
+    },
+)
