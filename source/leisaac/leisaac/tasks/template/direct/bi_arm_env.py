@@ -65,6 +65,13 @@ class BiArmTaskDirectEnvCfg(DirectRLEnvCfg):
         self.scene.left_arm.init_state.pos = (3.4, -0.65, 0.89)
         self.scene.right_arm.init_state.pos = (3.8, -0.65, 0.89)
 
+        self.cameras = []
+        for cam in ['left_wrist', 'right_wrist', 'top']:
+            if hasattr(self.scene, cam):
+                self.state_space[cam] = [getattr(self.scene, cam).height, getattr(self.scene, cam).width, 3]
+                self.observation_space[cam] = [getattr(self.scene, cam).height, getattr(self.scene, cam).width, 3]
+                self.cameras.append(cam)
+
     def use_teleop_device(self, teleop_device) -> None:
         self.task_type = teleop_device
         # self.actions = init_action_cfg(self.actions, device=teleop_device)
@@ -99,7 +106,7 @@ class BiArmTaskDirectEnv(DirectRLEnv):
         self.scene['right_arm'].set_joint_position_target(right_arm_action)
 
     def _get_observations(self) -> dict:
-        return {
+        obs = {
             "policy": {
                 "left_joint_pos": mdp.joint_pos(self, asset_cfg=SceneEntityCfg("left_arm")),
                 "left_joint_vel": mdp.joint_vel(self, asset_cfg=SceneEntityCfg("left_arm")),
@@ -114,6 +121,9 @@ class BiArmTaskDirectEnv(DirectRLEnv):
                 "actions": self.actions,
             }
         }
+        for cam in self.cfg.cameras:
+            obs['policy'][cam] = mdp.image(self, sensor_cfg=SceneEntityCfg(cam), data_type="rgb", normalize=False)
+        return obs
 
     def _get_rewards(self) -> torch.Tensor:
         return 0.0

@@ -56,6 +56,13 @@ class SingleArmTaskDirectEnvCfg(DirectRLEnvCfg):
         self.sim.physx.friction_correlation_distance = 0.00625
         self.sim.render.enable_translucency = True
 
+        self.cameras = []
+        for cam in ['front', 'wrist']:
+            if hasattr(self.scene, cam):
+                self.state_space[cam] = [getattr(self.scene, cam).height, getattr(self.scene, cam).width, 3]
+                self.observation_space[cam] = [getattr(self.scene, cam).height, getattr(self.scene, cam).width, 3]
+                self.cameras.append(cam)
+
         self.scene.ee_frame.visualizer_cfg.markers['frame'].scale = (0.05, 0.05, 0.05)
 
     def use_teleop_device(self, teleop_device) -> None:
@@ -91,7 +98,7 @@ class SingleArmTaskDirectEnv(DirectRLEnv):
         self.scene['robot'].set_joint_position_target(self.actions)
 
     def _get_observations(self) -> dict:
-        return {
+        obs = {
             "policy": {
                 "joint_pos": mdp.joint_pos(self),
                 "joint_vel": mdp.joint_vel(self),
@@ -102,6 +109,9 @@ class SingleArmTaskDirectEnv(DirectRLEnv):
                 "joint_pos_target": mdp.joint_pos_target(self, asset_cfg=SceneEntityCfg("robot")),
             }
         }
+        for cam in self.cfg.cameras:
+            obs['policy'][cam] = mdp.image(self, sensor_cfg=SceneEntityCfg(cam), data_type="rgb", normalize=False)
+        return obs
 
     def _get_rewards(self) -> torch.Tensor:
         return 0.0

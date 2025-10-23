@@ -20,11 +20,6 @@ class PickOrangeEnvCfg(SingleArmTaskDirectEnvCfg):
     def __post_init__(self) -> None:
         super().__post_init__()
 
-        self.state_space['front'] = [self.scene.front.height, self.scene.front.width, 3]
-        self.state_space['wrist'] = [self.scene.wrist.height, self.scene.wrist.width, 3]
-        self.observation_space['front'] = [self.scene.front.height, self.scene.front.width, 3]
-        self.observation_space['wrist'] = [self.scene.wrist.height, self.scene.wrist.width, 3]
-
         parse_usd_and_create_subassets(KITCHEN_WITH_ORANGE_USD_PATH, self, specific_name_list=['Orange001', 'Orange002', 'Orange003', 'Plate'])
 
         domain_randomization(self, random_options=[
@@ -46,9 +41,6 @@ class PickOrangeEnv(SingleArmTaskDirectEnv):
 
     def _get_observations(self) -> dict:
         obs = super()._get_observations()
-        # add image observation
-        obs['policy']['front'] = mdp.image(self, sensor_cfg=SceneEntityCfg("front"), data_type="rgb", normalize=False)
-        obs['policy']['wrist'] = mdp.image(self, sensor_cfg=SceneEntityCfg("wrist"), data_type="rgb", normalize=False)
         # add subtask observation
         obs['subtask_terms'] = {
             'pick_orange001': mdp.orange_grasped(self, object_cfg=SceneEntityCfg("Orange001")),

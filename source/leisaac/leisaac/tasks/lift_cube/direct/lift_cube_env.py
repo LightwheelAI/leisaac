@@ -25,9 +25,6 @@ class LiftCubeEnvCfg(SingleArmTaskDirectEnvCfg):
         self.viewer.eye = (-0.4, -0.6, 0.5)
         self.viewer.lookat = (0.9, 0.0, -0.3)
 
-        self.state_space['front'] = [self.scene.front.height, self.scene.front.width, 3]
-        self.observation_space['front'] = [self.scene.front.height, self.scene.front.width, 3]
-
         parse_usd_and_create_subassets(TABLE_WITH_CUBE_USD_PATH, self)
 
         domain_randomization(self, random_options=[
@@ -48,8 +45,6 @@ class LiftCubeEnv(SingleArmTaskDirectEnv):
 
     def _get_observations(self) -> dict:
         obs = super()._get_observations()
-        # add image observation
-        obs['policy']['front'] = mdp.image(self, sensor_cfg=SceneEntityCfg("front"), data_type="rgb", normalize=False)
         # add subtask observation
         obs['subtask_terms'] = {
             'pick_cube': mdp.object_grasped(self, robot_cfg=SceneEntityCfg("robot"), ee_frame_cfg=SceneEntityCfg("ee_frame"), object_cfg=SceneEntityCfg("cube"))
