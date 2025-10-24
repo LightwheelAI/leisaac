@@ -12,6 +12,18 @@ class PreStepDirectEnvActionsRecorderCfg(RecorderTermCfg):
 
 
 @configclass
+class InitialStateWithParticleObjectsRecorderCfg(RecorderTermCfg):
+    """Configuration for the initial state with particle objects recorder term."""
+    class_type: type[RecorderTerm] = recorders.InitialStateWithParticleObjectsRecorder
+
+
+@configclass
 class DirectEnvActionStateRecorderManagerCfg(ActionStateRecorderManagerCfg):
     """Recorder configuration for recording actions and states in direct environment."""
     record_pre_step_actions = PreStepDirectEnvActionsRecorderCfg()
+
+
+@configclass
+class DirectEnvActionStateWithParticleObjectsRecorderManagerCfg(DirectEnvActionStateRecorderManagerCfg):
+    """Recorder configuration for recording actions and states with particle objects in direct environment."""
+    record_initial_state = InitialStateWithParticleObjectsRecorderCfg()

@@ -3,6 +3,7 @@ from isaaclab.utils import configclass
 
 from leisaac.assets.scenes.bedroom import LIGHTWHEEL_BEDROOM_CFG, LIGHTWHEEL_BEDROOM_USD_PATH
 from leisaac.utils.general_assets import parse_usd_and_create_subassets
+from leisaac.enhance.assets import ClothObjectCfg
 
 from ..template import BiArmTaskSceneCfg, BiArmTaskEnvCfg, BiArmObservationsCfg, BiArmTerminationsCfg
 
@@ -12,6 +13,8 @@ class FoldClothBiArmSceneCfg(BiArmTaskSceneCfg):
     """Scene configuration for the fold cloth task using two arms."""
 
     scene: AssetBaseCfg = LIGHTWHEEL_BEDROOM_CFG.replace(prim_path="{ENV_REGEX_NS}/Scene")
+
+    cloths: ClothObjectCfg = ClothObjectCfg(prim_path="{ENV_REGEX_NS}/Scene/cloth", mesh_subfix="sim_cloth/sim_cloth", particle_system_subfix="ParticleSystem")
 
 
 @configclass
@@ -32,5 +35,11 @@ class FoldClothBiArmEnvCfg(BiArmTaskEnvCfg):
 
         self.scene.left_arm.init_state.pos = (-1.0, 8.35, 3.25)
         self.scene.right_arm.init_state.pos = (-0.72, 8.35, 3.25)
+
+        # some settings for cloth simulation
+        self.sim.render.antialiasing_mode = 'FXAA'
+        self.decimation = 2
+
+        self.dynamic_reset_gripper_effort_limit = False
 
         parse_usd_and_create_subassets(LIGHTWHEEL_BEDROOM_USD_PATH, self)

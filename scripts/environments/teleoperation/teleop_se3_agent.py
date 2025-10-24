@@ -197,6 +197,8 @@ def main():  # noqa: C901
     rate_limiter = RateLimiter(args_cli.step_hz)
 
     # reset environment
+    if hasattr(env, "initialize"):
+        env.initialize()
     env.reset()
     teleop_interface.reset()
 
@@ -213,7 +215,6 @@ def main():  # noqa: C901
         # run everything in inference mode
         with torch.inference_mode():
             if env.cfg.dynamic_reset_gripper_effort_limit:
-                print("Dynamic reset gripper effort limit!!!")
                 dynamic_reset_gripper_effort_limit_sim(env, args_cli.teleop_device)
             actions = teleop_interface.advance()
             if should_reset_task_success:

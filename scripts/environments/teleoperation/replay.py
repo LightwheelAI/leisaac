@@ -130,6 +130,8 @@ def main():
         idle_action = torch.zeros(env.action_space.shape)
 
     # reset before starting
+    if hasattr(env, "initialize"):
+        env.initialize()
     env.reset()
 
     rate_limiter = RateLimiter(args_cli.step_hz)
