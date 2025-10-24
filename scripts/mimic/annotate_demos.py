@@ -321,7 +321,8 @@ def replay_episode(
                     return False
                 continue
         action_tensor = torch.Tensor(action).reshape([1, action.shape[0]])
-        dynamic_reset_gripper_effort_limit_sim(env, task_type)
+        if env.cfg.dynamic_reset_gripper_effort_limit:
+            dynamic_reset_gripper_effort_limit_sim(env, task_type)
         env.step(torch.Tensor(action_tensor))
     if success_term is not None:
         if not bool(success_term.func(env, **success_term.params)[0]):

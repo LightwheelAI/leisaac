@@ -50,6 +50,9 @@ class BiArmTaskDirectEnvCfg(DirectRLEnvCfg):
 
     action_scale = 1.0
 
+    dynamic_reset_gripper_effort_limit: bool = True
+    """Whether to dynamically reset the gripper effort limit."""
+
     def __post_init__(self) -> None:
         super().__post_init__()
 
