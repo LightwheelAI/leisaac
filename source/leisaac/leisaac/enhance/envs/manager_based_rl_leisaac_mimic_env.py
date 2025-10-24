@@ -95,5 +95,6 @@ class ManagerBasedRLLeIsaacMimicEnv(ManagerBasedRLMimicEnv):
         return signals
 
     def step(self, action: torch.Tensor):
-        dynamic_reset_gripper_effort_limit_sim(self, self.task_type)
+        if self.cfg.dynamic_reset_gripper_effort_limit:
+            dynamic_reset_gripper_effort_limit_sim(self, self.task_type)
         return super().step(action)
