@@ -1,12 +1,18 @@
 import os
 import enum
 import torch
+import packaging.version
 
 from typing import Sequence
+from isaaclab import __version__ as isaaclab_version
 from isaaclab.managers import RecorderManager, DatasetExportMode
 from isaaclab.envs import ManagerBasedEnv
 
 from ..datasets import StreamingHDF5DatasetFileHandler, StreamWriteMode
+
+
+# The version of IsaacLab2.3.0 is 0.47.1
+_AFTER_ISAACLAB_2_3_0 = packaging.version.parse(isaaclab_version) >= packaging.version.parse("0.47.1")
 
 
 class EnhanceDatasetExportMode(enum.IntEnum):
@@ -80,6 +86,10 @@ class StreamingRecorderManager(RecorderManager):
         # Export episode data through dataset exporter
         for env_id in env_ids:
             if env_id in self._episodes and not self._episodes[env_id].is_empty() and (self._env_steps_record[env_id] >= self._flush_steps or not from_step):
+                # NOTE: pre_export() is only available in IsaacLab 2.3.0+
+                # TODO: remove this after we use IsaacLab 2.3.0+ by default
+                if _AFTER_ISAACLAB_2_3_0:
+                    self._episodes[env_id].pre_export()
                 if self._env.cfg.seed is not None:
                     self._episodes[env_id].seed = self._env.cfg.seed
                 episode_succeeded = self._episodes[env_id].success
