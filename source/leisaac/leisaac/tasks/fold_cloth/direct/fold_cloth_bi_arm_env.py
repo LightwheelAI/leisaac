@@ -74,7 +74,7 @@ class FoldClothBiArmEnv(BiArmTaskDirectEnv):
         return mdp.cloth_folded(
             env=self,
             cloth_cfg=SceneEntityCfg("cloths"),
-            cloth_keypoints_index=[31574, 118341, 34057, 16897, 42876, 78878],
+            cloth_keypoints_index=[159789, 120788, 115370, 159716, 121443, 112382],
             distance_threshold=0.20
         )
 

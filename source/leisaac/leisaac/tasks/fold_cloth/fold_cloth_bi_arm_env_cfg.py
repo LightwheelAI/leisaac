@@ -14,7 +14,7 @@ class FoldClothBiArmSceneCfg(BiArmTaskSceneCfg):
 
     scene: AssetBaseCfg = LIGHTWHEEL_BEDROOM_CFG.replace(prim_path="{ENV_REGEX_NS}/Scene")
 
-    cloths: ClothObjectCfg = ClothObjectCfg(prim_path="{ENV_REGEX_NS}/Scene/cloth", mesh_subfix="sim_cloth/sim_cloth", particle_system_subfix="ParticleSystem")
+    cloths: ClothObjectCfg = ClothObjectCfg(prim_path="{ENV_REGEX_NS}/Scene/cloth", mesh_subfix="cloth/sim_cloth/sim_cloth", particle_system_subfix="cloth/ParticleSystem")
 
 
 @configclass

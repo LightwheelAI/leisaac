@@ -95,7 +95,6 @@ def manual_terminate(env: ManagerBasedRLEnv | DirectRLEnv, success: bool):
             env.termination_manager.set_term_cfg("success", TerminationTermCfg(func=lambda env: torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)))
         env.termination_manager.compute()
     elif hasattr(env, "_get_dones"):
-        assert env.cfg.manual_terminate, "manual_terminate is not enabled for this environment"
         env.cfg.return_success_status = success
 
 
