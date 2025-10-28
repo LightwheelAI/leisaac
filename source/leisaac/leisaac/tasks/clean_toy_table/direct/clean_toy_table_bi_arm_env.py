@@ -1,11 +1,13 @@
 import torch
 
 from isaaclab.utils import configclass
+from isaaclab.managers import SceneEntityCfg
 
 from leisaac.assets.scenes.toyroom import LIGHTWHEEL_TOYROOM_USD_PATH
 from leisaac.utils.general_assets import parse_usd_and_create_subassets
 
 from ..clean_toy_table_bi_arm_env_cfg import CleanToyTableBiArmSceneCfg
+from .. import mdp
 from ...template import BiArmTaskDirectEnvCfg, BiArmTaskDirectEnv
 
 
@@ -34,4 +36,8 @@ class CleanToyTableBiArmEnv(BiArmTaskDirectEnv):
         return super()._get_observations()
 
     def _check_success(self) -> torch.Tensor:
-        return torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+        return mdp.objs_in_box(
+            env=self,
+            object_cfg_list=[SceneEntityCfg("Character_E"), SceneEntityCfg("Character_E_1")],
+            box_cfg=SceneEntityCfg("Box")
+        )

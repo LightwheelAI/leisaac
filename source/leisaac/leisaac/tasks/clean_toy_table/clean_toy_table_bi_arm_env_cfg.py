@@ -1,9 +1,12 @@
 from isaaclab.assets import AssetBaseCfg
+from isaaclab.managers import TerminationTermCfg as DoneTerm
+from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 
 from leisaac.assets.scenes.toyroom import LIGHTWHEEL_TOYROOM_CFG, LIGHTWHEEL_TOYROOM_USD_PATH
 from leisaac.utils.general_assets import parse_usd_and_create_subassets
 
+from . import mdp
 from ..template import BiArmTaskSceneCfg, BiArmTaskEnvCfg, BiArmObservationsCfg, BiArmTerminationsCfg
 
 
@@ -15,6 +18,15 @@ class CleanToyTableBiArmSceneCfg(BiArmTaskSceneCfg):
 
 
 @configclass
+class TerminationsCfg(BiArmTerminationsCfg):
+
+    success = DoneTerm(func=mdp.objs_in_box, params={
+        "object_cfg_list": [SceneEntityCfg("Character_E"), SceneEntityCfg("Character_E_1")],
+        "box_cfg": SceneEntityCfg("Box")
+    })
+
+
+@configclass
 class CleanToyTableBiArmEnvCfg(BiArmTaskEnvCfg):
     """Configuration for the clean top table environment."""
 
@@ -22,7 +34,7 @@ class CleanToyTableBiArmEnvCfg(BiArmTaskEnvCfg):
 
     observations: BiArmObservationsCfg = BiArmObservationsCfg()
 
-    terminations: BiArmTerminationsCfg = BiArmTerminationsCfg()
+    terminations: TerminationsCfg = TerminationsCfg()
 
     def __post_init__(self) -> None:
         super().__post_init__()
