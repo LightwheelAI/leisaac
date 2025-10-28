@@ -6,8 +6,8 @@ from isaaclab.managers import SceneEntityCfg
 from leisaac.assets.scenes.toyroom import LIGHTWHEEL_TOYROOM_USD_PATH
 from leisaac.utils.general_assets import parse_usd_and_create_subassets
 
-from ..clean_toy_table_bi_arm_env_cfg import CleanToyTableBiArmSceneCfg
 from .. import mdp
+from ..clean_toy_table_bi_arm_env_cfg import CleanToyTableBiArmSceneCfg
 from ...template import BiArmTaskDirectEnvCfg, BiArmTaskDirectEnv
 
 
