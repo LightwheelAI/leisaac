@@ -10,7 +10,7 @@ import {themes as prismThemes} from 'prism-react-renderer';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'My Site',
+  title: 'Leisaac',
   tagline: 'Dinosaurs are cool',
   favicon: 'img/favicon.ico',
 
@@ -70,10 +70,10 @@ const config = {
         respectPrefersColorScheme: true,
       },
       navbar: {
-        title: 'My Site',
+        title: 'Leisaac',
         logo: {
-          alt: 'My Site Logo',
-          src: 'img/logo.svg',
+          alt: 'Leisaac Logo',
+          src: 'img/logo.png',
         },
         items: [
           {
