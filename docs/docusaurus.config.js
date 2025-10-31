@@ -109,8 +109,8 @@ const config = {
                 href: 'https://lightwheel.ai/',
               },
               {
-                label: 'X',
-                href: 'https://x.com/LightwheelAI',
+                label: 'LinkedIn',
+                href: 'https://www.linkedin.com/company/lightwheel-ai/',
               },
             ],
           },
