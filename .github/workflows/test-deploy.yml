@@ -1,4 +1,4 @@
-name: Test deployment
+name: Test build (PR)
 
 defaults:
   run:
@@ -12,12 +12,13 @@ on:
     paths:
       - 'docs/**'
       - '.github/workflows/deploy.yml'
+  workflow_dispatch:
     # Review gh actions docs if you want to further define triggers, paths, etc
     # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#on
 
 jobs:
-  test-deploy:
-    name: Test deployment
+  test-build:
+    name: Build Docusaurus only
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,8 +28,9 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: docs/package-lock.json
 
-      - name: Install dependencies
+      - name: Install
         run: npm ci
-      - name: Test build website
+      - name: Build
         run: npm run build
