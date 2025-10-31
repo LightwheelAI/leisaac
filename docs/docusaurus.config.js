@@ -10,8 +10,8 @@ import {themes as prismThemes} from 'prism-react-renderer';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'Leisaac',
-  tagline: 'Dinosaurs are cool',
+  title: 'Leisaac Document',
+  tagline: 'LeIsaac Docs: Quickstart, Guides, and Resources',
   favicon: 'img/favicon.ico',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -51,7 +51,7 @@ const config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+            'https://github.com/evernorif/leisaac/tree/main/',
         },
         blog: false,
         theme: {
@@ -70,20 +70,16 @@ const config = {
         respectPrefersColorScheme: true,
       },
       navbar: {
-        title: 'Leisaac',
+        title: 'LeIsaac',
         logo: {
-          alt: 'Leisaac Logo',
+          alt: 'leisaac Logo',
           src: 'img/logo.png',
         },
         items: [
+          { type: 'docSidebar', sidebarId: 'docs', position: 'left', label: 'Docs' },
+          { type: 'docSidebar', sidebarId: 'resources', position: 'left', label: 'Resources' },
           {
-            type: 'docSidebar',
-            sidebarId: 'tutorialSidebar',
-            position: 'left',
-            label: 'Tutorial',
-          },
-          {
-            href: 'https://github.com/facebook/docusaurus',
+            href: 'https://github.com/LightwheelAI/leisaac',
             label: 'GitHub',
             position: 'right',
           },
@@ -93,11 +89,15 @@ const config = {
         style: 'dark',
         links: [
           {
-            title: 'Docs',
+            title: 'Outline',
             items: [
               {
-                label: 'Tutorial',
+                label: 'Docs',
                 to: '/',
+              },
+              {
+                label: 'Resources',
+                to: '/resources/available_robots',
               },
             ],
           },
@@ -105,16 +105,12 @@ const config = {
             title: 'Community',
             items: [
               {
-                label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/docusaurus',
-              },
-              {
-                label: 'Discord',
-                href: 'https://discordapp.com/invite/docusaurus',
+                label: 'Lightwheel AI',
+                href: 'https://lightwheel.ai/',
               },
               {
                 label: 'X',
-                href: 'https://x.com/docusaurus',
+                href: 'https://x.com/LightwheelAI',
               },
             ],
           },
@@ -123,12 +119,12 @@ const config = {
             items: [
               {
                 label: 'GitHub',
-                href: 'https://github.com/facebook/docusaurus',
+                href: 'https://github.com/LightwheelAI/leisaac',
               },
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Lightwheel AI, Inc. Built with Docusaurus.`,
       },
       prism: {
         theme: prismThemes.github,
