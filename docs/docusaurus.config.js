@@ -51,7 +51,7 @@ const config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/evernorif/leisaac/tree/main/',
+            'https://github.com/evernorif/leisaac/tree/main/docs/',
         },
         blog: false,
         theme: {
@@ -129,6 +129,7 @@ const config = {
       prism: {
         theme: prismThemes.github,
         darkTheme: prismThemes.dracula,
+        additionalLanguages: ['bash']
       },
     }),
 };
