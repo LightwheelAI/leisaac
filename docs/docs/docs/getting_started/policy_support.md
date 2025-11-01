@@ -1,5 +1,3 @@
-import useBaseUrl from '@docusaurus/useBaseUrl';
-
 # Policy Training & Inference
 
 ## 1. Data Convention
@@ -91,4 +89,4 @@ The following videos demonstrate inference results in simulation, corresponding 
 
 | PickOrange | LiftCube |
 | ---------- | -------- |
-| <video src={useBaseUrl('/video/examples/gr00t-pick_orange.mp4')} autoPlay loop muted playsInline style={{maxHeight: '250px'}}></video> | <video src={useBaseUrl('/video/examples/gr00t-lift_cube.mp4')} autoPlay loop muted playsInline style={{maxHeight: '250px'}}></video>|
+| <video src="https://github.com/user-attachments/assets/f817b2cf-d311-436c-b47d-8f809a815c38" autoPlay loop muted playsInline style={{maxHeight: '250px'}}></video> | <video src="https://github.com/user-attachments/assets/25480f6e-e442-498c-982b-5d85a5365eeb" autoPlay loop muted playsInline style={{maxHeight: '250px'}}></video> |
