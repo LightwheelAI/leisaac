@@ -79,10 +79,6 @@ const config = {
           { type: 'docSidebar', sidebarId: 'docs', position: 'left', label: 'Docs' },
           { type: 'docSidebar', sidebarId: 'resources', position: 'left', label: 'Resources' },
           {
-            type: 'docsVersionDropdown',
-            position: 'right',
-          },
-          {
             href: 'https://github.com/LightwheelAI/leisaac',
             position: 'right',
             className: 'header-github-link',
