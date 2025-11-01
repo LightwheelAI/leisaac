@@ -13,6 +13,14 @@ This repository provides teleoperation functionality in [IsaacLab](https://isaac
 >
 > Join us, contribute, and help shape the future of AI and robotics. For questions or collaboration, contact [Zeyu](mailto:zeyu.hu@lightwheel.ai) or [Yinghao](mailto:yinghao.shuai@lightwheel.ai).
 
+## Getting Started 📚
+
+Please refer to our [documentation](https://evernorif.github.io/leisaac/) to learn how to use this repository. Follow these links to learn more about:
+
+- [Installation and Setup](https://evernorif.github.io/leisaac/docs/getting_started/installation)
+- [Extra Features](https://evernorif.github.io/leisaac/docs/features)
+- [Policy Inference](https://evernorif.github.io/leisaac/docs/getting_started/policy_support)
+- [Available Robots](https://evernorif.github.io/leisaac/resources/available_robots), [Environments](https://evernorif.github.io/leisaac/resources/available_env) and [Policy](https://evernorif.github.io/leisaac/resources/available_policy)
 
 ## Acknowledgements 🙏
 
