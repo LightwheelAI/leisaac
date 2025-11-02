@@ -89,4 +89,4 @@ The following videos demonstrate inference results in simulation, corresponding 
 
 | PickOrange | LiftCube |
 | ---------- | -------- |
-| <video src="https://github.com/user-attachments/assets/f817b2cf-d311-436c-b47d-8f809a815c38" autoPlay loop muted playsInline style={{maxHeight: '250px'}}></video> | <video src="https://github.com/user-attachments/assets/25480f6e-e442-498c-982b-5d85a5365eeb" autoPlay loop muted playsInline style={{maxHeight: '250px'}}></video> |
+| <video src="https://github.com/user-attachments/assets/26c2b91d-3886-4fc5-839c-140d3839036b" autoPlay loop muted playsInline style={{maxHeight: '250px'}}></video> | <video src="https://github.com/user-attachments/assets/03f0649d-ddb6-419d-b4d9-e45cb91b2aa9" autoPlay loop muted playsInline style={{maxHeight: '250px'}}></video> |
