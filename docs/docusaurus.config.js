@@ -20,14 +20,14 @@ const config = {
   },
 
   // Set the production url of your site here
-  url: 'https://evernorif.github.io',
+  url: 'https://lightwheelai.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/leisaac/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'EverNorif', // Usually your GitHub org/user name.
+  organizationName: 'LightwheelAI', // Usually your GitHub org/user name.
   projectName: 'leisaac', // Usually your repo name.
 
   onBrokenLinks: 'throw',
@@ -51,7 +51,7 @@ const config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/evernorif/leisaac/tree/main/docs/',
+            'https://github.com/lightwheelai/leisaac/tree/main/docs/',
         },
         blog: false,
         theme: {

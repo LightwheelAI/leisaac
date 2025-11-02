@@ -15,12 +15,12 @@ This repository provides teleoperation functionality in [IsaacLab](https://isaac
 
 ## Getting Started 📚
 
-Please refer to our [documentation](https://evernorif.github.io/leisaac/) to learn how to use this repository. Follow these links to learn more about:
+Please refer to our [documentation](https://lightwheelai.github.io/leisaac/) to learn how to use this repository. Follow these links to learn more about:
 
-- [Installation and Setup](https://evernorif.github.io/leisaac/docs/getting_started/installation)
-- [Extra Features](https://evernorif.github.io/leisaac/docs/features)
-- [Policy Inference](https://evernorif.github.io/leisaac/docs/getting_started/policy_support)
-- [Available Robots](https://evernorif.github.io/leisaac/resources/available_robots), [Environments](https://evernorif.github.io/leisaac/resources/available_env) and [Policy](https://evernorif.github.io/leisaac/resources/available_policy)
+- [Installation and Setup](https://lightwheelai.github.io/leisaac/docs/getting_started/installation)
+- [Extra Features](https://lightwheelai.github.io/leisaac/docs/features)
+- [Policy Inference](https://lightwheelai.github.io/leisaac/docs/getting_started/policy_support)
+- [Available Robots](https://lightwheelai.github.io/leisaac/resources/available_robots), [Environments](https://lightwheelai.github.io/leisaac/resources/available_env) and [Policy](https://lightwheelai.github.io/leisaac/resources/available_policy)
 
 ## Acknowledgements 🙏
 
