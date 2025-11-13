@@ -78,6 +78,24 @@ const sidebars = {
       ],
     },
     'docs/trouble_shooting',
+    {
+      type: 'category',
+      label: 'Cloud Simulation',
+      link: {
+        type: 'generated-index',
+        slug: '/docs/cloud_simulation', 
+        title: 'Cloud Simulation', 
+        description: 'Using LeIsaac on cloud platforms.'
+      },
+      items: [
+        {
+          type: 'category',
+          label: 'NVIDIA Brev',
+          link: { type: 'doc', id: 'docs/cloud_simulation/nvidia_brev' },
+          items: [],
+        },
+      ],
+    },
   ],
 
   resources: [
