@@ -33,6 +33,6 @@ Here is our demo video:
 
 <video
   controls
-  src="https://github.com/user-attachments/assets/763acf27-d9a9-4163-8651-3ba0a6a185d7"
+  src="https://github.com/user-attachments/assets/35228eb4-6e2f-4dc1-b066-fff616ca4505"
   style={{ width: '100%', maxWidth: '960px', borderRadius: '8px' }}
 />
