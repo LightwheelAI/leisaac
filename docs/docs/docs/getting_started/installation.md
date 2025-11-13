@@ -2,31 +2,40 @@
 
 ## 1. Environment Setup
 
-First, follow the [IsaacLab official installation guide](https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/index.html) to install IsaacLab. We recommend using Conda for easier environment management. In summary, you only need to run the following command.
+First, clone our repository and related submodules.
+
+```bash
+git clone https://github.com/LightwheelAI/leisaac.git --recursive
+```
+
+Then follow the [IsaacLab official installation guide](https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/index.html) to install IsaacLab. We recommend using Conda for easier environment management. In summary, you only need to run the following command.
 
 ```bash
 # Create and activate environment
-conda create -n leisaac python=3.10
+conda create -n leisaac python=3.11
 conda activate leisaac
 
 # Install cuda-toolkit
-conda install -c "nvidia/label/cuda-11.8.0" cuda-toolkit
+conda install -c "nvidia/label/cuda-12.8.1" cuda-toolkit
 
 # Install PyTorch
-pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu118
+pip install -U torch==2.7.0 torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cu128
 
 # Install IsaacSim
 pip install --upgrade pip
-pip install 'isaacsim[all,extscache]==4.5.0' --extra-index-url https://pypi.nvidia.com
+pip install "isaacsim[all,extscache]==5.1.0" --extra-index-url https://pypi.nvidia.com
 
 # Install IsaacLab
-git clone git@github.com:isaac-sim/IsaacLab.git
 sudo apt install cmake build-essential
 
-cd IsaacLab
-# fix isaaclab version for isaacsim4.5
-git checkout v2.1.1
+cd dependencies/IsaacLab
 ./isaaclab.sh --install
+```
+
+Finally, install leisaac as dependency.
+```bash
+cd ../..
+pip install -e source/leisaac
 ```
 
 ::::tip
@@ -42,18 +51,7 @@ If you are using a 50-series GPU, we recommend using IsaacSim 5.0+ and IsaacLab 
 | PyTorch    | 2.5.1       | 2.7.0      | 2.7.0       |
 ::::
 
-## 2. Clone LeIsaac Repository and Install
-
-Clone our repository and install it as dependency.
-
-```bash
-cd ..
-git clone https://github.com/LightwheelAI/leisaac.git
-cd leisaac
-pip install -e source/leisaac
-```
-
-## 3. Asset Preparation
+## 2. Asset Preparation
 
 We provide an example USD asset—a kitchen scene. Please download related scene [here](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.0) and extract it into the `assets` directory. The directory structure should look like this:
 
@@ -83,7 +81,7 @@ Below are the download links for the scenes we provide. For more high-quality sc
 | Lightwheel Bedroom   | Realistic bedroom scene with cloth | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.2.0)                  |
 ::::
 
-## 4. Device Setup 
+## 3. Device Setup 
 
 We use the SO101Leader as the teleoperation device. Please follow the [official documentation](https://huggingface.co/docs/lerobot/so101) for connection and configuration.
 
