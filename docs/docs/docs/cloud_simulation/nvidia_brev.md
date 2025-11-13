@@ -24,7 +24,7 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 Then you can open a new browser tab to view the UI. In this tab, paste the same address as the Visual Studio Code server, changing the end of the URL to `/viewer`.
 
 :::info[Example]
-If VS Code is at `ec2.something.amazonaws.com`, then the UI can be accessed at `ec2.something.amazonaws.com/viewer`.
+If VS Code Server is at `ec2.something.amazonaws.com`, then the UI can be accessed at `ec2.something.amazonaws.com/viewer`.
 :::
 
 After a few seconds you should see the UI in the viewer tab. The first launch may take much longer as shaders are cached.
