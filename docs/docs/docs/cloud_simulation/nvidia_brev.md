@@ -1,4 +1,4 @@
-# Experience LeIsaac with NVIDIA Brev
+# Run LeIsaac Instantly in the Cloud with NVIDIA Brev
 
 The fastest way to get started with LeIsaac — you don't need a high-performance GPU, just a web browser.
 
