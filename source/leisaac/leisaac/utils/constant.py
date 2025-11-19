@@ -1,16 +1,28 @@
 import os
+from pathlib import Path
 
-try:
-    from git import Repo
 
-    repo = Repo(os.getcwd(), search_parent_directories=True)
-    git_root = repo.git.rev_parse("--show-toplevel")
-except Exception:
-    from pathlib import Path
+def _detect_git_root() -> Path:
+    """Locate repository root; fallback to current file ancestor."""
+    try:
+        from git import Repo
 
-    git_root = Path(os.path.abspath(__file__)).parent.parent.parent.parent.parent
+        repo = Repo(os.getcwd(), search_parent_directories=True)
+        return Path(repo.git.rev_parse("--show-toplevel"))
+    except Exception:
+        return Path(__file__).resolve().parents[4]
 
-ASSETS_ROOT = os.path.join(git_root, 'assets')
+
+def _resolve_assets_root() -> str:
+    """Return env override if provided, otherwise default assets directory."""
+    env_root = os.environ.get("LEISAAC_ASSETS_ROOT")
+    if env_root:
+        return Path(env_root).expanduser().resolve().as_posix()
+
+    return (_detect_git_root() / "assets").resolve().as_posix()
+
+
+ASSETS_ROOT = _resolve_assets_root()
 
 SINGLE_ARM_JOINT_NAMES = ['shoulder_pan', 'shoulder_lift', 'elbow_flex', 'wrist_flex', 'wrist_roll', 'gripper']
 BI_ARM_JOINT_NAMES = ['left_shoulder_pan', 'left_shoulder_lift', 'left_elbow_flex', 'left_wrist_flex', 'left_wrist_roll', 'left_gripper',
