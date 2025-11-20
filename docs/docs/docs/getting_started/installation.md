@@ -2,7 +2,28 @@
 
 ## 1. Environment Setup
 
-First, clone our repository and related submodules.
+### Install as a Package
+
+You can install LeIsaac as a dependency. The script below provisions IsaacLab, IsaacSim, and all required components.
+
+```bash
+conda create -n leisaac python=3.11
+conda activate leisaac
+
+# Install cuda-toolkit
+conda install -c "nvidia/label/cuda-12.8.1" cuda-toolkit
+
+# Install PyTorch (CUDA 12.8 wheels)
+pip install -U torch==2.7.0 torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cu128
+
+# Install LeIsaac plus the IsaacLab/IsaacSim extras
+pip install 'leisaac[isaaclab] @ git+https://github.com/LightwheelAI/leisaac.git#subdirectory=source/leisaac' --extra-index-url https://pypi.nvidia.com/simple   
+
+```
+
+### Install from Source
+
+You can also install directly from the source for local development. First, clone our repository and related submodules.
 
 ```bash
 git clone https://github.com/LightwheelAI/leisaac.git --recursive
