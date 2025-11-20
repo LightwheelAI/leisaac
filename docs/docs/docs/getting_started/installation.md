@@ -21,6 +21,10 @@ pip install 'leisaac[isaaclab] @ git+https://github.com/LightwheelAI/leisaac.git
 
 ```
 
+::::tip
+Install as a Package may expose edge cases. If you encounter issues, please open an issue on GitHub and consider switching to the “install from source” workflow described below.
+::::
+
 ### Install from Source
 
 You can also install directly from the source for local development. First, clone our repository and related submodules.
