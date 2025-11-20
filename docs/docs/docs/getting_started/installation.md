@@ -17,7 +17,7 @@ conda install -c "nvidia/label/cuda-12.8.1" cuda-toolkit
 pip install -U torch==2.7.0 torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cu128
 
 # Install LeIsaac plus the IsaacLab/IsaacSim extras
-pip install 'leisaac[isaaclab] @ git+https://github.com/LightwheelAI/leisaac.git#subdirectory=source/leisaac' --extra-index-url https://pypi.nvidia.com/simple   
+pip install 'leisaac[isaaclab] @ git+https://github.com/LightwheelAI/leisaac.git#subdirectory=source/leisaac' --extra-index-url https://pypi.nvidia.com   
 
 ```
 
