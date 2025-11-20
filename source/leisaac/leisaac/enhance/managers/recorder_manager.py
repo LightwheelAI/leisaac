@@ -4,15 +4,21 @@ import torch
 import packaging.version
 
 from typing import Sequence
-from isaaclab import __version__ as isaaclab_version
+
+try:
+    from isaaclab import __version__ as isaaclab_version
+    # The version of IsaacLab2.3.0 source is 0.47.1
+    _AFTER_ISAACLAB_2_3_0 = packaging.version.parse(isaaclab_version) >= packaging.version.parse("0.47.1")
+except (ImportError, AttributeError):  # fallback for PyPI build
+    from importlib import metadata
+    # The version of IsaacLab2.3.0 pip package is 2.3.0
+    isaaclab_version = metadata.version("isaaclab")
+    _AFTER_ISAACLAB_2_3_0 = packaging.version.parse(isaaclab_version) >= packaging.version.parse("2.3.0")
+
 from isaaclab.managers import RecorderManager, DatasetExportMode
 from isaaclab.envs import ManagerBasedEnv
 
 from ..datasets import StreamingHDF5DatasetFileHandler, StreamWriteMode
-
-
-# The version of IsaacLab2.3.0 is 0.47.1
-_AFTER_ISAACLAB_2_3_0 = packaging.version.parse(isaaclab_version) >= packaging.version.parse("0.47.1")
 
 
 class EnhanceDatasetExportMode(enum.IntEnum):
