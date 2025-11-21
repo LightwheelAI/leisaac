@@ -151,7 +151,7 @@ class SingleArmTaskEnvCfg(ManagerBasedRLEnvCfg):
         super().__post_init__()
 
         self.decimation = 1
-        self.episode_length_s = 8.0
+        self.episode_length_s = 25.0
         self.viewer.eye = (1.4, -0.9, 1.2)
         self.viewer.lookat = (2.0, -0.5, 1.0)
 

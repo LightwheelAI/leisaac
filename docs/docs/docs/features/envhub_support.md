@@ -5,6 +5,12 @@
 
 LeIsaac offers EnvHub support so you can consume or share tasks with only a few commands.
 
+<video
+  controls
+  src="https://github.com/user-attachments/assets/687666f5-ebe0-421d-84a0-eb86116ac5f8"
+  style={{ width: '100%', maxWidth: '960px', borderRadius: '8px' }}
+/>
+
 ## Environment Setup
 
 Run the following commands to setup your code environments:
