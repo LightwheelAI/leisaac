@@ -31,7 +31,7 @@ Homepage = "https://github.com/LightwheelAI/leisaac"
 Repository = "https://github.com/LightwheelAI/leisaac"
 
 [tool.setuptools]
-packages = ["leisaac"]
+packages = {find = {}}
 include-package-data = true
 zip-safe = false
 
