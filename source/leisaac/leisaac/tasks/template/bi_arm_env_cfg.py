@@ -169,7 +169,7 @@ class BiArmTaskEnvCfg(ManagerBasedRLEnvCfg):
         super().__post_init__()
 
         self.decimation = 1
-        self.episode_length_s = 8.0
+        self.episode_length_s = 25.0
         self.viewer.eye = (2.5, -1.0, 1.3)
         self.viewer.lookat = (3.6, -0.4, 1.0)
 
