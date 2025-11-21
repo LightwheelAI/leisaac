@@ -75,6 +75,12 @@ const sidebars = {
           link: { type: 'doc', id: 'docs/features/mimicgen_env' },
           items: [],
         },
+        {
+          type: 'category',
+          label: 'EnvHub Support',
+          link: { type: 'doc', id: 'docs/features/envhub_support' },
+          items: [],
+        },
       ],
     },
     'docs/trouble_shooting',
