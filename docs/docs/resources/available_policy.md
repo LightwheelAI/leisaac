@@ -32,7 +32,7 @@ python scripts/evaluation/policy_inference.py \
 ```
 
 :::tip
-target commit: https://github.com/NVIDIA/Isaac-GR00T/commit/b211007ed6698e6642d2fd7679dabab1d97e9e6c
+target commit: https://github.com/NVIDIA/Isaac-GR00T/commit/4af2b622892f7dcb5aae5a3fb70bcb02dc217b96
 :::
 
 ## Lerobot official policy
