@@ -73,7 +73,7 @@ class Gr00tServicePolicyClient(ZMQServicePolicy):
             }
         """
         concat_action = np.concatenate(
-            [action_chunk["action.single_arm"], action_chunk["action.gripper"][:, None]],
+            [action_chunk["action.single_arm"], action_chunk["action.gripper"]],
             axis=1,
         )
         concat_action = convert_lerobot_action_to_leisaac(concat_action)
