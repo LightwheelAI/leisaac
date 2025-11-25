@@ -1,10 +1,15 @@
 import weakref
+import torch
 import numpy as np
 
 from collections.abc import Callable
 
 import carb
 import omni
+
+import isaaclab.utils.math as math_utils
+
+from leisaac.utils.math_utils import rotvec_to_euler
 
 from ..device_base import Device
 
@@ -26,12 +31,14 @@ class Se3Keyboard(Device):
 
     """
 
-    def __init__(self, env, sensitivity: float = 0.05):
+    def __init__(self, env, sensitivity: float = 1.0):
         super().__init__(env)
         """Initialize the keyboard layer.
         """
         # store inputs
-        self.sensitivity = sensitivity
+        self.pos_sensitivity = 0.01 * sensitivity
+        self.joint_sensitivity = 0.20 * sensitivity
+        self.rot_sensitivity = 0.15 * sensitivity
 
         # acquire omniverse interfaces
         self._appwindow = omni.appwindow.get_default_app_window()
@@ -46,12 +53,25 @@ class Se3Keyboard(Device):
         self._create_key_bindings()
 
         # command buffers
-        self._delta_pos = np.zeros(6)
+        self._delta_action = np.zeros(8)  # (dx, dy, dz, droll, dpitch, dyaw, d_shoulder_pan, d_gripper)
 
         # some flags and callbacks
         self.started = False
         self._reset_state = 0
         self._additional_callbacks = {}
+
+        # initialize the frame transform
+        self.target_frame = 'shoulder'  # TODO: change to 'gripper'
+        self.asset_name = 'robot'
+        self.__initialize_frame_info()
+
+    def __initialize_frame_info(self):
+        self.robot_asset = self.env.scene[self.asset_name]
+        body_idxs, _ = self.robot_asset.find_bodies(self.target_frame)
+        self.target_frame_idx = body_idxs[0]
+        self.init_frame_pos, self.init_frame_quat = self.robot_asset.data.body_pos_w[:, self.target_frame_idx], self.robot_asset.data.body_quat_w[:, self.target_frame_idx]
+        root_pos, root_quat = self.robot_asset.data.root_pos_w, self.robot_asset.data.root_quat_w
+        _, self.init_frame2root_quat = math_utils.subtract_frame_transforms(root_pos, root_quat, self.init_frame_pos, self.init_frame_quat)
 
     def __del__(self):
         """Release the keyboard interface."""
@@ -77,7 +97,7 @@ class Se3Keyboard(Device):
         return msg
 
     def get_device_state(self):
-        return self._delta_pos
+        return self._delta_action
 
     def input2action(self):
         state = {}
@@ -86,7 +106,7 @@ class Se3Keyboard(Device):
         if reset:
             self._reset_state = False
             return state
-        state['joint_state'] = self.get_device_state()
+        state['joint_state'] = self._convert_delta_from_frame(self.get_device_state())
 
         ac_dict = {}
         ac_dict["reset"] = reset
@@ -98,7 +118,7 @@ class Se3Keyboard(Device):
         return ac_dict
 
     def reset(self):
-        self._delta_pos = np.zeros(6)
+        self._delta_action = np.zeros(8)
 
     def add_callback(self, key: str, func: Callable):
         self._additional_callbacks[key] = func
@@ -107,7 +127,7 @@ class Se3Keyboard(Device):
         # apply the command when pressed
         if event.type == carb.input.KeyboardEventType.KEY_PRESS:
             if event.input.name in self._INPUT_KEY_MAPPING.keys():
-                self._delta_pos += self._INPUT_KEY_MAPPING[event.input.name]
+                self._delta_action += self._INPUT_KEY_MAPPING[event.input.name]
             elif event.input.name == "B":
                 self.started = True
                 self._reset_state = False
@@ -124,22 +144,58 @@ class Se3Keyboard(Device):
         # remove the command when un-pressed
         if event.type == carb.input.KeyboardEventType.KEY_RELEASE:
             if event.input.name in self._INPUT_KEY_MAPPING.keys():
-                self._delta_pos -= self._INPUT_KEY_MAPPING[event.input.name]
+                self._delta_action -= self._INPUT_KEY_MAPPING[event.input.name]
         return True
 
     def _create_key_bindings(self):
-        """Creates default key binding."""
+        """Creates default key binding.
+        Based on target frame to control the delta action.
+        """
         self._INPUT_KEY_MAPPING = {
-            "Q": np.asarray([1.0, 0.0, 0.0, 0.0, 0.0, 0.0]) * self.sensitivity,
-            "W": np.asarray([0.0, 1.0, 0.0, 0.0, 0.0, 0.0]) * self.sensitivity,
-            "E": np.asarray([0.0, 0.0, 1.0, 0.0, 0.0, 0.0]) * self.sensitivity,
-            "A": np.asarray([0.0, 0.0, 0.0, 1.0, 0.0, 0.0]) * self.sensitivity,
-            "S": np.asarray([0.0, 0.0, 0.0, 0.0, 1.0, 0.0]) * self.sensitivity,
-            "D": np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, 1.0]) * self.sensitivity,
-            "U": np.asarray([-1.0, 0.0, 0.0, 0.0, 0.0, 0.0]) * self.sensitivity,
-            "I": np.asarray([0.0, -1.0, 0.0, 0.0, 0.0, 0.0]) * self.sensitivity,
-            "O": np.asarray([0.0, 0.0, -1.0, 0.0, 0.0, 0.0]) * self.sensitivity,
-            "J": np.asarray([0.0, 0.0, 0.0, -1.0, 0.0, 0.0]) * self.sensitivity,
-            "K": np.asarray([0.0, 0.0, 0.0, 0.0, -1.0, 0.0]) * self.sensitivity,
-            "L": np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, -1.0]) * self.sensitivity,
+            "W": np.asarray([-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) * self.pos_sensitivity,
+            "S": np.asarray([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) * self.pos_sensitivity,
+            "A": np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0]) * self.joint_sensitivity,
+            "D": np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]) * self.joint_sensitivity,
+            "Q": np.asarray([0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]) * self.pos_sensitivity,
+            "E": np.asarray([0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]) * self.pos_sensitivity,
+            "I": np.asarray([0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0]) * self.rot_sensitivity,
+            "K": np.asarray([0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]) * self.rot_sensitivity,
+            "J": np.asarray([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]) * self.rot_sensitivity,
+            "L": np.asarray([0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0]) * self.rot_sensitivity,
+            "U": np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]) * self.joint_sensitivity,
+            "O": np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0]) * self.joint_sensitivity,
         }
+
+    def _convert_delta_from_frame(self, delta_action: np.ndarray) -> np.ndarray:
+        """
+        Convert delta action from frame to initial frame to robot base frame.
+        now_frame -> init_frame -> root_frame
+        # TODO: simplify it to now_frame -> root_frame, target frame change to gripper
+        Args:
+            delta_action: Delta action in frame.
+        Returns:
+            Delta action in initial frame.
+        """
+        if np.allclose(delta_action[:3], 0.0) and np.allclose(delta_action[3:6], 0.0):
+            return delta_action
+        is_delta_rot = not np.allclose(delta_action[3:6], 0.0)
+
+        torch_delta_action = torch.tensor(delta_action, device=self.env.device, dtype=torch.float32)
+
+        delta_pos_f = torch_delta_action[:3].repeat(self.env.num_envs, 1)
+        delta_rot_f = torch_delta_action[3:6].repeat(self.env.num_envs, 1)
+        delta_quat_f = math_utils.quat_from_euler_xyz(delta_rot_f[:, 0], delta_rot_f[:, 1], delta_rot_f[:, 2])
+        delta_rotvec_f = math_utils.axis_angle_from_quat(delta_quat_f)
+
+        frame_pos, frame_quat = self.init_frame_pos, self.robot_asset.data.body_quat_w[:, self.target_frame_idx]  # don't consider frame pos here
+        _, frame2init = math_utils.subtract_frame_transforms(self.init_frame_pos, self.init_frame_quat, frame_pos, frame_quat)
+        frame2init_quat = math_utils.quat_unique(frame2init)
+        frame2root_quat = math_utils.quat_mul(self.init_frame2root_quat, frame2init_quat)
+
+        delta_pos_i = math_utils.quat_apply(frame2root_quat, delta_pos_f)
+        delta_rotvec_i = math_utils.quat_apply(frame2root_quat, delta_rotvec_f)
+        delta_rot_i = rotvec_to_euler(delta_rotvec_i) if is_delta_rot else torch.zeros(3, device=self.env.device)
+
+        delta_action_i = torch.cat([delta_pos_i.squeeze(0), delta_rot_i, torch_delta_action[6:]], dim=0)
+
+        return delta_action_i.cpu().numpy()

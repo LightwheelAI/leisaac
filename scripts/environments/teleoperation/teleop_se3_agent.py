@@ -164,7 +164,7 @@ def main():  # noqa: C901
 
     # create controller
     if args_cli.teleop_device == "keyboard":
-        teleop_interface = Se3Keyboard(env, sensitivity=0.25 * args_cli.sensitivity)
+        teleop_interface = Se3Keyboard(env, sensitivity=args_cli.sensitivity)
     elif args_cli.teleop_device == "so101leader":
         teleop_interface = SO101Leader(env, port=args_cli.port, recalibrate=args_cli.recalibrate)
     elif args_cli.teleop_device == "bi-so101leader":
