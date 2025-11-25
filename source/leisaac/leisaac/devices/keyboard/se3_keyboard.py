@@ -60,18 +60,13 @@ class Se3Keyboard(Device):
         self._reset_state = 0
         self._additional_callbacks = {}
 
-        # initialize the frame transform
-        self.target_frame = 'shoulder'  # TODO: change to 'gripper'
+        # initialize the target frame
         self.asset_name = 'robot'
-        self.__initialize_frame_info()
-
-    def __initialize_frame_info(self):
         self.robot_asset = self.env.scene[self.asset_name]
+
+        self.target_frame = 'shoulder'  # TODO: change to 'gripper'
         body_idxs, _ = self.robot_asset.find_bodies(self.target_frame)
         self.target_frame_idx = body_idxs[0]
-        self.init_frame_pos, self.init_frame_quat = self.robot_asset.data.body_pos_w[:, self.target_frame_idx], self.robot_asset.data.body_quat_w[:, self.target_frame_idx]
-        root_pos, root_quat = self.robot_asset.data.root_pos_w, self.robot_asset.data.root_quat_w
-        _, self.init_frame2root_quat = math_utils.subtract_frame_transforms(root_pos, root_quat, self.init_frame_pos, self.init_frame_quat)
 
     def __del__(self):
         """Release the keyboard interface."""
@@ -168,13 +163,12 @@ class Se3Keyboard(Device):
 
     def _convert_delta_from_frame(self, delta_action: np.ndarray) -> np.ndarray:
         """
-        Convert delta action from frame to initial frame to robot base frame.
-        now_frame -> init_frame -> root_frame
-        # TODO: simplify it to now_frame -> root_frame, target frame change to gripper
+        Convert delta action from target frame to robot base frame.
+        target_frame -> root_frame
         Args:
-            delta_action: Delta action in frame.
+            delta_action: Delta action in target frame.
         Returns:
-            Delta action in initial frame.
+            Delta action in robot base frame.
         """
         if np.allclose(delta_action[:3], 0.0) and np.allclose(delta_action[3:6], 0.0):
             return delta_action
@@ -187,10 +181,10 @@ class Se3Keyboard(Device):
         delta_quat_f = math_utils.quat_from_euler_xyz(delta_rot_f[:, 0], delta_rot_f[:, 1], delta_rot_f[:, 2])
         delta_rotvec_f = math_utils.axis_angle_from_quat(delta_quat_f)
 
-        frame_pos, frame_quat = self.init_frame_pos, self.robot_asset.data.body_quat_w[:, self.target_frame_idx]  # don't consider frame pos here
-        _, frame2init = math_utils.subtract_frame_transforms(self.init_frame_pos, self.init_frame_quat, frame_pos, frame_quat)
-        frame2init_quat = math_utils.quat_unique(frame2init)
-        frame2root_quat = math_utils.quat_mul(self.init_frame2root_quat, frame2init_quat)
+        frame_pos, frame_quat = self.robot_asset.data.root_pos_w, self.robot_asset.data.body_quat_w[:, self.target_frame_idx]  # don't consider frame pos here
+        root_pos, root_quat = self.robot_asset.data.root_pos_w, self.robot_asset.data.root_quat_w
+        _, frame2root = math_utils.subtract_frame_transforms(root_pos, root_quat, frame_pos, frame_quat)
+        frame2root_quat = math_utils.quat_unique(frame2root)
 
         delta_pos_i = math_utils.quat_apply(frame2root_quat, delta_pos_f)
         delta_rotvec_i = math_utils.quat_apply(frame2root_quat, delta_rotvec_f)
