@@ -19,13 +19,13 @@ class SO101Keyboard(Device):
 
     Key bindings:
         ============================== ================= =================
-        Description                    Key (+ve axis)    Key (-ve axis)
+        Description                    Key               Key
         ============================== ================= =================
         Forward/Backward                W                 S
         Left/Right                      A                 D
         Up/Down                         Q                 E
         Rotate (Yaw) Left/Right         J                 L
-        Rotate (Pitch) Raise/Lower      I                 K
+        Rotate (Pitch) Up/Down          I                 K
         Gripper Open/Close              U                 O
         ============================== ================= =================
 
@@ -83,7 +83,7 @@ class SO101Keyboard(Device):
         msg += "\tLeft/Right:                      A / D\n"
         msg += "\tUp/Down:                         Q / E\n"
         msg += "\tRotate (Yaw) Left/Right:         J / L\n"
-        msg += "\tRotate (Pitch) Raise/Lower:      I / K\n"
+        msg += "\tRotate (Pitch) Up/Down:          I / K\n"
         msg += "\tGripper Open/Close:              U / O\n"
         msg += "\t----------------------------------------------\n"
         msg += "\tStart Control: B\n"
