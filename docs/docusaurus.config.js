@@ -10,7 +10,7 @@ import {themes as prismThemes} from 'prism-react-renderer';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'Leisaac Document',
+  title: 'LeIsaac Document',
   tagline: 'LeIsaac Docs: Quickstart, Guides, and Resources',
   favicon: 'img/favicon.ico',
 

@@ -11,7 +11,7 @@ slug: /
   style={{ width: '100%', maxWidth: '960px', borderRadius: '8px' }}
 />
 
-Leisaac provides teleoperation functionality in [IsaacLab](https://isaac-sim.github.io/IsaacLab/main/index.html) using the SO101Leader ([LeRobot](https://github.com/huggingface/lerobot)), including data collection, data conversion, and subsequent policy training.
+LeIsaac provides teleoperation functionality in [IsaacLab](https://isaac-sim.github.io/IsaacLab/main/index.html) using the SO101Leader ([LeRobot](https://github.com/huggingface/lerobot)), including data collection, data conversion, and subsequent policy training.
 
 - 🤖 We use the SO101 Follower robot (and other related robot) in IsaacLab and provide practical teleoperation methods.
 - 🔄 Ready-to-use scripts convert HDF5 data into the LeRobot dataset format.

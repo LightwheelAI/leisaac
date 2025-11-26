@@ -49,6 +49,10 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 
 </details>
 
+::::tip
+We support multiple devices for teleoperation. See [here](/resources/available_devices) for more devices and usage instructions.
+::::
+
 ## Operating Instructions
 
 If the calibration file does not exist at the specified cache path, or if you launch with `--recalibrate`, you will be prompted to calibrate the SO101Leader.  Please refer to the [documentation](https://huggingface.co/docs/lerobot/so101#calibration-video) for calibration steps.

@@ -107,6 +107,7 @@ const sidebars = {
   resources: [
     'resources/available_robots',
     'resources/available_env',
+    'resources/available_devices',
     'resources/available_policy',
   ],
 };

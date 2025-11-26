@@ -1,6 +1,6 @@
-# Leisaac Docs Website
+# LeIsaac Docs Website
 
-Leisaac docs website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+LeIsaac docs website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
 
 Make sure your working dir is `leisaac/docs`.
 
@@ -43,4 +43,4 @@ GIT_USER=<Your GitHub username> yarn deploy
 If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
 
 >[!NOTE] 
-> The Leisaac repository is already configured with GitHub Actions. You only need to modify the relevant documents, verify the results locally, and then submit a PR; manual deployment is not necessary.
+> The LeIsaac repository is already configured with GitHub Actions. You only need to modify the relevant documents, verify the results locally, and then submit a PR; manual deployment is not necessary.

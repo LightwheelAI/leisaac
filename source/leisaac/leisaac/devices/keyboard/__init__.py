@@ -1,1 +1,1 @@
-from .se3_keyboard import Se3Keyboard
+from .so101_keyboard import SO101Keyboard
