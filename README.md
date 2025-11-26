@@ -17,6 +17,8 @@ This repository provides teleoperation functionality in [IsaacLab](https://isaac
 
 Please refer to our [documentation](https://lightwheelai.github.io/leisaac/) to learn how to use this repository. Follow these links to learn more about:
 
+LeIsaac is now the official imitation-learning (IL) simulation playground integrated into LeRobot’s EnvHub. It provides fast, scalable Isaac-based environments designed for imitation learning, control, and policy evaluation. It is featured in LeRobot: [LeIsaac × LeRobot EnvHub](https://huggingface.co/docs/lerobot/en/envhub_leisaac)
+
 - [Installation and Setup](https://lightwheelai.github.io/leisaac/docs/getting_started/installation)
 - [Extra Features](https://lightwheelai.github.io/leisaac/docs/features)
 - [Policy Inference](https://lightwheelai.github.io/leisaac/docs/getting_started/policy_support)
