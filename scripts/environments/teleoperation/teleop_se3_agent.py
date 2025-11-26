@@ -54,7 +54,7 @@ from isaaclab.envs import ManagerBasedRLEnv, DirectRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab.managers import TerminationTermCfg, DatasetExportMode
 
-from leisaac.devices import Se3Keyboard, SO101Leader, BiSO101Leader
+from leisaac.devices import SO101Keyboard, SO101Leader, BiSO101Leader
 from leisaac.enhance.managers import StreamingRecorderManager, EnhanceDatasetExportMode
 from leisaac.utils.env_utils import dynamic_reset_gripper_effort_limit_sim
 
@@ -164,7 +164,7 @@ def main():  # noqa: C901
 
     # create controller
     if args_cli.teleop_device == "keyboard":
-        teleop_interface = Se3Keyboard(env, sensitivity=args_cli.sensitivity)
+        teleop_interface = SO101Keyboard(env, sensitivity=args_cli.sensitivity)
     elif args_cli.teleop_device == "so101leader":
         teleop_interface = SO101Leader(env, port=args_cli.port, recalibrate=args_cli.recalibrate)
     elif args_cli.teleop_device == "bi-so101leader":

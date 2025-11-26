@@ -14,19 +14,19 @@ from leisaac.utils.math_utils import rotvec_to_euler
 from ..device_base import Device
 
 
-class Se3Keyboard(Device):
-    """A keyboard controller for sending SE(3) commands as delta poses for lerobot.
+class SO101Keyboard(Device):
+    """A keyboard controller for sending SE(3) commands as delta poses for so101 single arm.
 
     Key bindings:
         ============================== ================= =================
         Description                    Key (+ve axis)    Key (-ve axis)
         ============================== ================= =================
-        Joint 1 (shoulder_pan)         Q                 U
-        Joint 2 (shoulder_lift)        W                 I
-        Joint 3 (elbow_flex)           E                 O
-        Joint 4 (wrist_flex)           A                 J
-        Joint 5 (wrist_roll)           S                 K
-        Joint 6 (gripper)              D                 L
+        Forward/Backward                W                 S
+        Left/Right                      A                 D
+        Up/Down                         Q                 E
+        Rotate (Yaw) Left/Right         J                 L
+        Rotate (Pitch) Raise/Lower      I                 K
+        Gripper Open/Close              U                 O
         ============================== ================= =================
 
     """
@@ -74,21 +74,23 @@ class Se3Keyboard(Device):
         self._keyboard_sub = None
 
     def __str__(self) -> str:
-        """Returns: A string containing the information of joystick."""
-        msg = "Keyboard Controller for SE(3).\n"
+        """Returns: A string containing the information of keyboard controller."""
+        msg = "Keyboard Controller for SO101 Single Arm (SE(3) Control).\n"
         msg += f"\tKeyboard name: {self._input.get_keyboard_name(self._keyboard)}\n"
+        msg += f"target frame: {self.target_frame}\n"
         msg += "\t----------------------------------------------\n"
-        msg += "\tJoint 1 (shoulder_pan):  Q/U\n"
-        msg += "\tJoint 2 (shoulder_lift): W/I\n"
-        msg += "\tJoint 3 (elbow_flex):    E/O\n"
-        msg += "\tJoint 4 (wrist_flex):    A/J\n"
-        msg += "\tJoint 5 (wrist_roll):    S/K\n"
-        msg += "\tJoint 6 (gripper):       D/L\n"
+        msg += "\tForward/Backward:                W / S\n"
+        msg += "\tLeft/Right:                      A / D\n"
+        msg += "\tUp/Down:                         Q / E\n"
+        msg += "\tRotate (Yaw) Left/Right:         J / L\n"
+        msg += "\tRotate (Pitch) Raise/Lower:      I / K\n"
+        msg += "\tGripper Open/Close:              U / O\n"
         msg += "\t----------------------------------------------\n"
         msg += "\tStart Control: B\n"
         msg += "\tTask Failed and Reset: R\n"
         msg += "\tTask Success and Reset: N\n"
         msg += "\tControl+C: quit"
+        msg += "\t----------------------------------------------\n"
         return msg
 
     def get_device_state(self):
