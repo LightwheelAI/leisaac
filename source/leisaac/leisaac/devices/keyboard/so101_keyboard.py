@@ -188,10 +188,10 @@ class SO101Keyboard(Device):
         _, frame2root = math_utils.subtract_frame_transforms(root_pos, root_quat, frame_pos, frame_quat)
         frame2root_quat = math_utils.quat_unique(frame2root)
 
-        delta_pos_i = math_utils.quat_apply(frame2root_quat, delta_pos_f)
-        delta_rotvec_i = math_utils.quat_apply(frame2root_quat, delta_rotvec_f)
-        delta_rot_i = rotvec_to_euler(delta_rotvec_i) if is_delta_rot else torch.zeros(3, device=self.env.device)
+        delta_pos_r = math_utils.quat_apply(frame2root_quat, delta_pos_f)
+        delta_rotvec_r = math_utils.quat_apply(frame2root_quat, delta_rotvec_f)
+        delta_rot_r = rotvec_to_euler(delta_rotvec_r) if is_delta_rot else torch.zeros(3, device=self.env.device)
 
-        delta_action_i = torch.cat([delta_pos_i.squeeze(0), delta_rot_i, torch_delta_action[6:]], dim=0)
+        delta_action_r = torch.cat([delta_pos_r.squeeze(0), delta_rot_r, torch_delta_action[6:]], dim=0)
 
-        return delta_action_i.cpu().numpy()
+        return delta_action_r.cpu().numpy()
