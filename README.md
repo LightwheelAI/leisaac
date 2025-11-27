@@ -22,7 +22,9 @@ Please refer to our [documentation](https://lightwheelai.github.io/leisaac/) to 
 - [Policy Inference](https://lightwheelai.github.io/leisaac/docs/getting_started/policy_support)
 - [Available Robots](https://lightwheelai.github.io/leisaac/resources/available_robots), [Environments](https://lightwheelai.github.io/leisaac/resources/available_env) and [Policy](https://lightwheelai.github.io/leisaac/resources/available_policy)
 
-LeIsaac is now the official imitation-learning (IL) simulation playground integrated into LeRobot’s EnvHub. It provides fast, scalable Isaac-based environments designed for imitation learning, control, and policy evaluation. It is featured in LeRobot: [LeIsaac × LeRobot EnvHub](https://huggingface.co/docs/lerobot/en/envhub_leisaac)
+> [!TIP]
+>
+> For more features and updates, please refer to the [News](https://lightwheelai.github.io/leisaac/#news) section on our website!
 
 ## Acknowledgements 🙏
 
