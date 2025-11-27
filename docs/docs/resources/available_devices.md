@@ -38,6 +38,20 @@ The keyboard mapping is as follows:
 | `K` / `I` | Rotate (pitch) up/down, aligned with the green arrows in the rotation diagram |
 | `U` / `O` | Gripper open/close                                                            |
 
+### Gamepad
+
+Run with `--teleop_device=gamepad` to enable gamepad control. (Now we support xbox series controller.)
+
+Similar to the keyboard controls, the gamepad also commands the target frame (gripper link) and is divided into translation control and rotation control. The mappings are described below.
+
+| control key                          | description                                                                   |
+| :----------------------------------- | :---------------------------------------------------------------------------- |
+| move `L` forward / move `L` backward | Forward/backward, aligned with the red arrows in the translation diagram      |
+| move `L` left / move `L` right       | Left/right, aligned with the green arrows in the translation diagram          |
+| move `R` forward / move `R` backward | Up/down, aligned with the blue arrows in the translation diagram              |
+| move `R` left / move `R` right       | Rotate (yaw) left/right, aligned with the blue arrows in the rotation diagram |
+| press `LB` / press `LT`              | Rotate (pitch) up/down, aligned with the green arrows in the rotation diagram |
+| press `RT` / press `RB`              | Gripper open/close                                                            |
 
 ## Bi-Arm SO101 Follower
 

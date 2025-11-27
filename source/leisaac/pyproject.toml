@@ -24,6 +24,7 @@ dependencies = [
     "pyserial",
     "deepdiff",
     "feetech-servo-sdk",
+    "pygame>=2.5.1,<2.7.0"
 ]
 
 [project.urls]
