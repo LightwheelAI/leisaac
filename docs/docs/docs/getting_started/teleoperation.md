@@ -17,7 +17,7 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 ```
 
 <details>
-<summary><strong>Parameter descriptions for teleop_se3_agent.py</strong></summary><p></p>
+<summary><strong>Parameter descriptions for teleop_se3_agent.py</strong></summary>
 
 - `--task`: Specify the task environment name to run, e.g., `LeIsaac-SO101-PickOrange-v0`.
 

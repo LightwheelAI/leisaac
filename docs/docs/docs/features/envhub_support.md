@@ -37,6 +37,9 @@ EnvHub exposes every LeIsaac-supported task in a uniform interface. The examples
 
 ### Random Action
 
+<details>
+<summary><strong>Example code for envhub_random_action.py</strong></summary>
+
 ```python
 # envhub_random_action.py
 
@@ -64,6 +67,8 @@ while True:
 env.close()
 ```
 
+</details>
+
 ```bash
 python envhub_random_action.py
 ```
@@ -85,6 +90,9 @@ lerobot-calibrate \
 ```
 
 And then launch the teleop script.
+
+<details>
+<summary><strong>Example code for envhub_teleop_example.py</strong></summary>
 
 ```python
 # envhub_teleop_example.py
@@ -199,6 +207,8 @@ if __name__ == "__main__":
     main()
 
 ```
+
+</details>
 
 ```bash
 python envhub_teleop_example.py

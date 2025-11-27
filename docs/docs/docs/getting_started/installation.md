@@ -52,7 +52,7 @@ pip install "isaacsim[all,extscache]==5.1.0" --extra-index-url https://pypi.nvid
 # Install IsaacLab
 sudo apt install cmake build-essential
 
-cd dependencies/IsaacLab
+cd leisaac/dependencies/IsaacLab
 ./isaaclab.sh --install
 ```
 
