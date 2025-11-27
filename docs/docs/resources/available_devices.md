@@ -35,7 +35,7 @@ The keyboard mapping is as follows:
 | `A` / `D` | Left/right, aligned with the green arrows in the translation diagram          |
 | `Q` / `E` | Up/down, aligned with the blue arrows in the translation diagram              |
 | `J` / `L` | Rotate (yaw) left/right, aligned with the blue arrows in the rotation diagram |
-| `I` / `K` | Rotate (pitch) up/down, aligned with the green arrows in the rotation diagram |
+| `K` / `I` | Rotate (pitch) up/down, aligned with the green arrows in the rotation diagram |
 | `U` / `O` | Gripper open/close                                                            |
 
 
