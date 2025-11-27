@@ -25,7 +25,7 @@ class SO101Keyboard(Device):
         Left/Right                      A                 D
         Up/Down                         Q                 E
         Rotate (Yaw) Left/Right         J                 L
-        Rotate (Pitch) Up/Down          I                 K
+        Rotate (Pitch) Up/Down          K                 I
         Gripper Open/Close              U                 O
         ============================== ================= =================
 
@@ -83,7 +83,7 @@ class SO101Keyboard(Device):
         msg += "\tLeft/Right:                      A / D\n"
         msg += "\tUp/Down:                         Q / E\n"
         msg += "\tRotate (Yaw) Left/Right:         J / L\n"
-        msg += "\tRotate (Pitch) Up/Down:          I / K\n"
+        msg += "\tRotate (Pitch) Up/Down:          K / I\n"
         msg += "\tGripper Open/Close:              U / O\n"
         msg += "\t----------------------------------------------\n"
         msg += "\tStart Control: B\n"
@@ -155,8 +155,8 @@ class SO101Keyboard(Device):
             "D": np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]) * self.joint_sensitivity,
             "Q": np.asarray([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) * self.pos_sensitivity,
             "E": np.asarray([-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) * self.pos_sensitivity,
-            "I": np.asarray([0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0]) * self.rot_sensitivity,
-            "K": np.asarray([0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]) * self.rot_sensitivity,
+            "K": np.asarray([0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0]) * self.rot_sensitivity,
+            "I": np.asarray([0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]) * self.rot_sensitivity,
             "J": np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0]) * self.rot_sensitivity,
             "L": np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0]) * self.rot_sensitivity,
             "U": np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]) * self.joint_sensitivity,
