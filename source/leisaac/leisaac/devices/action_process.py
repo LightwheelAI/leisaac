@@ -30,6 +30,18 @@ def init_action_cfg(action_cfg, device):
             joint_names=["shoulder_pan", "gripper"],
             scale=1.0,
         )
+    elif device in ['gamepad']:
+        action_cfg.arm_action = mdp.DifferentialInverseKinematicsActionCfg(
+            asset_name="robot",
+            joint_names=["shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
+            body_name="gripper",
+            controller=mdp.DifferentialIKControllerCfg(command_type="pose", ik_method="dls", use_relative_mode=True),
+        )
+        action_cfg.gripper_action = mdp.RelativeJointPositionActionCfg(
+            asset_name="robot",
+            joint_names=["shoulder_pan", "gripper"],
+            scale=1.0,
+        )
     elif device in ['bi-so101leader']:
         action_cfg.left_arm_action = mdp.JointPositionActionCfg(
             asset_name="left_arm",
@@ -75,6 +87,18 @@ def init_action_cfg(action_cfg, device):
             joint_names=["gripper"],
             scale=1.0,
         )
+    elif device in ['mimic_gamepad']:
+        action_cfg.arm_action = mdp.DifferentialInverseKinematicsActionCfg(
+            asset_name="robot",
+            joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
+            body_name="gripper",
+            controller=mdp.DifferentialIKControllerCfg(command_type="pose", ik_method="dls", use_relative_mode=False),
+        )
+        action_cfg.gripper_action = mdp.RelativeJointPositionActionCfg(
+            asset_name="robot",
+            joint_names=["gripper"],
+            scale=1.0,
+        )
     else:
         action_cfg.arm_action = None
         action_cfg.gripper_action = None
@@ -107,7 +131,7 @@ def convert_action_from_so101_leader(joint_state: dict[str, float], motor_limits
 def preprocess_device_action(action: dict[str, Any], teleop_device) -> torch.Tensor:
     if action.get('so101_leader') is not None:
         processed_action = convert_action_from_so101_leader(action['joint_state'], action['motor_limits'], teleop_device)
-    elif action.get('keyboard') is not None:
+    elif action.get('keyboard') is not None or action.get('gamepad') is not None:
         processed_action = torch.zeros(teleop_device.env.num_envs, 8, device=teleop_device.env.device)
         processed_action[:, :] = action['joint_state']
     elif action.get('bi_so101_leader') is not None:

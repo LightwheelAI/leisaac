@@ -21,12 +21,12 @@ class SO101Keyboard(Device):
         ============================== ================= =================
         Description                    Key               Key
         ============================== ================= =================
-        Forward/Backward                W                 S
-        Left/Right                      A                 D
-        Up/Down                         Q                 E
-        Rotate (Yaw) Left/Right         J                 L
-        Rotate (Pitch) Up/Down          K                 I
-        Gripper Open/Close              U                 O
+        Forward / Backward              W                 S
+        Left / Right                    A                 D
+        Up / Down                       Q                 E
+        Rotate (Yaw) Left / Right       J                 L
+        Rotate (Pitch) Up / Down        K                 I
+        Gripper Open / Close            U                 O
         ============================== ================= =================
 
     """
@@ -79,12 +79,12 @@ class SO101Keyboard(Device):
         msg += f"\tKeyboard name: {self._input.get_keyboard_name(self._keyboard)}\n"
         msg += f"target frame: {self.target_frame}\n"
         msg += "\t----------------------------------------------\n"
-        msg += "\tForward/Backward:                W / S\n"
-        msg += "\tLeft/Right:                      A / D\n"
-        msg += "\tUp/Down:                         Q / E\n"
-        msg += "\tRotate (Yaw) Left/Right:         J / L\n"
-        msg += "\tRotate (Pitch) Up/Down:          K / I\n"
-        msg += "\tGripper Open/Close:              U / O\n"
+        msg += "\tForward / Backward:                W / S\n"
+        msg += "\tLeft / Right:                      A / D\n"
+        msg += "\tUp / Down:                         Q / E\n"
+        msg += "\tRotate (Yaw) Left / Right:         J / L\n"
+        msg += "\tRotate (Pitch) Up / Down:          K / I\n"
+        msg += "\tGripper Open / Close:              U / O\n"
         msg += "\t----------------------------------------------\n"
         msg += "\tStart Control: B\n"
         msg += "\tTask Failed and Reset: R\n"
