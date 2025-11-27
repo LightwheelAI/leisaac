@@ -23,7 +23,7 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 
 - `--seed`: Specify the seed for environment, e.g., `42`.
 
-- `--teleop_device`: Specify the teleoperation device type, e.g., `so101leader`, `bi-so101leader`, `keyboard`.
+- `--teleop_device`: Specify the teleoperation device type, e.g., `so101leader`, `bi-so101leader`, `keyboard`, `gamepad`.
 
 -  `--port`: Specify the port of teleoperation device, e.g., `/dev/ttyACM0`. Only used when teleop_device is `so101leader`.
 

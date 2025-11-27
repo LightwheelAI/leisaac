@@ -35,5 +35,5 @@ python scripts/environments/teleoperation/replay.py \
 </details>
 
 :::tip
-Note: If you want to replay a dataset collected using keyboard, please set `--task_type=keyboard`.
+NOTE: If you record datasets with devices other than the Leader (for example, the keyboard or gamepad), set `task_type` to the corresponding device, such as `--task_type=keyboard` or `--task_type=gamepad`.
 :::
