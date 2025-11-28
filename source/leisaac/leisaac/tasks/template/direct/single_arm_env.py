@@ -1,18 +1,18 @@
-import torch
-
 from dataclasses import MISSING
 from typing import Any
 
+import torch
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
-
-from leisaac.enhance.envs import RecorderEnhanceDirectRLEnvCfg as DirectRLEnvCfg
-from leisaac.enhance.envs import RecorderEnhanceDirectRLEnv as DirectRLEnv
-from leisaac.enhance.envs.mdp.recorders.recorders_cfg import DirectEnvActionStateRecorderManagerCfg as RecordTerm
 from leisaac.devices.action_process import preprocess_device_action
+from leisaac.enhance.envs import RecorderEnhanceDirectRLEnv as DirectRLEnv
+from leisaac.enhance.envs import RecorderEnhanceDirectRLEnvCfg as DirectRLEnvCfg
+from leisaac.enhance.envs.mdp.recorders.recorders_cfg import (
+    DirectEnvActionStateRecorderManagerCfg as RecordTerm,
+)
 
 from .. import mdp
-from ..single_arm_env_cfg import SingleArmTaskSceneCfg, SingleArmEventCfg
+from ..single_arm_env_cfg import SingleArmEventCfg, SingleArmTaskSceneCfg
 
 
 @configclass
@@ -60,13 +60,13 @@ class SingleArmTaskDirectEnvCfg(DirectRLEnvCfg):
         self.sim.render.enable_translucency = True
 
         self.cameras = []
-        for cam in ['front', 'wrist']:
+        for cam in ["front", "wrist"]:
             if hasattr(self.scene, cam):
                 self.state_space[cam] = [getattr(self.scene, cam).height, getattr(self.scene, cam).width, 3]
                 self.observation_space[cam] = [getattr(self.scene, cam).height, getattr(self.scene, cam).width, 3]
                 self.cameras.append(cam)
 
-        self.scene.ee_frame.visualizer_cfg.markers['frame'].scale = (0.05, 0.05, 0.05)
+        self.scene.ee_frame.visualizer_cfg.markers["frame"].scale = (0.05, 0.05, 0.05)
 
     def use_teleop_device(self, teleop_device) -> None:
         self.task_type = teleop_device
@@ -80,6 +80,7 @@ class SingleArmTaskDirectEnvCfg(DirectRLEnvCfg):
 
 class SingleArmTaskDirectEnv(DirectRLEnv):
     """Direct RL Environment for single arm task"""
+
     cfg: SingleArmTaskDirectEnvCfg
 
     def __init__(self, cfg: SingleArmTaskDirectEnvCfg, render_mode: str | None = None, **kwargs):
@@ -98,7 +99,7 @@ class SingleArmTaskDirectEnv(DirectRLEnv):
         self.actions = actions.clone() * self.cfg.action_scale
 
     def _apply_action(self) -> None:
-        self.scene['robot'].set_joint_position_target(self.actions)
+        self.scene["robot"].set_joint_position_target(self.actions)
 
     def _get_observations(self) -> dict:
         obs = {
@@ -108,12 +109,14 @@ class SingleArmTaskDirectEnv(DirectRLEnv):
                 "joint_pos_rel": mdp.joint_pos_rel(self),
                 "joint_vel_rel": mdp.joint_vel_rel(self),
                 "actions": self.actions,
-                "ee_frame_state": mdp.ee_frame_state(self, ee_frame_cfg=SceneEntityCfg("ee_frame"), robot_cfg=SceneEntityCfg("robot")),
+                "ee_frame_state": mdp.ee_frame_state(
+                    self, ee_frame_cfg=SceneEntityCfg("ee_frame"), robot_cfg=SceneEntityCfg("robot")
+                ),
                 "joint_pos_target": mdp.joint_pos_target(self, asset_cfg=SceneEntityCfg("robot")),
             }
         }
         for cam in self.cfg.cameras:
-            obs['policy'][cam] = mdp.image(self, sensor_cfg=SceneEntityCfg(cam), data_type="rgb", normalize=False)
+            obs["policy"][cam] = mdp.image(self, sensor_cfg=SceneEntityCfg(cam), data_type="rgb", normalize=False)
         return obs
 
     def _get_rewards(self) -> torch.Tensor:

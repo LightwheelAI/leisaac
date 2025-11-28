@@ -1,10 +1,9 @@
-import torch
-
-from typing import Any
 from collections.abc import Sequence
+from typing import Any
 
+import torch
+from isaaclab.envs.common import VecEnvObs, VecEnvStepReturn
 from isaaclab.envs.direct_rl_env import DirectRLEnv
-from isaaclab.envs.common import VecEnvStepReturn, VecEnvObs
 from isaaclab.managers import RecorderManager
 from isaacsim.core.simulation_manager import SimulationManager
 

@@ -1,8 +1,6 @@
-import pygame
-
 from dataclasses import dataclass
-from typing import List, Tuple
 
+import pygame
 
 XBOX_GAMEPAD_MAPPINGS = {
     "buttons": {"A": 0, "B": 1, "X": 2, "Y": 3, "LB": 4, "RB": 5, "L": 9, "R": 10},
@@ -13,9 +11,9 @@ XBOX_GAMEPAD_MAPPINGS = {
 
 @dataclass
 class ControllerState:
-    buttons: List[bool]
-    axes: List[float]
-    hats: List[Tuple[int, int]]
+    buttons: list[bool]
+    axes: list[float]
+    hats: list[tuple[int, int]]
 
 
 class GamepadController:
@@ -56,11 +54,16 @@ class GamepadController:
         """Get the current controller state"""
         return ControllerState(
             buttons=[self.joystick.get_button(i) for i in range(self.joystick.get_numbuttons())],
-            axes=[self.joystick.get_axis(i) if abs(self.joystick.get_axis(i)) > self.deadzone else 0.0 for i in range(self.joystick.get_numaxes())],
+            axes=[
+                self.joystick.get_axis(i) if abs(self.joystick.get_axis(i)) > self.deadzone else 0.0
+                for i in range(self.joystick.get_numaxes())
+            ],
             hats=[self.joystick.get_hat(i) for i in range(self.joystick.get_numhats())],
         )
 
-    def lookup_controller_state(self, controller_state: ControllerState, name: str, reverse: bool = False) -> Tuple[bool, float]:
+    def lookup_controller_state(
+        self, controller_state: ControllerState, name: str, reverse: bool = False
+    ) -> tuple[bool, float]:
         """
         Lookup the controller state for a given name
             return is_activate, state

@@ -1,17 +1,20 @@
 import pickle
-import torch
-import grpc
 import time
+
+import grpc
 import numpy as np
-
-from .base import ZMQServicePolicy, Policy, WebsocketServicePolicy
-from .lerobot.transport import services_pb2_grpc, services_pb2
-from .lerobot.transport.utils import grpc_channel_options, send_bytes_in_chunks
-from .lerobot.helpers import RemotePolicyConfig, TimedObservation
-from .openpi import image_tools
-
-from leisaac.utils.robot_utils import convert_leisaac_action_to_lerobot, convert_lerobot_action_to_leisaac
+import torch
 from leisaac.utils.constant import SINGLE_ARM_JOINT_NAMES
+from leisaac.utils.robot_utils import (
+    convert_leisaac_action_to_lerobot,
+    convert_lerobot_action_to_leisaac,
+)
+
+from .base import Policy, WebsocketServicePolicy, ZMQServicePolicy
+from .lerobot.helpers import RemotePolicyConfig, TimedObservation
+from .lerobot.transport import services_pb2, services_pb2_grpc
+from .lerobot.transport.utils import grpc_channel_options, send_bytes_in_chunks
+from .openpi import image_tools
 
 
 class Gr00tServicePolicyClient(ZMQServicePolicy):
@@ -25,7 +28,7 @@ class Gr00tServicePolicyClient(ZMQServicePolicy):
         host: str = "localhost",
         port: int = 5555,
         timeout_ms: int = 5000,
-        camera_keys: list[str] = ['front', 'wrist'],
+        camera_keys: list[str] = ["front", "wrist"],
         modality_keys: list[str] = ["single_arm", "gripper"],
     ):
         """
@@ -93,11 +96,11 @@ class LeRobotServicePolicyClient(Policy):
         port: int,
         timeout_ms: int = 5000,
         camera_infos: dict[str, dict] = {},
-        task_type: str = 'so101leader',
-        policy_type: str = 'smolvla',
-        pretrained_name_or_path: str = 'checkpoints/last/pretrained_model',
+        task_type: str = "so101leader",
+        policy_type: str = "smolvla",
+        pretrained_name_or_path: str = "checkpoints/last/pretrained_model",
         actions_per_chunk: int = 50,
-        device: str = 'cuda',
+        device: str = "cuda",
     ):
         """
         Args:
@@ -112,27 +115,27 @@ class LeRobotServicePolicyClient(Policy):
             device: Device to use.
         """
         super().__init__("service")
-        service_address = f'{host}:{port}'
+        service_address = f"{host}:{port}"
         self.timeout_ms = timeout_ms
         self.task_type = task_type
         self.actions_per_chunk = actions_per_chunk
 
         lerobot_features = {}
         self.last_action = None
-        if task_type == 'so101leader':
-            lerobot_features['observation.state'] = {
-                'dtype': 'float32',
-                'shape': (6,),
-                'names': [f'{joint_name}.pos' for joint_name in SINGLE_ARM_JOINT_NAMES],
+        if task_type == "so101leader":
+            lerobot_features["observation.state"] = {
+                "dtype": "float32",
+                "shape": (6,),
+                "names": [f"{joint_name}.pos" for joint_name in SINGLE_ARM_JOINT_NAMES],
             }
             self.last_action = np.zeros((1, 6))
         # TODO: add bi-arm support
 
         for camera_key, camera_image_shape in camera_infos.items():
-            lerobot_features[f'observation.images.{camera_key}'] = {
-                'dtype': 'image',
-                'shape': (camera_image_shape[0], camera_image_shape[1], 3),
-                'names': ['height', 'width', 'channels'],
+            lerobot_features[f"observation.images.{camera_key}"] = {
+                "dtype": "image",
+                "shape": (camera_image_shape[0], camera_image_shape[1], 3),
+                "names": ["height", "width", "channels"],
             }
         self.camera_keys = list(camera_infos.keys())
 
@@ -143,9 +146,7 @@ class LeRobotServicePolicyClient(Policy):
             actions_per_chunk,
             device,
         )
-        self.channel = grpc.insecure_channel(
-            service_address, grpc_channel_options()
-        )
+        self.channel = grpc.insecure_channel(service_address, grpc_channel_options())
         self.stub = services_pb2_grpc.AsyncInferenceStub(self.channel)
 
         self.latest_action_step = 0
@@ -169,10 +170,12 @@ class LeRobotServicePolicyClient(Policy):
             raise RuntimeError("Failed to connect to policy server")
 
     def _send_observation(self, observation_dict: dict):
-        raw_observation = {f"{key}": observation_dict[key].cpu().numpy().astype(np.uint8)[0] for key in self.camera_keys}
+        raw_observation = {
+            f"{key}": observation_dict[key].cpu().numpy().astype(np.uint8)[0] for key in self.camera_keys
+        }
         raw_observation["task"] = observation_dict["task_description"]
 
-        if self.task_type == 'so101leader':
+        if self.task_type == "so101leader":
             joint_pos = convert_leisaac_action_to_lerobot(observation_dict["joint_pos"])
             for joint_name in SINGLE_ARM_JOINT_NAMES:
                 raw_observation[f"{joint_name}.pos"] = joint_pos[0, SINGLE_ARM_JOINT_NAMES.index(joint_name)].item()
@@ -245,7 +248,7 @@ class OpenPIServicePolicyClient(WebsocketServicePolicy):
         self,
         host: str = "localhost",
         port: int = 8000,
-        camera_keys: list[str] = ['front', 'wrist'],
+        camera_keys: list[str] = ["front", "wrist"],
         task_type: str = "so101leader",
         api_key: str = None,
     ):
@@ -264,11 +267,14 @@ class OpenPIServicePolicyClient(WebsocketServicePolicy):
     def get_action(self, observation_dict: dict) -> torch.Tensor:
         obs_dict = {
             f"images/{key}": image_tools.convert_to_uint8(
-                image_tools.resize_with_pad(observation_dict[key].cpu().squeeze().numpy(), 224, 224)) for key in self.camera_keys}
+                image_tools.resize_with_pad(observation_dict[key].cpu().squeeze().numpy(), 224, 224)
+            )
+            for key in self.camera_keys
+        }
 
-        if self.task_type == 'so101leader':
+        if self.task_type == "so101leader":
             joint_pos = convert_leisaac_action_to_lerobot(observation_dict["joint_pos"])
-            obs_dict['state'] = joint_pos.squeeze().astype(np.float64)
+            obs_dict["state"] = joint_pos.squeeze().astype(np.float64)
         # TODO: add bi-arm support
 
         obs_dict["prompt"] = observation_dict["task_description"]
@@ -284,7 +290,7 @@ class OpenPIServicePolicyClient(WebsocketServicePolicy):
         """
 
         # get the action chunk via the policy server
-        action_chunk = self.infer(obs_dict)['actions']
+        action_chunk = self.infer(obs_dict)["actions"]
 
         """
             Example of action_chunk for single arm task:

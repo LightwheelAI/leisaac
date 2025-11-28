@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import torch
-
-from isaaclab.assets import RigidObject, Articulation
+from isaaclab.assets import Articulation, RigidObject
+from isaaclab.envs import DirectRLEnv, ManagerBasedRLEnv
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.envs import ManagerBasedRLEnv, DirectRLEnv
 
 
-def cube_height_above_base(env: ManagerBasedRLEnv | DirectRLEnv, cube_cfg: SceneEntityCfg, robot_cfg: SceneEntityCfg, robot_base_name: str = "base", height_threshold: float = 0.20) -> torch.Tensor:
+def cube_height_above_base(
+    env: ManagerBasedRLEnv | DirectRLEnv,
+    cube_cfg: SceneEntityCfg,
+    robot_cfg: SceneEntityCfg,
+    robot_base_name: str = "base",
+    height_threshold: float = 0.20,
+) -> torch.Tensor:
     """Determine if the cube is above the robot base.
 
     This function checks whether all success conditions for the task have been met:

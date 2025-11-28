@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright 2025 The HuggingFace Inc. team.
 # All rights reserved.
 #
@@ -86,8 +84,6 @@ def receive_bytes_in_chunks(iterator, queue: Queue | None, shutdown_event: Event
         logging.debug(f"{log_prefix} Received item")
         if shutdown_event.is_set():
             logging.info(f"{log_prefix} Shutting down receiver")
-            return
-
         if item.transfer_state == services_pb2.TransferState.TRANSFER_BEGIN:
             bytes_buffer.seek(0)
             bytes_buffer.truncate(0)
@@ -115,6 +111,8 @@ def receive_bytes_in_chunks(iterator, queue: Queue | None, shutdown_event: Event
         else:
             logging.warning(f"{log_prefix} Received unknown transfer state {item.transfer_state}")
             raise ValueError(f"Received unknown transfer state {item.transfer_state}")
+
+    return None
 
 
 def state_to_bytes(state_dict: dict[str, torch.Tensor]) -> bytes:
@@ -167,21 +165,19 @@ def grpc_channel_options(
     max_backoff: str = "2s",
 ):
     service_config = {
-        "methodConfig": [
-            {
-                "name": [{}],  # Applies to ALL methods in ALL services
-                "retryPolicy": {
-                    "maxAttempts": max_attempts,  # Max retries (total attempts = 5)
-                    "initialBackoff": initial_backoff,  # First retry after 0.1s
-                    "maxBackoff": max_backoff,  # Max wait time between retries
-                    "backoffMultiplier": backoff_multiplier,  # Exponential backoff factor
-                    "retryableStatusCodes": [
-                        "UNAVAILABLE",
-                        "DEADLINE_EXCEEDED",
-                    ],  # Retries on network failures
-                },
-            }
-        ]
+        "methodConfig": [{
+            "name": [{}],  # Applies to ALL methods in ALL services
+            "retryPolicy": {
+                "maxAttempts": max_attempts,  # Max retries (total attempts = 5)
+                "initialBackoff": initial_backoff,  # First retry after 0.1s
+                "maxBackoff": max_backoff,  # Max wait time between retries
+                "backoffMultiplier": backoff_multiplier,  # Exponential backoff factor
+                "retryableStatusCodes": [
+                    "UNAVAILABLE",
+                    "DEADLINE_EXCEEDED",
+                ],  # Retries on network failures
+            },
+        }]
     }
 
     service_config_json = json.dumps(service_config)

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright 2024 The HuggingFace Inc. team. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -114,58 +112,103 @@ class PortHandler(Protocol):
         self.tx_time_per_byte: float
         self.is_using: bool
         self.port_name: str
-        self.ser: serial.Serial
 
     def openPort(self): ...
+
     def closePort(self): ...
+
     def clearPort(self): ...
+
     def setPortName(self, port_name): ...
+
     def getPortName(self): ...
+
     def setBaudRate(self, baudrate): ...
+
     def getBaudRate(self): ...
+
     def getBytesAvailable(self): ...
+
     def readPort(self, length): ...
+
     def writePort(self, packet): ...
+
     def setPacketTimeout(self, packet_length): ...
+
     def setPacketTimeoutMillis(self, msec): ...
+
     def isPacketTimeout(self): ...
+
     def getCurrentTime(self): ...
+
     def getTimeSinceStart(self): ...
+
     def setupPort(self, cflag_baud): ...
+
     def getCFlagBaud(self, baudrate): ...
 
 
 class PacketHandler(Protocol):
     def getTxRxResult(self, result): ...
+
     def getRxPacketError(self, error): ...
+
     def txPacket(self, port, txpacket): ...
+
     def rxPacket(self, port): ...
+
     def txRxPacket(self, port, txpacket): ...
+
     def ping(self, port, id): ...
+
     def action(self, port, id): ...
+
     def readTx(self, port, id, address, length): ...
+
     def readRx(self, port, id, length): ...
+
     def readTxRx(self, port, id, address, length): ...
+
     def read1ByteTx(self, port, id, address): ...
+
     def read1ByteRx(self, port, id): ...
+
     def read1ByteTxRx(self, port, id, address): ...
+
     def read2ByteTx(self, port, id, address): ...
+
     def read2ByteRx(self, port, id): ...
+
     def read2ByteTxRx(self, port, id, address): ...
+
     def read4ByteTx(self, port, id, address): ...
+
     def read4ByteRx(self, port, id): ...
+
     def read4ByteTxRx(self, port, id, address): ...
+
     def writeTxOnly(self, port, id, address, length, data): ...
+
     def writeTxRx(self, port, id, address, length, data): ...
+
     def write1ByteTxOnly(self, port, id, address, data): ...
+
     def write1ByteTxRx(self, port, id, address, data): ...
+
     def write2ByteTxOnly(self, port, id, address, data): ...
+
     def write2ByteTxRx(self, port, id, address, data): ...
+
     def write4ByteTxOnly(self, port, id, address, data): ...
+
     def write4ByteTxRx(self, port, id, address, data): ...
+
     def regWriteTxOnly(self, port, id, address, length, data): ...
+
     def regWriteTxRx(self, port, id, address, length, data): ...
+
     def syncReadTx(self, port, start_address, data_length, param, param_length): ...
+
     def syncWriteTxOnly(self, port, start_address, data_length, param, param_length): ...
 
 
@@ -181,13 +224,21 @@ class GroupSyncRead(Protocol):
         self.data_dict: dict
 
     def makeParam(self): ...
+
     def addParam(self, id): ...
+
     def removeParam(self, id): ...
+
     def clearParam(self): ...
+
     def txPacket(self): ...
+
     def rxPacket(self): ...
+
     def txRxPacket(self): ...
+
     def isAvailable(self, id, address, data_length): ...
+
     def getData(self, id, address, data_length): ...
 
 
@@ -202,10 +253,15 @@ class GroupSyncWrite(Protocol):
         self.data_dict: dict
 
     def makeParam(self): ...
+
     def addParam(self, id, data): ...
+
     def removeParam(self, id): ...
+
     def changeParam(self, id, data): ...
+
     def clearParam(self): ...
+
     def txPacket(self): ...
 
 
@@ -300,9 +356,7 @@ class MotorsBus(abc.ABC):
             return False
 
         first_table = self.model_ctrl_table[self.models[0]]
-        return any(
-            DeepDiff(first_table, get_ctrl_table(self.model_ctrl_table, model)) for model in self.models[1:]
-        )
+        return any(DeepDiff(first_table, get_ctrl_table(self.model_ctrl_table, model)) for model in self.models[1:])
 
     @cached_property
     def models(self) -> list[str]:
@@ -390,9 +444,7 @@ class MotorsBus(abc.ABC):
 
             if missing_ids:
                 error_lines.append("\nMissing motor IDs:")
-                error_lines.extend(
-                    f"  - {id_} (expected model: {expected_models[id_]})" for id_ in missing_ids
-                )
+                error_lines.extend(f"  - {id_} (expected model: {expected_models[id_]})" for id_ in missing_ids)
 
             if wrong_models:
                 error_lines.append("\nMotors with incorrect model numbers:")
@@ -430,7 +482,8 @@ class MotorsBus(abc.ABC):
         """
         if self.is_connected:
             raise DeviceAlreadyConnectedError(
-                f"{self.__class__.__name__}('{self.port}') is already connected. Do not call `{self.__class__.__name__}.connect()` twice."
+                f"{self.__class__.__name__}('{self.port}') is already connected. Do not call"
+                f" `{self.__class__.__name__}.connect()` twice."
             )
 
         self._connect(handshake)
@@ -441,7 +494,7 @@ class MotorsBus(abc.ABC):
         try:
             if not self.port_handler.openPort():
                 raise OSError(f"Failed to open port '{self.port}'.")
-            elif handshake:
+            if handshake:
                 self._handshake()
         except (FileNotFoundError, OSError, serial.SerialException) as e:
             raise ConnectionError(
@@ -463,7 +516,8 @@ class MotorsBus(abc.ABC):
         """
         if not self.is_connected:
             raise DeviceNotConnectedError(
-                f"{self.__class__.__name__}('{self.port}') is not connected. Try running `{self.__class__.__name__}.connect()` first."
+                f"{self.__class__.__name__}('{self.port}') is not connected. Try running"
+                f" `{self.__class__.__name__}.connect()` first."
             )
 
         if disable_torque:
@@ -499,9 +553,7 @@ class MotorsBus(abc.ABC):
         bus.port_handler.closePort()
         return baudrate_ids
 
-    def setup_motor(
-        self, motor: str, initial_baudrate: int | None = None, initial_id: int | None = None
-    ) -> None:
+    def setup_motor(self, motor: str, initial_baudrate: int | None = None, initial_id: int | None = None) -> None:
         """Assign the correct ID and baud-rate to a single motor.
 
         This helper temporarily switches to the motor's current settings, disables torque, sets the desired
@@ -888,13 +940,11 @@ class MotorsBus(abc.ABC):
         if not self._is_comm_success(comm):
             if raise_on_error:
                 raise ConnectionError(self.packet_handler.getTxRxResult(comm))
-            else:
-                return
+            return None
         if self._is_error(error):
             if raise_on_error:
                 raise RuntimeError(self.packet_handler.getRxPacketError(error))
-            else:
-                return
+            return None
 
         return model_number
 
@@ -934,7 +984,8 @@ class MotorsBus(abc.ABC):
         """
         if not self.is_connected:
             raise DeviceNotConnectedError(
-                f"{self.__class__.__name__}('{self.port}') is not connected. You need to run `{self.__class__.__name__}.connect()`."
+                f"{self.__class__.__name__}('{self.port}') is not connected. You need to run"
+                f" `{self.__class__.__name__}.connect()`."
             )
 
         id_ = self.motors[motor].id
@@ -981,14 +1032,12 @@ class MotorsBus(abc.ABC):
 
         if not self._is_comm_success(comm) and raise_on_error:
             raise ConnectionError(f"{err_msg} {self.packet_handler.getTxRxResult(comm)}")
-        elif self._is_error(error) and raise_on_error:
+        if self._is_error(error) and raise_on_error:
             raise RuntimeError(f"{err_msg} {self.packet_handler.getRxPacketError(error)}")
 
         return value, comm, error
 
-    def write(
-        self, data_name: str, motor: str, value: Value, *, normalize: bool = True, num_retry: int = 0
-    ) -> None:
+    def write(self, data_name: str, motor: str, value: Value, *, normalize: bool = True, num_retry: int = 0) -> None:
         """Write a value to a single motor's register.
 
         Contrary to :pymeth:`sync_write`, this expects a response status packet emitted by the motor, which
@@ -1006,7 +1055,8 @@ class MotorsBus(abc.ABC):
         """
         if not self.is_connected:
             raise DeviceNotConnectedError(
-                f"{self.__class__.__name__}('{self.port}') is not connected. You need to run `{self.__class__.__name__}.connect()`."
+                f"{self.__class__.__name__}('{self.port}') is not connected. You need to run"
+                f" `{self.__class__.__name__}.connect()`."
             )
 
         id_ = self.motors[motor].id
@@ -1044,7 +1094,7 @@ class MotorsBus(abc.ABC):
 
         if not self._is_comm_success(comm) and raise_on_error:
             raise ConnectionError(f"{err_msg} {self.packet_handler.getTxRxResult(comm)}")
-        elif self._is_error(error) and raise_on_error:
+        if self._is_error(error) and raise_on_error:
             raise RuntimeError(f"{err_msg} {self.packet_handler.getRxPacketError(error)}")
 
         return comm, error
@@ -1070,7 +1120,8 @@ class MotorsBus(abc.ABC):
         """
         if not self.is_connected:
             raise DeviceNotConnectedError(
-                f"{self.__class__.__name__}('{self.port}') is not connected. You need to run `{self.__class__.__name__}.connect()`."
+                f"{self.__class__.__name__}('{self.port}') is not connected. You need to run"
+                f" `{self.__class__.__name__}.connect()`."
             )
 
         self._assert_protocol_is_compatible("sync_read")
@@ -1086,9 +1137,7 @@ class MotorsBus(abc.ABC):
         addr, length = get_address(self.model_ctrl_table, model, data_name)
 
         err_msg = f"Failed to sync read '{data_name}' on {ids=} after {num_retry + 1} tries."
-        ids_values, _ = self._sync_read(
-            addr, length, ids, num_retry=num_retry, raise_on_error=True, err_msg=err_msg
-        )
+        ids_values, _ = self._sync_read(addr, length, ids, num_retry=num_retry, raise_on_error=True, err_msg=err_msg)
 
         ids_values = self._decode_sign(data_name, ids_values)
 
@@ -1167,7 +1216,8 @@ class MotorsBus(abc.ABC):
         """
         if not self.is_connected:
             raise DeviceNotConnectedError(
-                f"{self.__class__.__name__}('{self.port}') is not connected. You need to run `{self.__class__.__name__}.connect()`."
+                f"{self.__class__.__name__}('{self.port}') is not connected. You need to run"
+                f" `{self.__class__.__name__}.connect()`."
             )
 
         ids_values = self._get_ids_values_dict(values)

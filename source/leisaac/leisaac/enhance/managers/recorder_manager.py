@@ -1,28 +1,31 @@
-import os
 import enum
-import torch
-import packaging.version
+import os
+from collections.abc import Sequence
 
-from typing import Sequence
+import packaging.version
+import torch
 
 try:
     from isaaclab import __version__ as isaaclab_version
+
     # The version of IsaacLab2.3.0 source is 0.47.1
     _AFTER_ISAACLAB_2_3_0 = packaging.version.parse(isaaclab_version) >= packaging.version.parse("0.47.1")
 except (ImportError, AttributeError):  # fallback for PyPI build
     from importlib import metadata
+
     # The version of IsaacLab2.3.0 pip package is 2.3.0
     isaaclab_version = metadata.version("isaaclab")
     _AFTER_ISAACLAB_2_3_0 = packaging.version.parse(isaaclab_version) >= packaging.version.parse("2.3.0")
 
-from isaaclab.managers import RecorderManager, DatasetExportMode
 from isaaclab.envs import ManagerBasedEnv
+from isaaclab.managers import DatasetExportMode, RecorderManager
 
 from ..datasets import StreamingHDF5DatasetFileHandler, StreamWriteMode
 
 
 class EnhanceDatasetExportMode(enum.IntEnum):
     """Enhanced dataset export modes that include additional options beyond the base DatasetExportMode."""
+
     EXPORT_ALL_RESUME = 0  # Export all episodes to a single dataset file and resume recording
     # NOTE: the exact value is same as DatasetExportMode.EXPORT_NONE, we don't support DatasetExportMode.EXPORT_NONE when recording
 
@@ -34,13 +37,15 @@ class StreamingRecorderManager(RecorderManager):
 
         super().__init__(cfg, env)
 
-        assert cfg.dataset_export_mode in [DatasetExportMode.EXPORT_ALL, EnhanceDatasetExportMode.EXPORT_ALL_RESUME], "only support EXPORT_ALL|EXPORT_ALL_RESUME"
+        assert cfg.dataset_export_mode in [
+            DatasetExportMode.EXPORT_ALL,
+            EnhanceDatasetExportMode.EXPORT_ALL_RESUME,
+        ], "only support EXPORT_ALL|EXPORT_ALL_RESUME"
         if cfg.dataset_export_mode == EnhanceDatasetExportMode.EXPORT_ALL_RESUME:
             # only process EXPORT_ALL_RESUME mode here, other modes are processed in the super class
             self._dataset_file_handler = cfg.dataset_file_handler_class_type()
             self._dataset_file_handler.create(
-                os.path.join(cfg.dataset_export_dir_path, cfg.dataset_filename),
-                resume=True
+                os.path.join(cfg.dataset_export_dir_path, cfg.dataset_filename), resume=True
             )
 
         self._env_steps_record = torch.zeros(self._env.num_envs)
@@ -91,7 +96,11 @@ class StreamingRecorderManager(RecorderManager):
 
         # Export episode data through dataset exporter
         for env_id in env_ids:
-            if env_id in self._episodes and not self._episodes[env_id].is_empty() and (self._env_steps_record[env_id] >= self._flush_steps or not from_step):
+            if (
+                env_id in self._episodes
+                and not self._episodes[env_id].is_empty()
+                and (self._env_steps_record[env_id] >= self._flush_steps or not from_step)
+            ):
                 # NOTE: pre_export() is only available in IsaacLab 2.3.0+
                 # TODO: remove this after we use IsaacLab 2.3.0+ by default
                 if _AFTER_ISAACLAB_2_3_0:
@@ -100,7 +109,10 @@ class StreamingRecorderManager(RecorderManager):
                     self._episodes[env_id].seed = self._env.cfg.seed
                 episode_succeeded = self._episodes[env_id].success
                 target_dataset_file_handler = None
-                if self.cfg.dataset_export_mode == DatasetExportMode.EXPORT_ALL or self.cfg.dataset_export_mode == EnhanceDatasetExportMode.EXPORT_ALL_RESUME:
+                if (
+                    self.cfg.dataset_export_mode == DatasetExportMode.EXPORT_ALL
+                    or self.cfg.dataset_export_mode == EnhanceDatasetExportMode.EXPORT_ALL_RESUME
+                ):
                     target_dataset_file_handler = self._dataset_file_handler
                 if target_dataset_file_handler is not None:
                     write_mode = StreamWriteMode.APPEND if from_step else StreamWriteMode.LAST

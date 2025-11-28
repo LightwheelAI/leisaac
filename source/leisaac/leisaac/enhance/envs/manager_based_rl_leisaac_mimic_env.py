@@ -1,9 +1,8 @@
-import torch
 from collections.abc import Sequence
 
 import isaaclab.utils.math as PoseUtils
-from isaaclab.envs import ManagerBasedRLMimicEnv, ManagerBasedRLEnvCfg
-
+import torch
+from isaaclab.envs import ManagerBasedRLEnvCfg, ManagerBasedRLMimicEnv
 from leisaac.utils.env_utils import dynamic_reset_gripper_effort_limit_sim
 
 
@@ -13,10 +12,10 @@ class ManagerBasedRLLeIsaacMimicEnv(ManagerBasedRLMimicEnv):
     """
 
     def __init__(self, cfg: ManagerBasedRLEnvCfg, render_mode: str | None = None, **kwargs):
-        cfg.use_teleop_device(f'mimic_{cfg.task_type}')
+        cfg.use_teleop_device(f"mimic_{cfg.task_type}")
         super().__init__(cfg, render_mode, **kwargs)
-        self.robot_root_pos = self.scene['robot'].data.root_pos_w
-        self.robot_root_quat = self.scene['robot'].data.root_quat_w
+        self.robot_root_pos = self.scene["robot"].data.root_pos_w
+        self.robot_root_quat = self.scene["robot"].data.root_quat_w
         self.task_type = cfg.task_type
 
     def get_robot_eef_pose(self, eef_name: str, env_ids: Sequence[int] | None = None) -> torch.Tensor:
@@ -79,7 +78,9 @@ class ManagerBasedRLLeIsaacMimicEnv(ManagerBasedRLMimicEnv):
             obj_pos_robot, obj_quat_robot = PoseUtils.subtract_frame_transforms(
                 self.robot_root_pos[env_ids], self.robot_root_quat[env_ids], obj_pos_w, obj_quat_w
             )
-            object_pose_matrix[obj_name] = PoseUtils.make_pose(obj_pos_robot, PoseUtils.matrix_from_quat(obj_quat_robot))
+            object_pose_matrix[obj_name] = PoseUtils.make_pose(
+                obj_pos_robot, PoseUtils.matrix_from_quat(obj_quat_robot)
+            )
 
         return object_pose_matrix
 

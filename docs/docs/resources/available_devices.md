@@ -60,4 +60,3 @@ Because keyboard control becomes complicated for dual arms, the Bi-Arm SO101 Fol
 ### Bi-SO101-Leader
 
 Run with `--teleop_device=bi-so101leader` to enable the Bi-SO101 Leader. After configuring both `left_arm_port` and `right_arm_port`, you can operate immediately, and the two simulated arms will reproduce the real bi-arm behavior.
-

@@ -1,13 +1,20 @@
 from isaaclab.assets import AssetBaseCfg
-from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.managers import SceneEntityCfg
+from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.utils import configclass
-
-from leisaac.assets.scenes.toyroom import LIGHTWHEEL_TOYROOM_CFG, LIGHTWHEEL_TOYROOM_USD_PATH
+from leisaac.assets.scenes.toyroom import (
+    LIGHTWHEEL_TOYROOM_CFG,
+    LIGHTWHEEL_TOYROOM_USD_PATH,
+)
 from leisaac.utils.general_assets import parse_usd_and_create_subassets
 
+from ..template import (
+    BiArmObservationsCfg,
+    BiArmTaskEnvCfg,
+    BiArmTaskSceneCfg,
+    BiArmTerminationsCfg,
+)
 from . import mdp
-from ..template import BiArmTaskSceneCfg, BiArmTaskEnvCfg, BiArmObservationsCfg, BiArmTerminationsCfg
 
 
 @configclass
@@ -20,10 +27,13 @@ class CleanToyTableBiArmSceneCfg(BiArmTaskSceneCfg):
 @configclass
 class TerminationsCfg(BiArmTerminationsCfg):
 
-    success = DoneTerm(func=mdp.objs_in_box, params={
-        "object_cfg_list": [SceneEntityCfg("Character_E"), SceneEntityCfg("Character_E_1")],
-        "box_cfg": SceneEntityCfg("Box")
-    })
+    success = DoneTerm(
+        func=mdp.objs_in_box,
+        params={
+            "object_cfg_list": [SceneEntityCfg("Character_E"), SceneEntityCfg("Character_E_1")],
+            "box_cfg": SceneEntityCfg("Box"),
+        },
+    )
 
 
 @configclass

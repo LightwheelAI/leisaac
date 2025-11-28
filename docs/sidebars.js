@@ -21,9 +21,9 @@ const sidebars = {
       type: 'category',
       label: 'Getting Started',
       link: {
-        type: 'generated-index', 
-        slug: '/docs/getting-started', 
-        title: 'Getting Started', 
+        type: 'generated-index',
+        slug: '/docs/getting-started',
+        title: 'Getting Started',
         description: 'LeIsaac getting started overview and quick guide.',
       },
       items: [
@@ -58,8 +58,8 @@ const sidebars = {
       label: 'Extra Features',
       link: {
         type: 'generated-index',
-        slug: '/docs/features', 
-        title: 'Extra Features', 
+        slug: '/docs/features',
+        title: 'Extra Features',
         description: 'We also provide some additional features. You can refer to the following instructions to try them out.'
       },
       items: [
@@ -89,8 +89,8 @@ const sidebars = {
       label: 'Cloud Simulation',
       link: {
         type: 'generated-index',
-        slug: '/docs/cloud_simulation', 
-        title: 'Cloud Simulation', 
+        slug: '/docs/cloud_simulation',
+        title: 'Cloud Simulation',
         description: 'Using LeIsaac on cloud platforms.'
       },
       items: [

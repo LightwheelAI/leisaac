@@ -1,9 +1,11 @@
-from .so101_leader import SO101Leader
 from ..device_base import Device
+from .so101_leader import SO101Leader
 
 
 class BiSO101Leader(Device):
-    def __init__(self, env, left_port: str = '/dev/ttyACM0', right_port: str = '/dev/ttyACM1', recalibrate: bool = False):
+    def __init__(
+        self, env, left_port: str = "/dev/ttyACM0", right_port: str = "/dev/ttyACM1", recalibrate: bool = False
+    ):
         super().__init__(env, "bi_so101_leader")
 
         # use left so101 leader as the main device to store state
@@ -20,7 +22,10 @@ class BiSO101Leader(Device):
         msg = "Bi-SO101-Leader device for SE(3) control.\n"
         msg += "\t----------------------------------------------\n"
         msg += "\tMove Bi-SO101-Leader to control Bi-SO101-Follower\n"
-        msg += "\tIf SO101-Follower can't synchronize with Bi-SO101-Leader, please add --recalibrate and rerun to recalibrate Bi-SO101-Leader.\n"
+        msg += (
+            "\tIf SO101-Follower can't synchronize with Bi-SO101-Leader, please add --recalibrate and rerun to"
+            " recalibrate Bi-SO101-Leader.\n"
+        )
         msg += "\t----------------------------------------------\n"
         return msg
 
@@ -32,13 +37,13 @@ class BiSO101Leader(Device):
     def get_device_state(self):
         return {
             "left_arm": self.left_so101_leader.get_device_state(),
-            "right_arm": self.right_so101_leader.get_device_state()
+            "right_arm": self.right_so101_leader.get_device_state(),
         }
 
     def input2action(self):
         ac_dict = super().input2action()
-        ac_dict['motor_limits'] = {
-            'left_arm': self.left_so101_leader.motor_limits,
-            'right_arm': self.right_so101_leader.motor_limits
+        ac_dict["motor_limits"] = {
+            "left_arm": self.left_so101_leader.motor_limits,
+            "right_arm": self.right_so101_leader.motor_limits,
         }
         return ac_dict

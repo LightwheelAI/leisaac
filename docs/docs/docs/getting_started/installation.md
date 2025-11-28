@@ -17,7 +17,7 @@ conda install -c "nvidia/label/cuda-12.8.1" cuda-toolkit
 pip install -U torch==2.7.0 torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cu128
 
 # Install LeIsaac and IsaacLab/IsaacSim extras
-pip install 'leisaac[isaaclab] @ git+https://github.com/LightwheelAI/leisaac.git#subdirectory=source/leisaac' --extra-index-url https://pypi.nvidia.com   
+pip install 'leisaac[isaaclab] @ git+https://github.com/LightwheelAI/leisaac.git#subdirectory=source/leisaac' --extra-index-url https://pypi.nvidia.com
 ```
 
 ::::tip
@@ -63,7 +63,7 @@ pip install -e source/leisaac
 ```
 
 ::::tip
-The steps above are essentially the same as the official IsaacLab documentation; please adjust according to the versions you use. Below is the compatibility between LeIsaac and IsaacLab and the related version dependencies. 
+The steps above are essentially the same as the official IsaacLab documentation; please adjust according to the versions you use. Below is the compatibility between LeIsaac and IsaacLab and the related version dependencies.
 
 If you are using a 50-series GPU, we recommend using IsaacSim 5.0+ and IsaacLab `v2.2.1+`. We have tested on IsaacSim 5.0 and it works properly.
 
@@ -107,7 +107,7 @@ Below are the download links for the scenes we provide. For more high-quality sc
 You can also download scenes from [huggingface](https://huggingface.co/LightwheelAI/leisaac_env/tree/main), which be stored in the `assets` directory.
 ::::
 
-## 3. Device Setup 
+## 3. Device Setup
 
 We use the SO101Leader as the teleoperation device. Please follow the [official documentation](https://huggingface.co/docs/lerobot/so101) for connection and configuration.
 

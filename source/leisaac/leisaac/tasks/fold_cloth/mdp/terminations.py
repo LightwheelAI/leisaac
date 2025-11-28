@@ -1,9 +1,6 @@
 import torch
-from typing import List
-
-from isaaclab.envs import ManagerBasedEnv, DirectRLEnv
+from isaaclab.envs import DirectRLEnv, ManagerBasedEnv
 from isaaclab.managers import SceneEntityCfg
-
 from leisaac.enhance.assets import ClothObject
 from leisaac.utils.robot_utils import is_so101_at_rest_pose
 
@@ -11,8 +8,8 @@ from leisaac.utils.robot_utils import is_so101_at_rest_pose
 def cloth_folded(
     env: ManagerBasedEnv | DirectRLEnv,
     cloth_cfg: SceneEntityCfg,
-    cloth_keypoints_index: List[int],
-    distance_threshold: float = 0.10
+    cloth_keypoints_index: list[int],
+    distance_threshold: float = 0.10,
 ) -> torch.Tensor:
     """Determine if the cloth folding task is completed successfully.
 
@@ -39,9 +36,17 @@ def cloth_folded(
 
     cloth: ClothObject = env.scene.particle_objects[cloth_cfg.name]
     cloth_keypoints_pos = cloth.point_positions[:, cloth_keypoints_index[:6]]
-    done = torch.logical_and(done, torch.norm(cloth_keypoints_pos[:, 0] - cloth_keypoints_pos[:, 4]) < distance_threshold)  # left sleeve -> right shoulder
-    done = torch.logical_and(done, torch.norm(cloth_keypoints_pos[:, 3] - cloth_keypoints_pos[:, 1]) < distance_threshold)  # right sleeve -> left shoulder
-    done = torch.logical_and(done, torch.norm(cloth_keypoints_pos[:, 2] - cloth_keypoints_pos[:, 1]) < distance_threshold)  # left hem -> left shoulder
-    done = torch.logical_and(done, torch.norm(cloth_keypoints_pos[:, 5] - cloth_keypoints_pos[:, 4]) < distance_threshold)  # right hem -> right shoulder
+    done = torch.logical_and(
+        done, torch.norm(cloth_keypoints_pos[:, 0] - cloth_keypoints_pos[:, 4]) < distance_threshold
+    )  # left sleeve -> right shoulder
+    done = torch.logical_and(
+        done, torch.norm(cloth_keypoints_pos[:, 3] - cloth_keypoints_pos[:, 1]) < distance_threshold
+    )  # right sleeve -> left shoulder
+    done = torch.logical_and(
+        done, torch.norm(cloth_keypoints_pos[:, 2] - cloth_keypoints_pos[:, 1]) < distance_threshold
+    )  # left hem -> left shoulder
+    done = torch.logical_and(
+        done, torch.norm(cloth_keypoints_pos[:, 5] - cloth_keypoints_pos[:, 4]) < distance_threshold
+    )  # right hem -> right shoulder
 
     return done

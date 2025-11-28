@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-import torch
-
-from typing import List, TYPE_CHECKING
-
-from isaacsim.core.prims import SingleClothPrim, SingleParticleSystem
-from isaacsim.core.simulation_manager import SimulationManager
+from typing import TYPE_CHECKING
 
 import isaaclab.sim as sim_utils
+import torch
 from isaaclab.scene import InteractiveScene
-
+from isaacsim.core.prims import SingleClothPrim, SingleParticleSystem
+from isaacsim.core.simulation_manager import SimulationManager
 
 if TYPE_CHECKING:
     from .cloth_object_cfg import ClothObjectCfg
@@ -21,8 +18,7 @@ class SingleClothObject(SingleClothPrim):
     """
 
     def __init__(self, prim_path: str, mesh_subfix: str = "mesh", particle_system_subfix: str = "ParticleSystem"):
-        """Single Cloth Object asset class.
-        """
+        """Single Cloth Object asset class."""
         super().__init__(
             prim_path=f"{prim_path}/{mesh_subfix}",
             particle_system=SingleParticleSystem(f"{prim_path}/{particle_system_subfix}"),
@@ -63,10 +59,12 @@ class ClothObject:
     def __init__(self, cfg: ClothObjectCfg, scene: InteractiveScene):
         self.cfg = cfg
 
-        self.cloth_objects: List[SingleClothObject] = []
+        self.cloth_objects: list[SingleClothObject] = []
         matching_prims = sim_utils.find_matching_prim_paths(self.cfg.prim_path)
         for prim_path in matching_prims:
-            self.cloth_objects.append(self.cfg.class_type(prim_path, self.cfg.mesh_subfix, self.cfg.particle_system_subfix))
+            self.cloth_objects.append(
+                self.cfg.class_type(prim_path, self.cfg.mesh_subfix, self.cfg.particle_system_subfix)
+            )
 
     def initialize(self):
         for cloth_object in self.cloth_objects:

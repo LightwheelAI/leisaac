@@ -45,34 +45,12 @@ repos:
       - id: codespell
         additional_dependencies:
         - tomli
-        exclude: "CONTRIBUTORS.md|docs/source/setup/walkthrough/concepts_env_design.rst"
+        exclude: "CONTRIBUTORS.md|docs/source/setup/walkthrough/concepts_env_design.rst|docs/package-lock.json"
   # FIXME: Figure out why this is getting stuck under VPN.
   # - repo: https://github.com/RobertCraigie/pyright-python
   #   rev: v1.1.315
   #   hooks:
   #   - id: pyright
-  - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.1
-    hooks:
-      - id: insert-license
-        files: \.py$
-        args:
-          # - --remove-header    # Remove existing license headers. Useful when updating license.
-          - --license-filepath
-          - .github/LICENSE_HEADER.txt
-          - --use-current-year
-        exclude: "source/isaaclab_mimic/|scripts/imitation_learning/isaaclab_mimic/"
-  # Apache 2.0 license for mimic files
-  - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.1
-    hooks:
-      - id: insert-license
-        files: ^(source/isaaclab_mimic|scripts/imitation_learning/isaaclab_mimic)/.*\.py$
-        args:
-          # - --remove-header    # Remove existing license headers. Useful when updating license.
-          - --license-filepath
-          - .github/LICENSE_HEADER_MIMIC.txt
-          - --use-current-year
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:

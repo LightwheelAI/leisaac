@@ -1,16 +1,13 @@
 import torch
-from typing import List
-
-from isaaclab.managers import SceneEntityCfg
 from isaaclab.assets import RigidObject
-from isaaclab.envs import ManagerBasedRLEnv, DirectRLEnv
-
+from isaaclab.envs import DirectRLEnv, ManagerBasedRLEnv
+from isaaclab.managers import SceneEntityCfg
 from leisaac.utils.robot_utils import is_so101_at_rest_pose
 
 
 def objs_in_box(
     env: ManagerBasedRLEnv | DirectRLEnv,
-    object_cfg_list: List[SceneEntityCfg],
+    object_cfg_list: list[SceneEntityCfg],
     box_cfg: SceneEntityCfg,
     x_range: tuple[float, float] = (-0.05, 0.05),
     y_range: tuple[float, float] = (-0.05, 0.05),
@@ -44,10 +41,16 @@ def objs_in_box(
         done = torch.logical_and(done, object_y < box_y + y_range[1])
         done = torch.logical_and(done, object_y > box_y + y_range[0])
 
-    if 'robot' in env.scene.keys():
-        done = torch.logical_and(done, is_so101_at_rest_pose(env.scene["robot"].data.joint_pos, env.scene["robot"].data.joint_names))
+    if "robot" in env.scene.keys():
+        done = torch.logical_and(
+            done, is_so101_at_rest_pose(env.scene["robot"].data.joint_pos, env.scene["robot"].data.joint_names)
+        )
     else:
-        done = torch.logical_and(done, is_so101_at_rest_pose(env.scene["left_arm"].data.joint_pos, env.scene["left_arm"].data.joint_names))
-        done = torch.logical_and(done, is_so101_at_rest_pose(env.scene["right_arm"].data.joint_pos, env.scene["right_arm"].data.joint_names))
+        done = torch.logical_and(
+            done, is_so101_at_rest_pose(env.scene["left_arm"].data.joint_pos, env.scene["left_arm"].data.joint_names)
+        )
+        done = torch.logical_and(
+            done, is_so101_at_rest_pose(env.scene["right_arm"].data.joint_pos, env.scene["right_arm"].data.joint_names)
+        )
 
     return done

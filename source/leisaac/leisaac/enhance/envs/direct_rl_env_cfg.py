@@ -1,5 +1,5 @@
-from isaaclab.managers import RecorderManagerBaseCfg as DefaultEmptyRecorderManagerCfg
 from isaaclab.envs.direct_rl_env_cfg import DirectRLEnvCfg
+from isaaclab.managers import RecorderManagerBaseCfg as DefaultEmptyRecorderManagerCfg
 from isaaclab.utils import configclass
 
 

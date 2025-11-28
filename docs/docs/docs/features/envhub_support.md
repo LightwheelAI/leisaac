@@ -22,7 +22,7 @@ conda activate leisaac_envhub
 
 conda install -c "nvidia/label/cuda-12.8.1" cuda-toolkit
 pip install -U torch==2.7.0 torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cu128
-pip install 'leisaac[isaaclab] @ git+https://github.com/LightwheelAI/leisaac.git#subdirectory=source/leisaac' --extra-index-url https://pypi.nvidia.com  
+pip install 'leisaac[isaaclab] @ git+https://github.com/LightwheelAI/leisaac.git#subdirectory=source/leisaac' --extra-index-url https://pypi.nvidia.com
 
 # Install lerobot
 pip install lerobot==0.4.1
@@ -78,7 +78,7 @@ You should see the SO101 arm swinging under purely random commands.
 
 ### Teleoperation
 
-LeRobot’s teleoperation stack can drive the simulated arm. 
+LeRobot’s teleoperation stack can drive the simulated arm.
 
 Connect the SO101 Leader controller, run the calibration command below.
 
