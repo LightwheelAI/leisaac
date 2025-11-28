@@ -8,9 +8,9 @@ class BiSO101Leader(Device):
 
         # use left so101 leader as the main device to store state
         print("Connecting to left_so101_leader...")
-        self.left_so101_leader = SO101Leader(env, left_port, recalibrate, "left_so101_leader.json")
+        self.left_so101_leader = SO101Leader(env, left_port, recalibrate, "left_so101_leader.json", verbose=False)
         print("Connecting to right_so101_leader...")
-        self.right_so101_leader = SO101Leader(env, right_port, recalibrate, "right_so101_leader.json")
+        self.right_so101_leader = SO101Leader(env, right_port, recalibrate, "right_so101_leader.json", verbose=False)
 
         self.left_so101_leader._stop_keyboard_listener()
         self.right_so101_leader._stop_keyboard_listener()
@@ -21,6 +21,7 @@ class BiSO101Leader(Device):
         msg += "\t----------------------------------------------\n"
         msg += "\tMove Bi-SO101-Leader to control Bi-SO101-Follower\n"
         msg += "\tIf SO101-Follower can't synchronize with Bi-SO101-Leader, please add --recalibrate and rerun to recalibrate Bi-SO101-Leader.\n"
+        msg += "\t----------------------------------------------\n"
         return msg
 
     def reset(self):

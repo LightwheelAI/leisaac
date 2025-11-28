@@ -46,6 +46,7 @@ class SO101Leader(Device):
         msg += "\t----------------------------------------------\n"
         msg += "\tMove SO101-Leader to control SO101-Follower\n"
         msg += "\tIf SO101-Follower can't synchronize with SO101-Leader, please add --recalibrate and rerun to recalibrate SO101-Leader.\n"
+        msg += "\t----------------------------------------------\n"
         return msg
 
     def get_device_state(self):

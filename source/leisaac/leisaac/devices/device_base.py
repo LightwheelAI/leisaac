@@ -6,6 +6,7 @@
 """Base class for teleoperation interface."""
 
 import torch
+import weakref
 import numpy as np
 
 from abc import ABC, abstractmethod
@@ -14,6 +15,10 @@ from typing import Any
 
 import carb
 import omni
+
+import isaaclab.utils.math as math_utils
+
+from leisaac.utils.math_utils import rotvec_to_euler
 
 
 class DeviceBase(ABC):
@@ -58,7 +63,7 @@ class DeviceBase(ABC):
 
 
 class Device(DeviceBase):
-    def __init__(self, env, device_type: str):
+    def __init__(self, env, device_type: str, verbose: bool = True):
         """
         Args:
             env (RobotEnv): The environment which contains the robot(s) to control
@@ -71,9 +76,10 @@ class Device(DeviceBase):
         self._appwindow = omni.appwindow.get_default_app_window()
         self._input = carb.input.acquire_input_interface()
         self._keyboard = self._appwindow.get_keyboard()
+        # note: Use weakref on callbacks to ensure that this object can be deleted when its destructor is called.
         self._keyboard_sub = self._input.subscribe_to_keyboard_events(
             self._keyboard,
-            self._on_keyboard_event,
+            lambda event, *args, obj=weakref.proxy(self): obj._on_keyboard_event(event, *args),
         )
 
         # some flags and callbacks
@@ -82,7 +88,8 @@ class Device(DeviceBase):
         self._additional_callbacks = {}
 
         # display controls
-        self._display_controls()
+        if verbose:
+            self._display_controls()
 
     def __del__(self):
         """Release the keyboard interface."""
@@ -151,7 +158,6 @@ class Device(DeviceBase):
                 self._reset_state = True
                 if "N" in self._additional_callbacks:
                     self._additional_callbacks["N"]()
-        return True
 
     def _stop_keyboard_listener(self):
         if hasattr(self, '_input') and hasattr(self, '_keyboard') and hasattr(self, '_keyboard_sub'):
@@ -167,13 +173,45 @@ class Device(DeviceBase):
             char += " " * (30 - len(char))
             print("{}\t{}".format(char, info))
 
-        print("")
+        print("teleoperation controls:")
         print_command("b", "start control")
         print_command("r", "reset simulation and set task success to False")
         print_command("n", "reset simulation and set task success to True")
-        print_command("move leader", "control follower in the simulation")
         print_command("Control+C", "quit")
         print("")
+
+    def _convert_delta_from_frame(self, delta_action: np.ndarray) -> np.ndarray:
+        """
+        Convert delta action from target frame to robot base frame.
+        target_frame -> root_frame
+        Args:
+            delta_action: Delta action in target frame.
+        Returns:
+            Delta action in robot base frame.
+        """
+        if np.allclose(delta_action[:3], 0.0) and np.allclose(delta_action[3:6], 0.0):
+            return delta_action
+        is_delta_rot = not np.allclose(delta_action[3:6], 0.0)
+
+        torch_delta_action = torch.tensor(delta_action, device=self.env.device, dtype=torch.float32)
+
+        delta_pos_f = torch_delta_action[:3].repeat(self.env.num_envs, 1)
+        delta_rot_f = torch_delta_action[3:6].repeat(self.env.num_envs, 1)
+        delta_quat_f = math_utils.quat_from_euler_xyz(delta_rot_f[:, 0], delta_rot_f[:, 1], delta_rot_f[:, 2])
+        delta_rotvec_f = math_utils.axis_angle_from_quat(delta_quat_f)
+
+        frame_pos, frame_quat = self.robot_asset.data.root_pos_w, self.robot_asset.data.body_quat_w[:, self.target_frame_idx]  # don't consider frame pos here
+        root_pos, root_quat = self.robot_asset.data.root_pos_w, self.robot_asset.data.root_quat_w
+        _, frame2root = math_utils.subtract_frame_transforms(root_pos, root_quat, frame_pos, frame_quat)
+        frame2root_quat = math_utils.quat_unique(frame2root)
+
+        delta_pos_r = math_utils.quat_apply(frame2root_quat, delta_pos_f)
+        delta_rotvec_r = math_utils.quat_apply(frame2root_quat, delta_rotvec_f)
+        delta_rot_r = rotvec_to_euler(delta_rotvec_r) if is_delta_rot else torch.zeros(3, device=self.env.device)
+
+        delta_action_r = torch.cat([delta_pos_r.squeeze(0), delta_rot_r, torch_delta_action[6:]], dim=0)
+
+        return delta_action_r.cpu().numpy()
 
     @property
     def started(self) -> bool:
