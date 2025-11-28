@@ -1,18 +1,18 @@
-import torch
-
 from dataclasses import MISSING
 from typing import Any
 
+import torch
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
-
-from leisaac.enhance.envs import RecorderEnhanceDirectRLEnvCfg as DirectRLEnvCfg
-from leisaac.enhance.envs import RecorderEnhanceDirectRLEnv as DirectRLEnv
-from leisaac.enhance.envs.mdp.recorders.recorders_cfg import DirectEnvActionStateRecorderManagerCfg as RecordTerm
 from leisaac.devices.action_process import preprocess_device_action
+from leisaac.enhance.envs import RecorderEnhanceDirectRLEnv as DirectRLEnv
+from leisaac.enhance.envs import RecorderEnhanceDirectRLEnvCfg as DirectRLEnvCfg
+from leisaac.enhance.envs.mdp.recorders.recorders_cfg import (
+    DirectEnvActionStateRecorderManagerCfg as RecordTerm,
+)
 
 from .. import mdp
-from ..bi_arm_env_cfg import BiArmTaskSceneCfg, BiArmEventCfg
+from ..bi_arm_env_cfg import BiArmEventCfg, BiArmTaskSceneCfg
 
 
 @configclass
@@ -69,7 +69,7 @@ class BiArmTaskDirectEnvCfg(DirectRLEnvCfg):
         self.scene.right_arm.init_state.pos = (3.8, -0.65, 0.89)
 
         self.cameras = []
-        for cam in ['left_wrist', 'right_wrist', 'top']:
+        for cam in ["left_wrist", "right_wrist", "top"]:
             if hasattr(self.scene, cam):
                 self.state_space[cam] = [getattr(self.scene, cam).height, getattr(self.scene, cam).width, 3]
                 self.observation_space[cam] = [getattr(self.scene, cam).height, getattr(self.scene, cam).width, 3]
@@ -85,6 +85,7 @@ class BiArmTaskDirectEnvCfg(DirectRLEnvCfg):
 
 class BiArmTaskDirectEnv(DirectRLEnv):
     """Direct RL Environment for bi arm task"""
+
     cfg: BiArmTaskDirectEnvCfg
 
     def __init__(self, cfg: BiArmTaskDirectEnvCfg, render_mode: str | None = None, **kwargs):
@@ -105,8 +106,8 @@ class BiArmTaskDirectEnv(DirectRLEnv):
     def _apply_action(self) -> None:
         left_arm_action = self.actions[:, 0:6]
         right_arm_action = self.actions[:, 6:12]
-        self.scene['left_arm'].set_joint_position_target(left_arm_action)
-        self.scene['right_arm'].set_joint_position_target(right_arm_action)
+        self.scene["left_arm"].set_joint_position_target(left_arm_action)
+        self.scene["right_arm"].set_joint_position_target(right_arm_action)
 
     def _get_observations(self) -> dict:
         obs = {
@@ -125,7 +126,7 @@ class BiArmTaskDirectEnv(DirectRLEnv):
             }
         }
         for cam in self.cfg.cameras:
-            obs['policy'][cam] = mdp.image(self, sensor_cfg=SceneEntityCfg(cam), data_type="rgb", normalize=False)
+            obs["policy"][cam] = mdp.image(self, sensor_cfg=SceneEntityCfg(cam), data_type="rgb", normalize=False)
         return obs
 
     def _get_rewards(self) -> torch.Tensor:

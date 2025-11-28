@@ -1,18 +1,18 @@
 import torch
-
+from isaaclab.assets import Articulation, RigidObject
+from isaaclab.envs import DirectRLEnv, ManagerBasedRLEnv
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import FrameTransformer
-from isaaclab.assets import Articulation, RigidObject
-from isaaclab.envs import ManagerBasedRLEnv, DirectRLEnv
 
 
 def orange_grasped(
-        env: ManagerBasedRLEnv | DirectRLEnv,
-        robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-        ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
-        object_cfg: SceneEntityCfg = SceneEntityCfg("Orange001"),
-        diff_threshold: float = 0.05,
-        grasp_threshold: float = 0.60) -> torch.Tensor:
+    env: ManagerBasedRLEnv | DirectRLEnv,
+    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
+    object_cfg: SceneEntityCfg = SceneEntityCfg("Orange001"),
+    diff_threshold: float = 0.05,
+    grasp_threshold: float = 0.60,
+) -> torch.Tensor:
     """Check if an object(orange) is grasped by the specified robot."""
     robot: Articulation = env.scene[robot_cfg.name]
     ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
@@ -28,15 +28,15 @@ def orange_grasped(
 
 
 def put_orange_to_plate(
-        env: ManagerBasedRLEnv | DirectRLEnv,
-        robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-        ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
-        object_cfg: SceneEntityCfg = SceneEntityCfg("Orange001"),
-        plate_cfg: SceneEntityCfg = SceneEntityCfg("Plate"),
-        x_range: tuple[float, float] = (-0.10, 0.10),
-        y_range: tuple[float, float] = (-0.10, 0.10),
-        diff_threshold: float = 0.05,
-        grasp_threshold: float = 0.60,
+    env: ManagerBasedRLEnv | DirectRLEnv,
+    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
+    object_cfg: SceneEntityCfg = SceneEntityCfg("Orange001"),
+    plate_cfg: SceneEntityCfg = SceneEntityCfg("Plate"),
+    x_range: tuple[float, float] = (-0.10, 0.10),
+    y_range: tuple[float, float] = (-0.10, 0.10),
+    diff_threshold: float = 0.05,
+    grasp_threshold: float = 0.60,
 ) -> torch.Tensor:
     """Check if an object(orange) is placed on the specified plate."""
     robot: Articulation = env.scene[robot_cfg.name]

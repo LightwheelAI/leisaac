@@ -21,11 +21,11 @@ class InitialStateWithParticleObjectsRecorder(RecorderTerm):
             return value[env_ids]
 
         state = self._env.scene.get_state(is_relative=True)
-        state['particle_object'] = dict()
+        state["particle_object"] = dict()
         for asset_name, particle_object in self._env.scene.particle_objects.items():
             asset_state = dict()
             asset_state["root_pose"] = particle_object.root_pose_w
             asset_state["root_pose"][:, :3] -= self._env.scene.env_origins
-            state['particle_object'][asset_name] = asset_state
+            state["particle_object"][asset_name] = asset_state
 
         return "initial_state", extract_env_ids_values(state)

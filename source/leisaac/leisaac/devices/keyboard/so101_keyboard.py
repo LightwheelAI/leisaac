@@ -1,6 +1,5 @@
-import numpy as np
-
 import carb
+import numpy as np
 
 from ..device_base import Device
 
@@ -23,7 +22,7 @@ class SO101Keyboard(Device):
     """
 
     def __init__(self, env, sensitivity: float = 1.0):
-        super().__init__(env, 'keyboard')
+        super().__init__(env, "keyboard")
 
         # store inputs
         self.pos_sensitivity = 0.01 * sensitivity
@@ -37,10 +36,10 @@ class SO101Keyboard(Device):
         self._delta_action = np.zeros(8)
 
         # initialize the target frame
-        self.asset_name = 'robot'
+        self.asset_name = "robot"
         self.robot_asset = self.env.scene[self.asset_name]
 
-        self.target_frame = 'gripper'
+        self.target_frame = "gripper"
         body_idxs, _ = self.robot_asset.find_bodies(self.target_frame)
         self.target_frame_idx = body_idxs[0]
 

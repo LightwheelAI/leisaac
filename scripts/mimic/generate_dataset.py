@@ -28,7 +28,15 @@ parser.add_argument(
     default="./datasets/output_dataset.hdf5",
     help="File path to export recorded and generated episodes.",
 )
-parser.add_argument("--task_type", type=str, default=None, help="Specify task type. If your annotated dataset is recorded with keyboard, you should set it to 'keyboard', otherwise not to set it and keep default value None.")
+parser.add_argument(
+    "--task_type",
+    type=str,
+    default=None,
+    help=(
+        "Specify task type. If your annotated dataset is recorded with keyboard, you should set it to 'keyboard',"
+        " otherwise not to set it and keep default value None."
+    ),
+)
 parser.add_argument(
     "--pause_subtask",
     action="store_true",
@@ -57,28 +65,29 @@ simulation_app = app_launcher.app
 """Rest everything follows."""
 
 import asyncio
-import gymnasium as gym
 import inspect
-import numpy as np
 import random
-import torch
 
-import omni
-
-from isaaclab.envs import ManagerBasedRLMimicEnv
-
+import gymnasium as gym
 import isaaclab_mimic.envs  # noqa: F401
+import numpy as np
+import omni
+import torch
+from isaaclab.envs import ManagerBasedRLMimicEnv
 
 if args_cli.enable_pinocchio:
     import isaaclab_mimic.envs.pinocchio_envs  # noqa: F401
-from isaaclab_mimic.datagen.generation import env_loop, setup_async_generation, setup_env_config
-from isaaclab_mimic.datagen.utils import get_env_name_from_dataset, setup_output_paths
 
 import isaaclab_tasks  # noqa: F401
+from isaaclab_mimic.datagen.generation import (
+    env_loop,
+    setup_async_generation,
+    setup_env_config,
+)
+from isaaclab_mimic.datagen.utils import get_env_name_from_dataset, setup_output_paths
+from leisaac.utils.env_utils import get_task_type
 
 import leisaac  # noqa: F401
-
-from leisaac.utils.env_utils import get_task_type
 
 
 def main():
@@ -100,7 +109,7 @@ def main():
         device=args_cli.device,
         generation_num_trials=args_cli.generation_num_trials,
     )
-    setattr(env_cfg, 'task_type', get_task_type(task_name, args_cli.task_type))
+    setattr(env_cfg, "task_type", get_task_type(task_name, args_cli.task_type))
 
     # create environment
     env = gym.make(env_name, cfg=env_cfg).unwrapped

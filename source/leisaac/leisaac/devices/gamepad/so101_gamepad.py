@@ -1,27 +1,27 @@
 import numpy as np
 
-from .gamepad_utils import GamepadController
 from ..device_base import Device
+from .gamepad_utils import GamepadController
 
 
 class SO101Gamepad(Device):
     """Gamepad controller for sending SE(3) commands as delta poses for so101 single arm.
 
-        Key bindings:
-        ====================== ==========================================
-        Description              Key
-        ====================== ==========================================
-        Forward / Backward       Left stick Y (forward / backward)
-        Left / Right             Left stick X (left / right)
-        Up / Down                Right stick Y (forward / backward)
-        Rotate (Yaw) Left/Right  Right stick X (left / right)
-        Rotate (Pitch) Up/Down   LB / LT
-        Gripper Open / Close     RT / RB
-        ====================== ==========================================
+    Key bindings:
+    ====================== ==========================================
+    Description              Key
+    ====================== ==========================================
+    Forward / Backward       Left stick Y (forward / backward)
+    Left / Right             Left stick X (left / right)
+    Up / Down                Right stick Y (forward / backward)
+    Rotate (Yaw) Left/Right  Right stick X (left / right)
+    Rotate (Pitch) Up/Down   LB / LT
+    Gripper Open / Close     RT / RB
+    ====================== ==========================================
     """
 
     def __init__(self, env, sensitivity: float = 1.0):
-        super().__init__(env, 'gamepad')
+        super().__init__(env, "gamepad")
 
         # store inputs
         self.pos_sensitivity = 0.01 * sensitivity
@@ -39,10 +39,10 @@ class SO101Gamepad(Device):
         self._delta_action = np.zeros(8)
 
         # initialize the target frame
-        self.asset_name = 'robot'
+        self.asset_name = "robot"
         self.robot_asset = self.env.scene[self.asset_name]
 
-        self.target_frame = 'gripper'
+        self.target_frame = "gripper"
         body_idxs, _ = self.robot_asset.find_bodies(self.target_frame)
         self.target_frame_idx = body_idxs[0]
 

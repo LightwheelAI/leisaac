@@ -55,7 +55,7 @@ python scripts/evaluation/policy_inference.py \
 
 - `--episode_length_s`: Episode length in seconds (default: `60`).
 
-- `--eval_rounts`: Number of evaluation rounds. 0 means don't add time out termination, policy will run until success or manual reset (default: `0`) 
+- `--eval_rounts`: Number of evaluation rounds. 0 means don't add time out termination, policy will run until success or manual reset (default: `0`)
 
 - `--policy_type`: Type of policy to use (default: `gr00tn1.5`).
     - now we support `gr00tn1.5`, `lerobot-<model_type>`

@@ -1,10 +1,8 @@
 from pathlib import Path
 
-from leisaac.utils.constant import ASSETS_ROOT
-
 import isaaclab.sim as sim_utils
 from isaaclab.assets import AssetBaseCfg
-
+from leisaac.utils.constant import ASSETS_ROOT
 
 """Configuration for the Table with Cube Scene"""
 SCENES_ROOT = Path(ASSETS_ROOT) / "scenes"

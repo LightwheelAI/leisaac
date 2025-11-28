@@ -2,6 +2,7 @@
 
 """Launch Isaac Sim Simulator first."""
 import multiprocessing
+
 if multiprocessing.get_start_method() != "spawn":
     multiprocessing.set_start_method("spawn", force=True)
 import argparse
@@ -10,8 +11,18 @@ from isaaclab.app import AppLauncher
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="eef action process for mimic recorded demos.")
-parser.add_argument("--input_file", type=str, default="./datasets/mimic-lift-cube-example.hdf5", help="File path to load mimic recorded demos.")
-parser.add_argument("--output_file", type=str, default="./datasets/processed_mimic-lift-cube-example.hdf5", help="File path to save processed mimic recorded demos.")
+parser.add_argument(
+    "--input_file",
+    type=str,
+    default="./datasets/mimic-lift-cube-example.hdf5",
+    help="File path to load mimic recorded demos.",
+)
+parser.add_argument(
+    "--output_file",
+    type=str,
+    default="./datasets/processed_mimic-lift-cube-example.hdf5",
+    help="File path to save processed mimic recorded demos.",
+)
 parser.add_argument("--to_ik", action="store_true", help="Whether to convert the action to ik action.")
 parser.add_argument("--to_joint", action="store_true", help="Whether to convert the action to joint action.")
 
@@ -27,31 +38,31 @@ app_launcher = AppLauncher(app_launcher_args)
 simulation_app = app_launcher.app
 
 import os
-import torch
 from copy import deepcopy
-from tqdm import tqdm
 
-from isaaclab.utils.datasets import HDF5DatasetFileHandler, EpisodeData
+import torch
+from isaaclab.utils.datasets import EpisodeData, HDF5DatasetFileHandler
+from tqdm import tqdm
 
 
 def joint_action_to_ik(episode_data: EpisodeData) -> EpisodeData:
     """Convert the action to ik action."""
-    eef_state = episode_data.data['obs']['ee_frame_state']
+    eef_state = episode_data.data["obs"]["ee_frame_state"]
 
-    action = episode_data.data['actions']
+    action = episode_data.data["actions"]
     gripper_action = action[:, -1:]
     new_actions = torch.cat([eef_state, gripper_action], dim=1)
-    episode_data.data['actions'] = new_actions
+    episode_data.data["actions"] = new_actions
 
     return episode_data
 
 
 def ik_action_to_joint(episode_data: EpisodeData) -> EpisodeData:
     """Convert the action to joint action."""
-    joint_pos = episode_data.data['obs']['joint_pos_target']
+    joint_pos = episode_data.data["obs"]["joint_pos_target"]
 
     new_actions = joint_pos
-    episode_data.data['actions'] = new_actions
+    episode_data.data["actions"] = new_actions
 
     return episode_data
 

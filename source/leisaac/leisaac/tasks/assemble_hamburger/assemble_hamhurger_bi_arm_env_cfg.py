@@ -1,10 +1,17 @@
 from isaaclab.assets import AssetBaseCfg
 from isaaclab.utils import configclass
-
-from leisaac.assets.scenes.kitchen import KITCHEN_WITH_HAMBURGER_CFG, KITCHEN_WITH_HAMBURGER_USD_PATH
+from leisaac.assets.scenes.kitchen import (
+    KITCHEN_WITH_HAMBURGER_CFG,
+    KITCHEN_WITH_HAMBURGER_USD_PATH,
+)
 from leisaac.utils.general_assets import parse_usd_and_create_subassets
 
-from ..template import BiArmTaskSceneCfg, BiArmTaskEnvCfg, BiArmObservationsCfg, BiArmTerminationsCfg
+from ..template import (
+    BiArmObservationsCfg,
+    BiArmTaskEnvCfg,
+    BiArmTaskSceneCfg,
+    BiArmTerminationsCfg,
+)
 
 
 @configclass

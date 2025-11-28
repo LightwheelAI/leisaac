@@ -3,9 +3,7 @@ from pathlib import Path
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
-
 from leisaac.utils.constant import ASSETS_ROOT
-
 
 """Configuration for the SO101 Follower Robot."""
 SO101_FOLLOWER_ASSET_PATH = Path(ASSETS_ROOT) / "robots" / "so101_follower.usd"
@@ -32,8 +30,8 @@ SO101_FOLLOWER_CFG = ArticulationCfg(
             "elbow_flex": 0.0,
             "wrist_flex": 0.0,
             "wrist_roll": 0.0,
-            "gripper": 0.0
-        }
+            "gripper": 0.0,
+        },
     ),
     actuators={
         "sts3215-gripper": ImplicitActuatorCfg(
@@ -49,7 +47,7 @@ SO101_FOLLOWER_CFG = ArticulationCfg(
             velocity_limit_sim=10,
             stiffness=17.8,
             damping=0.60,
-        )
+        ),
     },
     soft_joint_pos_limit_factor=1.0,
 )
@@ -66,12 +64,12 @@ SO101_FOLLOWER_USD_JOINT_LIMLITS = {
 
 # motor limit written in real device (normalized to related range)
 SO101_FOLLOWER_MOTOR_LIMITS = {
-    'shoulder_pan': (-100.0, 100.0),
-    'shoulder_lift': (-100.0, 100.0),
-    'elbow_flex': (-100.0, 100.0),
-    'wrist_flex': (-100.0, 100.0),
-    'wrist_roll': (-100.0, 100.0),
-    'gripper': (0.0, 100.0),
+    "shoulder_pan": (-100.0, 100.0),
+    "shoulder_lift": (-100.0, 100.0),
+    "elbow_flex": (-100.0, 100.0),
+    "wrist_flex": (-100.0, 100.0),
+    "wrist_roll": (-100.0, 100.0),
+    "gripper": (0.0, 100.0),
 }
 
 

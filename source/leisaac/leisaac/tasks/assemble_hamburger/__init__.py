@@ -1,7 +1,7 @@
 import gymnasium as gym
 
 gym.register(
-    id='LeIsaac-SO101-AssembleHamburger-v0',
+    id="LeIsaac-SO101-AssembleHamburger-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
@@ -10,7 +10,7 @@ gym.register(
 )
 
 gym.register(
-    id='LeIsaac-SO101-AssembleHamburger-BiArm-v0',
+    id="LeIsaac-SO101-AssembleHamburger-BiArm-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={

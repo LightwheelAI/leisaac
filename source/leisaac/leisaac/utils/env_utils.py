@@ -4,9 +4,9 @@ import torch
 def dynamic_reset_gripper_effort_limit_sim(env, teleop_device):
     need_to_set = []
     if teleop_device == "bi-so101leader":
-        need_to_set = [env.scene.articulations['left_arm'], env.scene.articulations['right_arm']]
+        need_to_set = [env.scene.articulations["left_arm"], env.scene.articulations["right_arm"]]
     elif teleop_device in ["so101leader", "keyboard"]:
-        need_to_set = [env.scene['robot']]
+        need_to_set = [env.scene["robot"]]
     for arm in need_to_set:
         write_gripper_effort_limit_sim(env, arm)
     return
@@ -47,10 +47,7 @@ def write_gripper_effort_limit_sim(env, env_arm):
         new_limits = current_effort_limit_sim.clone()
         new_limits[need_update] = target_effort_limits[need_update]
 
-        env_arm.write_joint_effort_limit_to_sim(
-            limits=new_limits,
-            joint_ids=[5 for _ in range(num_envs)]
-        )
+        env_arm.write_joint_effort_limit_to_sim(limits=new_limits, joint_ids=[5 for _ in range(num_envs)])
 
 
 def get_task_type(task: str, task_type: str | None = None) -> str:

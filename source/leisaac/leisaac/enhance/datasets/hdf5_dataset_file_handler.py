@@ -1,25 +1,24 @@
-import enum
 import copy
-import h5py
+import enum
 import os
-
 from concurrent.futures import ThreadPoolExecutor
 
-from isaaclab.utils.datasets import HDF5DatasetFileHandler, EpisodeData
+import h5py
+from isaaclab.utils.datasets import EpisodeData, HDF5DatasetFileHandler
 
 
 class StreamWriteMode(enum.Enum):
     APPEND = 0  # Append the record
-    LAST = 1    # Write the last record
+    LAST = 1  # Write the last record
 
 
 class StreamingHDF5DatasetFileHandler(HDF5DatasetFileHandler):
     def __init__(self):
         """
-            compression options:
-            - gzip: high compression ratio (50-80%), high latency due to CPU-intensive compression
-            - lzf: moderate compression ratio (30-50%), low latency, fast compression algorithm
-            - None: don't use compression, will cause minimum latency but largest file size
+        compression options:
+        - gzip: high compression ratio (50-80%), high latency due to CPU-intensive compression
+        - lzf: moderate compression ratio (30-50%), low latency, fast compression algorithm
+        - None: don't use compression, will cause minimum latency but largest file size
         """
         super().__init__()
         self._chunks_length = 100
@@ -63,10 +62,7 @@ class StreamingHDF5DatasetFileHandler(HDF5DatasetFileHandler):
             def create_dataset_helper(group, key, value):
                 """Helper method to create dataset that contains recursive dict objects."""
                 if isinstance(value, dict):
-                    if key not in group:
-                        key_group = group.create_group(key)
-                    else:
-                        key_group = group[key]
+                    key_group = group.get(key, group.create_group(key))
                     for sub_key, sub_value in value.items():
                         create_dataset_helper(key_group, sub_key, sub_value)
                 else:
@@ -80,11 +76,11 @@ class StreamingHDF5DatasetFileHandler(HDF5DatasetFileHandler):
                             dtype=data.dtype,
                             compression=self.file_handler.compression,
                         )
-                        dataset[0: data.shape[0]] = data
+                        dataset[0 : data.shape[0]] = data
                     else:
                         dataset = group[key]
                         dataset.resize(dataset.shape[0] + data.shape[0], axis=0)
-                        dataset[dataset.shape[0] - data.shape[0]:] = data
+                        dataset[dataset.shape[0] - data.shape[0] :] = data
 
             for key, value in episode.data.items():
                 create_dataset_helper(h5_episode_group, key, value)
@@ -116,11 +112,7 @@ class StreamingHDF5DatasetFileHandler(HDF5DatasetFileHandler):
             return
 
         group_name = f"demo_{self._demo_count}"
-        if group_name not in self._hdf5_data_group:
-            h5_episode_group = self._hdf5_data_group.create_group(group_name)
-        else:
-            h5_episode_group = self._hdf5_data_group[group_name]
-
+        h5_episode_group = self._hdf5_data_group.get(group_name, self._hdf5_data_group.create_group(group_name))
         # store number of steps taken
         if "actions" in episode.data:
             if "num_samples" not in h5_episode_group.attrs:

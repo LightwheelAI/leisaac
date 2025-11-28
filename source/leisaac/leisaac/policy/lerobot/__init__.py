@@ -1,5 +1,6 @@
-import types
 import sys
+import types
+
 from . import helpers
 from .helpers import *
 
@@ -15,7 +16,7 @@ def create_module_hierarchy(path: str):
             mod = types.ModuleType(sub_path)
             sys.modules[sub_path] = mod
             if i > 1:
-                parent_path = ".".join(parts[:i - 1])
+                parent_path = ".".join(parts[: i - 1])
                 setattr(sys.modules[parent_path], parts[i - 1], mod)
 
 

@@ -5,19 +5,16 @@
 
 """Base class for teleoperation interface."""
 
-import torch
 import weakref
-import numpy as np
-
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any
 
 import carb
-import omni
-
 import isaaclab.utils.math as math_utils
-
+import numpy as np
+import omni
+import torch
 from leisaac.utils.math_utils import rotvec_to_euler
 
 
@@ -101,19 +98,20 @@ class Device(DeviceBase):
     def input2action(self):
         state = {}
         reset = state["reset"] = self._reset_state
-        state['started'] = self.started
+        state["started"] = self.started
         if reset:
             self._reset_state = False
             return state
-        state['joint_state'] = self.get_device_state()
+        state["joint_state"] = self.get_device_state()
 
-        ac_dict = {}
-        ac_dict["reset"] = reset
-        ac_dict['started'] = self.started
-        ac_dict[self.device_type] = True
+        ac_dict = {
+            "reset": reset,
+            "started": self.started,
+            self.device_type: True,
+        }
         if reset:
             return ac_dict
-        ac_dict['joint_state'] = state['joint_state']
+        ac_dict["joint_state"] = state["joint_state"]
         return ac_dict
 
     def advance(self):
@@ -127,9 +125,9 @@ class Device(DeviceBase):
         action = self.input2action()
         if action is None:
             return self.env.action_manager.action
-        if not action['started']:
+        if not action["started"]:
             return None
-        if action['reset']:
+        if action["reset"]:
             return action
         for key, value in action.items():
             if isinstance(value, np.ndarray):
@@ -160,7 +158,7 @@ class Device(DeviceBase):
                     self._additional_callbacks["N"]()
 
     def _stop_keyboard_listener(self):
-        if hasattr(self, '_input') and hasattr(self, '_keyboard') and hasattr(self, '_keyboard_sub'):
+        if hasattr(self, "_input") and hasattr(self, "_keyboard") and hasattr(self, "_keyboard_sub"):
             self._input.unsubscribe_to_keyboard_events(self._keyboard, self._keyboard_sub)
             self._keyboard_sub = None
 
@@ -171,7 +169,7 @@ class Device(DeviceBase):
 
         def print_command(char, info):
             char += " " * (30 - len(char))
-            print("{}\t{}".format(char, info))
+            print(f"{char}\t{info}")
 
         print("teleoperation controls:")
         print_command("b", "start control")
@@ -200,7 +198,10 @@ class Device(DeviceBase):
         delta_quat_f = math_utils.quat_from_euler_xyz(delta_rot_f[:, 0], delta_rot_f[:, 1], delta_rot_f[:, 2])
         delta_rotvec_f = math_utils.axis_angle_from_quat(delta_quat_f)
 
-        frame_pos, frame_quat = self.robot_asset.data.root_pos_w, self.robot_asset.data.body_quat_w[:, self.target_frame_idx]  # don't consider frame pos here
+        frame_pos, frame_quat = (
+            self.robot_asset.data.root_pos_w,
+            self.robot_asset.data.body_quat_w[:, self.target_frame_idx],
+        )  # don't consider frame pos here
         root_pos, root_quat = self.robot_asset.data.root_pos_w, self.robot_asset.data.root_quat_w
         _, frame2root = math_utils.subtract_frame_transforms(root_pos, root_quat, frame_pos, frame_quat)
         frame2root_quat = math_utils.quat_unique(frame2root)

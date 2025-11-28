@@ -26,7 +26,15 @@ parser.add_argument(
     default="./datasets/dataset_annotated.hdf5",
     help="File name of the annotated output dataset file.",
 )
-parser.add_argument("--task_type", type=str, default=None, help="Specify task type. If your dataset is recorded with keyboard, you should set it to 'keyboard', otherwise not to set it and keep default value None.")
+parser.add_argument(
+    "--task_type",
+    type=str,
+    default=None,
+    help=(
+        "Specify task type. If your dataset is recorded with keyboard, you should set it to 'keyboard', otherwise not"
+        " to set it and keep default value None."
+    ),
+)
 parser.add_argument("--auto", action="store_true", default=False, help="Automatically annotate subtasks.")
 parser.add_argument(
     "--enable_pinocchio",
@@ -52,11 +60,11 @@ simulation_app = app_launcher.app
 """Rest everything follows."""
 
 import contextlib
-import gymnasium as gym
 import os
-import torch
 
+import gymnasium as gym
 import isaaclab_mimic.envs  # noqa: F401
+import torch
 
 if args_cli.enable_pinocchio:
     import isaaclab_mimic.envs.pinocchio_envs  # noqa: F401
@@ -65,18 +73,19 @@ if args_cli.enable_pinocchio:
 if not args_cli.headless and not os.environ.get("HEADLESS", 0):
     from isaaclab.devices import Se3Keyboard
 
+import isaaclab_tasks  # noqa: F401
 from isaaclab.envs import ManagerBasedRLMimicEnv
 from isaaclab.envs.mdp.recorders.recorders_cfg import ActionStateRecorderManagerCfg
 from isaaclab.managers import RecorderTerm, RecorderTermCfg, TerminationTermCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.datasets import EpisodeData, HDF5DatasetFileHandler
-
-import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils.parse_cfg import parse_env_cfg
+from leisaac.utils.env_utils import (
+    dynamic_reset_gripper_effort_limit_sim,
+    get_task_type,
+)
 
 import leisaac  # noqa: F401
-from leisaac.utils.env_utils import get_task_type, dynamic_reset_gripper_effort_limit_sim
-
 
 is_paused = False
 current_action_index = 0
@@ -181,7 +190,7 @@ def main():
 
     env_cfg = parse_env_cfg(env_name, device=args_cli.device, num_envs=1)
     task_type = get_task_type(args_cli.task, args_cli.task_type)
-    setattr(env_cfg, 'task_type', task_type)
+    setattr(env_cfg, "task_type", task_type)
 
     env_cfg.env_name = env_name
 

@@ -1,12 +1,10 @@
-import torch
-
 import isaaclab.utils.math as math_utils
-
-from isaaclab.managers import SceneEntityCfg
-from isaaclab.sensors import FrameTransformer
+import torch
 from isaaclab.assets import Articulation
 from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
 from isaaclab.envs.mdp.observations import image
+from isaaclab.managers import SceneEntityCfg
+from isaaclab.sensors import FrameTransformer
 
 
 def overlay_image(
@@ -28,7 +26,7 @@ def overlay_image(
             Defaults to True.
 
     Returns:
-        The images produced at the last time-step, with the background image overlayed.
+        The images produced at the last time-step, with the background image overlaid.
     """
     assert data_type == "rgb", "Only 'rgb' is supported for overlay_image."
 
@@ -37,8 +35,8 @@ def overlay_image(
     def image_overlapping(
         back_image: torch.Tensor,  # [num_env, H, W, C]
         fore_image: torch.Tensor,  # [num_env, H, W, C]
-        back_mask: torch.Tensor | None = None,   # [num_env, H, W]
-        fore_mask: torch.Tensor | None = None,   # [num_env, H, W]
+        back_mask: torch.Tensor | None = None,  # [num_env, H, W]
+        fore_mask: torch.Tensor | None = None,  # [num_env, H, W]
         back_alpha: float = 0.5,
         fore_alpha: float = 0.5,
     ) -> torch.Tensor:
@@ -57,16 +55,18 @@ def overlay_image(
             Overlapped image [num_env, H, W, C]
         """
         if back_mask is None:
-            back_mask = torch.ones_like(back_image[:, :, :, 0], dtype=torch.bool, device=back_image.device).unsqueeze(-1)
+            back_mask = torch.ones_like(back_image[:, :, :, 0], dtype=torch.bool, device=back_image.device)
+            back_mask = back_mask.unsqueeze(-1)
         if fore_mask is None:
-            fore_mask = torch.ones_like(fore_image[:, :, :, 0], dtype=torch.bool, device=fore_image.device).unsqueeze(-1)
+            fore_mask = torch.ones_like(fore_image[:, :, :, 0], dtype=torch.bool, device=fore_image.device)
+            fore_mask = fore_mask.unsqueeze(-1)
         image = back_alpha * back_image * back_mask + fore_alpha * fore_image * fore_mask
         return torch.clamp(image, 0.0, 255.0).to(torch.uint8)
 
-    semantic_id = env.foreground_semantic_id_mapping.get(sensor_cfg.name, None)
+    semantic_id = env.foreground_semantic_id_mapping.get(sensor_cfg.name)
     if semantic_id is not None:
         camera_output = env.scene.sensors[sensor_cfg.name].data.output
-        if env.cfg.rgb_overlay_mode == 'background':
+        if env.cfg.rgb_overlay_mode == "background":
             semantic_mask = camera_output["semantic_segmentation"]
             overlay_mask = semantic_mask == semantic_id
             sim_image = image_overlapping(
@@ -77,7 +77,7 @@ def overlay_image(
                 back_alpha=1.0,
                 fore_alpha=1.0,
             )
-        elif env.cfg.rgb_overlay_mode == 'debug':
+        elif env.cfg.rgb_overlay_mode == "debug":
             sim_image = image_overlapping(
                 back_image=env.rgb_overlay_images[sensor_cfg.name],
                 fore_image=sim_image,
@@ -88,7 +88,11 @@ def overlay_image(
     return sim_image
 
 
-def ee_frame_state(env: ManagerBasedRLEnv, ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"), robot_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+def ee_frame_state(
+    env: ManagerBasedRLEnv,
+    ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
+    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
     """
     Return the state of the end effector frame in the robot coordinate system.
     """

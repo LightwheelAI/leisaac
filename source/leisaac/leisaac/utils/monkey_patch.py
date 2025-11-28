@@ -35,6 +35,7 @@ def patch_termination_manager():
                 self._term_dones[rows, i] = True
         # return combined termination signal
         return self._truncated_buf | self._terminated_buf
+
     TerminationManager.compute = compute
 
 

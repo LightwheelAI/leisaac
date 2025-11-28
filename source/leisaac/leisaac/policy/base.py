@@ -1,17 +1,23 @@
-import torch
 import warnings
-
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Tuple
+
+import torch
 
 try:
     import zmq
 except ImportError:
-    warnings.warn("zmq is not installed, please install it with `pip install pyzmq` for full functionality of ZMQServicePolicy", ImportWarning)
+    warnings.warn(
+        "zmq is not installed, please install it with `pip install pyzmq` for full functionality of ZMQServicePolicy",
+        ImportWarning,
+    )
 try:
     import websockets.sync.client
 except ImportError:
-    warnings.warn("websockets is not installed, please install it with `pip install websockets` for full functionality of WebsocketServicePolicy", ImportWarning)
+    warnings.warn(
+        "websockets is not installed, please install it with `pip install websockets` for full functionality of"
+        " WebsocketServicePolicy",
+        ImportWarning,
+    )
 
 from .gr00t import serialization
 from .openpi import msgpack_numpy
@@ -60,8 +66,7 @@ class ZMQServicePolicy(Policy):
     def check_service_status(self):
         if not self._ping():
             raise RuntimeError("Service is not running, please start the service first.")
-        else:
-            print("Service is running.")
+        print("Service is running.")
 
     def _ping(self) -> bool:
         if self._ping_endpoint is None:
@@ -99,7 +104,7 @@ class ZMQServicePolicy(Policy):
 
 
 class WebsocketServicePolicy(Policy):
-    def __init__(self, host: str, port: Optional[int] = None, timeout_ms: int = 5000, api_key: Optional[str] = None):
+    def __init__(self, host: str, port: int | None = None, timeout_ms: int = 5000, api_key: str | None = None):
         super().__init__("service")
         self._uri = f"ws://{host}"
         if port is not None:
@@ -109,7 +114,7 @@ class WebsocketServicePolicy(Policy):
         self._api_key = api_key
         self._ws, self._server_metadata = self._wait_for_server()
 
-    def _wait_for_server(self) -> Tuple[websockets.sync.client.ClientConnection, Dict]:
+    def _wait_for_server(self) -> tuple[websockets.sync.client.ClientConnection, dict]:
         print(f"Waiting for server at {self._uri}...")
         try:
             headers = {"Authorization": f"Api-Key {self._api_key}"} if self._api_key else None
@@ -121,7 +126,7 @@ class WebsocketServicePolicy(Policy):
         except ConnectionRefusedError:
             raise RuntimeError("Failed to connect to policy server.")
 
-    def infer(self, obs: Dict) -> Dict:  # noqa: UP006
+    def infer(self, obs: dict) -> dict:  # noqa: UP006
         data = self._packer.pack(obs)
         self._ws.send(data)
         response = self._ws.recv()

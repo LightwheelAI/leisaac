@@ -1,7 +1,7 @@
 import gymnasium as gym
 
 gym.register(
-    id='LeIsaac-SO101-PickOrange-v0',
+    id="LeIsaac-SO101-PickOrange-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
@@ -10,7 +10,7 @@ gym.register(
 )
 
 gym.register(
-    id='LeIsaac-SO101-PickOrange-Mimic-v0',
+    id="LeIsaac-SO101-PickOrange-Mimic-v0",
     entry_point=f"leisaac.enhance.envs:ManagerBasedRLLeIsaacMimicEnv",
     disable_env_checker=True,
     kwargs={
@@ -19,7 +19,7 @@ gym.register(
 )
 
 gym.register(
-    id='LeIsaac-SO101-PickOrange-Direct-v0',
+    id="LeIsaac-SO101-PickOrange-Direct-v0",
     entry_point=f"{__name__}.direct.pick_orange_env:PickOrangeEnv",
     disable_env_checker=True,
     kwargs={

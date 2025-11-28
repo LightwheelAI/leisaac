@@ -1,6 +1,6 @@
+import platform
 import select
 import sys
-import platform
 
 
 def enter_pressed() -> bool:

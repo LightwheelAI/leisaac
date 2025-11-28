@@ -2,6 +2,7 @@
 
 """Launch Isaac Sim Simulator first."""
 import multiprocessing
+
 if multiprocessing.get_start_method() != "spawn":
     multiprocessing.set_start_method("spawn", force=True)
 import argparse
@@ -13,10 +14,32 @@ parser = argparse.ArgumentParser(description="leisaac replay for leisaac in the 
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
 parser.add_argument("--step_hz", type=int, default=60, help="Environment stepping rate in Hz.")
-parser.add_argument("--dataset_file", type=str, default="./datasets/dataset.hdf5", help="File path to load recorded demos.")
-parser.add_argument("--replay_mode", type=str, default="action", choices=["action", "state"], help="Replay mode, action: replay the action, state: replay the state.")
-parser.add_argument("--select_episodes", type=int, nargs="+", default=[], help="A list of episode indices to replayed. Keep empty to replay all episodes.")
-parser.add_argument("--task_type", type=str, default=None, help="Specify task type. If your dataset is recorded with keyboard, you should set it to 'keyboard', otherwise not to set it and keep default value None.")
+parser.add_argument(
+    "--dataset_file", type=str, default="./datasets/dataset.hdf5", help="File path to load recorded demos."
+)
+parser.add_argument(
+    "--replay_mode",
+    type=str,
+    default="action",
+    choices=["action", "state"],
+    help="Replay mode, action: replay the action, state: replay the state.",
+)
+parser.add_argument(
+    "--select_episodes",
+    type=int,
+    nargs="+",
+    default=[],
+    help="A list of episode indices to replayed. Keep empty to replay all episodes.",
+)
+parser.add_argument(
+    "--task_type",
+    type=str,
+    default=None,
+    help=(
+        "Specify task type. If your dataset is recorded with keyboard, you should set it to 'keyboard', otherwise not"
+        " to set it and keep default value None."
+    ),
+)
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -29,18 +52,21 @@ app_launcher_args = vars(args_cli)
 app_launcher = AppLauncher(app_launcher_args)
 simulation_app = app_launcher.app
 
+import contextlib
 import os
 import time
-import torch
-import gymnasium as gym
-import contextlib
 
-from isaaclab.envs import ManagerBasedRLEnv, DirectRLEnv
+import gymnasium as gym
+import torch
+from isaaclab.envs import DirectRLEnv, ManagerBasedRLEnv
+from isaaclab.utils.datasets import EpisodeData, HDF5DatasetFileHandler
 from isaaclab_tasks.utils import parse_env_cfg
-from isaaclab.utils.datasets import HDF5DatasetFileHandler, EpisodeData
+from leisaac.utils.env_utils import (
+    dynamic_reset_gripper_effort_limit_sim,
+    get_task_type,
+)
 
 import leisaac  # noqa: F401
-from leisaac.utils.env_utils import get_task_type, dynamic_reset_gripper_effort_limit_sim
 
 
 class RateLimiter:
@@ -77,11 +103,11 @@ def get_next_action(episode_data: EpisodeData, return_state: bool = False, task_
         if next_state is None:
             return None
         if task_type == "bi-so101leader":
-            left_joint_pos = next_state['articulation']['left_arm']['joint_position']
-            right_joint_pos = next_state['articulation']['right_arm']['joint_position']
+            left_joint_pos = next_state["articulation"]["left_arm"]["joint_position"]
+            right_joint_pos = next_state["articulation"]["right_arm"]["joint_position"]
             return torch.cat([left_joint_pos, right_joint_pos], dim=0)
         else:
-            return next_state['articulation']['robot']['joint_position']
+            return next_state["articulation"]["robot"]["joint_position"]
     else:
         return episode_data.get_next_action()
 
@@ -148,7 +174,9 @@ def main():
                 actions = idle_action
                 has_next_action = False
                 for env_id in range(num_envs):
-                    env_next_action = get_next_action(env_episode_data_map[env_id], return_state=args_cli.replay_mode == "state", task_type=task_type)
+                    env_next_action = get_next_action(
+                        env_episode_data_map[env_id], return_state=args_cli.replay_mode == "state", task_type=task_type
+                    )
                     if env_next_action is None:
                         next_episode_index = None
                         while episode_indices_to_replay:
@@ -166,9 +194,18 @@ def main():
                             env_episode_data_map[env_id] = episode_data
                             # Set initial state for the new episode
                             initial_state = episode_data.get_initial_state()
-                            env.reset_to(initial_state, torch.tensor([env_id], device=env.device), seed=int(episode_data.seed) if episode_data.seed is not None else None, is_relative=True)
+                            env.reset_to(
+                                initial_state,
+                                torch.tensor([env_id], device=env.device),
+                                seed=int(episode_data.seed) if episode_data.seed is not None else None,
+                                is_relative=True,
+                            )
                             # Get the first action for the new episode
-                            env_next_action = get_next_action(env_episode_data_map[env_id], return_state=args_cli.replay_mode == "state", task_type=task_type)
+                            env_next_action = get_next_action(
+                                env_episode_data_map[env_id],
+                                return_state=args_cli.replay_mode == "state",
+                                task_type=task_type,
+                            )
                             has_next_action = True
                         else:
                             continue

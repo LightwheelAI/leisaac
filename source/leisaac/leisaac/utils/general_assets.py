@@ -1,6 +1,4 @@
-from pxr import Usd
-from pxr import UsdPhysics
-from pxr import UsdGeom
+from pxr import Usd, UsdGeom, UsdPhysics
 
 
 def get_all_prims(stage, prim=None, prims_list=None):
@@ -39,6 +37,7 @@ def get_all_joints(stage):
             joints.append(prim)
         for child in prim.GetChildren():
             recurse(child)
+
     recurse(stage.GetPseudoRoot())
     return joints
 
@@ -72,6 +71,7 @@ def get_articulation_joints(articulation_prim):
             joints.append(prim)
         for child in prim.GetChildren():
             recurse(child)
+
     recurse(articulation_prim)
     return joints
 
@@ -82,11 +82,11 @@ def get_joint_type(joint_prim):
 
 
 def is_fixed_joint(prim):
-    return prim.GetTypeName() == 'PhysicsFixedJoint'
+    return prim.GetTypeName() == "PhysicsFixedJoint"
 
 
 def is_revolute_joint(prim):
-    return prim.GetTypeName() == 'PhysicsRevoluteJoint'
+    return prim.GetTypeName() == "PhysicsRevoluteJoint"
 
 
 def is_prismatic_joint(prim):
@@ -103,17 +103,19 @@ def get_all_joints_without_fixed(articulation_prim):
     return [joint for joint in joints if not is_fixed_joint(joint)]
 
 
+import isaacsim.core.utils.prims as prim_utils
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.assets.rigid_object import RigidObjectCfg
 from isaaclab.sim.spawners.spawner_cfg import RigidObjectSpawnerCfg
-
 from isaaclab.sim.utils import clone
-
-import isaacsim.core.utils.prims as prim_utils
 
 
 def match_specific_name(prim_path, specific_name_list, exlude_name_list):
-    match_specific = True if specific_name_list is None else any([specific_name in prim_path for specific_name in specific_name_list])
+    match_specific = (
+        True
+        if specific_name_list is None
+        else any([specific_name in prim_path for specific_name in specific_name_list])
+    )
     match_exclude = False if exlude_name_list is None else any([exclude in prim_path for exclude in exlude_name_list])
 
     return match_specific and not match_exclude
@@ -130,7 +132,9 @@ def parse_usd_and_create_subassets(usd_path, env_cfg, specific_name_list=None, e
     articulation_sub_prims = list()
     create_attr_record = dict()
     for prim in prims:
-        if is_articulation_root(prim) and match_specific_name(prim.GetPath().pathString, specific_name_list, exclude_name_list):
+        if is_articulation_root(prim) and match_specific_name(
+            prim.GetPath().pathString, specific_name_list, exclude_name_list
+        ):
             pos, rot = get_prim_pos_rot(prim)
             joints = get_all_joints_without_fixed(prim)
             if not joints:
@@ -142,7 +146,7 @@ def parse_usd_and_create_subassets(usd_path, env_cfg, specific_name_list=None, e
             else:
                 create_attr_record[name] += 1
                 name = f"{name}_{create_attr_record[name]}"
-            sub_prim_path = orin_prim_path[orin_prim_path.find('/', 1) + 1:]
+            sub_prim_path = orin_prim_path[orin_prim_path.find("/", 1) + 1 :]
             prim_path = f"{{ENV_REGEX_NS}}/Scene/{sub_prim_path}"
             artcfg = ArticulationCfg(
                 prim_path=prim_path,
@@ -167,7 +171,7 @@ def parse_usd_and_create_subassets(usd_path, env_cfg, specific_name_list=None, e
             else:
                 create_attr_record[name] += 1
                 name = f"{name}_{create_attr_record[name]}"
-            sub_prim_path = orin_prim_path[orin_prim_path.find('/', 1) + 1:]
+            sub_prim_path = orin_prim_path[orin_prim_path.find("/", 1) + 1 :]
             prim_path = f"{{ENV_REGEX_NS}}/Scene/{sub_prim_path}"
             rigidcfg = RigidObjectCfg(
                 prim_path=prim_path,

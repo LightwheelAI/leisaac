@@ -1,6 +1,6 @@
 # Available Policy Inference
 
-This page lists the policy inference methods currently supported by LeIsaac. 
+This page lists the policy inference methods currently supported by LeIsaac.
 
 Depending on your use case, you may need to install additional dependencies to enable inference:
 

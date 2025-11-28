@@ -1,19 +1,29 @@
-import os
 import json
-from typing import Dict, Tuple
-
-from .common.motors import FeetechMotorsBus, Motor, MotorNormMode, MotorCalibration, OperatingMode
-from .common.errors import DeviceAlreadyConnectedError, DeviceNotConnectedError
-from ..device_base import Device
+import os
 
 from leisaac.assets.robots.lerobot import SO101_FOLLOWER_MOTOR_LIMITS
 
+from ..device_base import Device
+from .common.errors import DeviceAlreadyConnectedError, DeviceNotConnectedError
+from .common.motors import (
+    FeetechMotorsBus,
+    Motor,
+    MotorCalibration,
+    MotorNormMode,
+    OperatingMode,
+)
+
 
 class SO101Leader(Device):
-    """A SO101 Leader device for SE(3) control.
-    """
+    """A SO101 Leader device for SE(3) control."""
 
-    def __init__(self, env, port: str = '/dev/ttyACM0', recalibrate: bool = False, calibration_file_name: str = 'so101_leader.json'):
+    def __init__(
+        self,
+        env,
+        port: str = "/dev/ttyACM0",
+        recalibrate: bool = False,
+        calibration_file_name: str = "so101_leader.json",
+    ):
         super().__init__(env, "so101_leader")
         self.port = port
 
@@ -45,7 +55,10 @@ class SO101Leader(Device):
         msg = "SO101-Leader device for SE(3) control.\n"
         msg += "\t----------------------------------------------\n"
         msg += "\tMove SO101-Leader to control SO101-Follower\n"
-        msg += "\tIf SO101-Follower can't synchronize with SO101-Leader, please add --recalibrate and rerun to recalibrate SO101-Leader.\n"
+        msg += (
+            "\tIf SO101-Follower can't synchronize with SO101-Leader, please add --recalibrate and rerun to recalibrate"
+            " SO101-Leader.\n"
+        )
         msg += "\t----------------------------------------------\n"
         return msg
 
@@ -54,11 +67,11 @@ class SO101Leader(Device):
 
     def input2action(self):
         ac_dict = super().input2action()
-        ac_dict['motor_limits'] = self._motor_limits
+        ac_dict["motor_limits"] = self._motor_limits
         return ac_dict
 
     @property
-    def motor_limits(self) -> Dict[str, Tuple[float, float]]:
+    def motor_limits(self) -> dict[str, tuple[float, float]]:
         return self._motor_limits
 
     @property
@@ -124,8 +137,8 @@ class SO101Leader(Device):
 
         self.disconnect()
 
-    def _load_calibration(self) -> Dict[str, MotorCalibration]:
-        with open(self.calibration_path, "r") as f:
+    def _load_calibration(self) -> dict[str, MotorCalibration]:
+        with open(self.calibration_path) as f:
             json_data = json.load(f)
         calibration = {}
         for motor_name, motor_data in json_data.items():
@@ -138,15 +151,18 @@ class SO101Leader(Device):
             )
         return calibration
 
-    def _save_calibration(self, calibration: Dict[str, MotorCalibration]):
-        save_calibration = {k: {
-            "id": v.id,
-            "drive_mode": v.drive_mode,
-            "homing_offset": v.homing_offset,
-            "range_min": v.range_min,
-            "range_max": v.range_max,
-        } for k, v in calibration.items()}
+    def _save_calibration(self, calibration: dict[str, MotorCalibration]):
+        save_calibration = {
+            k: {
+                "id": v.id,
+                "drive_mode": v.drive_mode,
+                "homing_offset": v.homing_offset,
+                "range_min": v.range_min,
+                "range_max": v.range_max,
+            }
+            for k, v in calibration.items()
+        }
         if not os.path.exists(os.path.dirname(self.calibration_path)):
             os.makedirs(os.path.dirname(self.calibration_path))
-        with open(self.calibration_path, 'w') as f:
+        with open(self.calibration_path, "w") as f:
             json.dump(save_calibration, f, indent=4)
