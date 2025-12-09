@@ -55,6 +55,24 @@ const sidebars = {
     },
     {
       type: 'category',
+      label: 'Tutorials',
+      link: {
+        type: 'generated-index',
+        slug: '/docs/tutorials',
+        title: 'Tutorials',
+        description: 'LeIsaac tutorials overview.',
+      },
+      items: [
+        {
+          type: 'category',
+          label: 'Add Custom Task',
+          link: { type: 'doc', id: 'docs/tutorials/custom_task' },
+          items: [],
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Extra Features',
       link: {
         type: 'generated-index',
