@@ -52,7 +52,6 @@ class LeKiwiKeyboard(SO101Keyboard):
     def get_device_state(self):
         arm_action = super().get_device_state()
         wheel_action = body_vel_to_wheel_vel(self._vel_command)
-        print(wheel_action)
         return np.concatenate([arm_action, wheel_action])
 
     def reset(self):

@@ -128,13 +128,12 @@ LEKIWI_CFG = ArticulationCfg(
             stiffness=17.8,
             damping=0.60,
         ),
-        # TODO: check the limit of the wheel
         "sts3215-base": ImplicitActuatorCfg(
             joint_names_expr=["base_back_wheel", "base_left_wheel", "base_right_wheel"],
-            effort_limit_sim=1000,
+            effort_limit_sim=1000.0,
             velocity_limit_sim=10,
             stiffness=0.0,
-            damping=5e5,
+            damping=1e5,
         ),
     },
     soft_joint_pos_limit_factor=1.0,
