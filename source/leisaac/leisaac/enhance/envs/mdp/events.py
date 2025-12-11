@@ -78,6 +78,7 @@ def randomize_particle_object_uniform(
 
 def disable_rigid_body_gravity(
     env: ManagerBasedRLEnv,
+    env_ids: torch.Tensor,
     asset_cfg: SceneEntityCfg,
 ):
     """Disable gravity for specific bodies in an articulation.
@@ -87,6 +88,7 @@ def disable_rigid_body_gravity(
 
     Args:
         env: The environment instance.
+        env_ids: The environment IDs to apply the change to.
         asset_cfg: Configuration specifying the asset and body names to disable gravity for.
                    Use body_names to specify which bodies to disable gravity (e.g., ".*arm.*" or ["shoulder", "elbow"]).
     """
