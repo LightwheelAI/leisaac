@@ -89,9 +89,6 @@ LEKIWI_ASSET_PATH = Path(ASSETS_ROOT) / "robots" / "lekiwi.usd"
 LEKIWI_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         usd_path=str(LEKIWI_ASSET_PATH),
-        rigid_props=sim_utils.RigidBodyPropertiesCfg(
-            disable_gravity=False,
-        ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
             enabled_self_collisions=True,
             solver_position_iteration_count=4,
@@ -108,8 +105,8 @@ LEKIWI_CFG = ArticulationCfg(
             "wrist_flex": 0.0,
             "wrist_roll": 0.0,
             "gripper": 0.0,
-            "base_back_wheel": 0.0,
             "base_left_wheel": 0.0,
+            "base_back_wheel": 0.0,
             "base_right_wheel": 0.0,
         },
     ),
@@ -129,7 +126,7 @@ LEKIWI_CFG = ArticulationCfg(
             damping=0.60,
         ),
         "sts3215-base": ImplicitActuatorCfg(
-            joint_names_expr=["base_back_wheel", "base_left_wheel", "base_right_wheel"],
+            joint_names_expr=["base_left_wheel", "base_back_wheel", "base_right_wheel"],
             effort_limit_sim=1000.0,
             velocity_limit_sim=10,
             stiffness=0.0,
