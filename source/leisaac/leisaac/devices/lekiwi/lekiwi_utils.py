@@ -15,6 +15,7 @@ def body_vel_to_wheel_vel(body_vel: np.ndarray, wheel_radius: float = 0.05, base
 
     # Compute each wheel’s linear speed (m/s) and then its angular speed (rad/s).
     wheel_linear_speeds = m.dot(velocity_vector)
-    wheel_angular_speeds = wheel_linear_speeds / wheel_radius
+    wheel_angular_speeds = wheel_linear_speeds / wheel_radius  # left, back, right
 
-    return np.array([wheel_angular_speeds[0], wheel_angular_speeds[1], wheel_angular_speeds[2]])
+    # return the wheel angular speeds in the order of back, left, right
+    return np.array([wheel_angular_speeds[1], wheel_angular_speeds[0], wheel_angular_speeds[2]])  # back, left, right

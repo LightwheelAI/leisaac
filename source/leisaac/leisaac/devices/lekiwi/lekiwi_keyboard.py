@@ -81,14 +81,13 @@ class LeKiwiKeyboard(SO101Keyboard):
         """Creates default key binding.
         Based on arrow keys to control the velocity command.
         """
-        # TODO: align with the direction of the wheel
         self._VEL_COMMAND_MAPPING = {
-            "forward": np.asarray([0.0, 1.0, 0.0]),
-            "backward": np.asarray([0.0, -1.0, 0.0]),
+            "forward": np.asarray([-1.0, 0.0, 0.0]),
+            "backward": np.asarray([1.0, 0.0, 0.0]),
             "left": np.asarray([0.0, -1.0, 0.0]),
             "right": np.asarray([0.0, 1.0, 0.0]),
-            "rotate_left": np.asarray([0.0, 0.0, 1.0]),
-            "rotate_right": np.asarray([0.0, 0.0, -1.0]),
+            "rotate_left": np.asarray([0.0, 0.0, -1.0]),
+            "rotate_right": np.asarray([0.0, 0.0, 1.0]),
         }
         self._WHEEL_INPUT_KEY_MAPPING = {
             "UP": "forward",

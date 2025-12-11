@@ -141,7 +141,5 @@ def preprocess_device_action(action: dict[str, Any], teleop_device) -> torch.Ten
         processed_action = torch.zeros(teleop_device.env.num_envs, 11, device=teleop_device.env.device)
         processed_action[:, :] = action["joint_state"]
     else:
-        raise NotImplementedError(
-            "Only teleoperation with so101_leader, bi_so101_leader, keyboard is supported for now."
-        )
+        raise NotImplementedError(f"Not implemented for this device now: {teleop_device.device_type}")
     return processed_action
