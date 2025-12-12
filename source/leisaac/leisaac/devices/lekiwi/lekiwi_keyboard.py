@@ -2,8 +2,6 @@ import carb
 import numpy as np
 from leisaac.devices.keyboard import SO101Keyboard
 
-from .lekiwi_utils import body_vel_to_wheel_vel
-
 
 class LeKiwiKeyboard(SO101Keyboard):
     """A keyboard controller for sending SE(2) commands as velocity commands for lekiwi.
@@ -25,9 +23,9 @@ class LeKiwiKeyboard(SO101Keyboard):
 
         # speed_levels:
         self._speed_levels = [
-            {"xy_vel": 0.1, "theta_vel": 30},  # slow
-            {"xy_vel": 0.2, "theta_vel": 60},  # medium
-            {"xy_vel": 0.3, "theta_vel": 90},  # fast
+            {"xy_vel": 0.1, "theta_vel": 30 / 180.0 * np.pi},  # slow
+            {"xy_vel": 0.2, "theta_vel": 60 / 180.0 * np.pi},  # medium
+            {"xy_vel": 0.3, "theta_vel": 90 / 180.0 * np.pi},  # fast
         ]
         self._speed_index = 0
 
@@ -51,7 +49,8 @@ class LeKiwiKeyboard(SO101Keyboard):
 
     def get_device_state(self):
         arm_action = super().get_device_state()
-        wheel_action = body_vel_to_wheel_vel(self._vel_command)
+        # TODO: _vel_command is in body frame, but robot action needed world frame. implement in robot_utils.py
+        wheel_action = self._vel_command
         return np.concatenate([arm_action, wheel_action])
 
     def reset(self):
@@ -82,12 +81,12 @@ class LeKiwiKeyboard(SO101Keyboard):
         Based on arrow keys to control the velocity command.
         """
         self._VEL_COMMAND_MAPPING = {
-            "forward": np.asarray([-1.0, 0.0, 0.0]),
-            "backward": np.asarray([1.0, 0.0, 0.0]),
-            "left": np.asarray([0.0, -1.0, 0.0]),
-            "right": np.asarray([0.0, 1.0, 0.0]),
-            "rotate_left": np.asarray([0.0, 0.0, -1.0]),
-            "rotate_right": np.asarray([0.0, 0.0, 1.0]),
+            "forward": np.asarray([1.0, 0.0, 0.0]),
+            "backward": np.asarray([-1.0, 0.0, 0.0]),
+            "left": np.asarray([0.0, 1.0, 0.0]),
+            "right": np.asarray([0.0, -1.0, 0.0]),
+            "rotate_left": np.asarray([0.0, 0.0, 1.0]),
+            "rotate_right": np.asarray([0.0, 0.0, -1.0]),
         }
         self._WHEEL_INPUT_KEY_MAPPING = {
             "UP": "forward",

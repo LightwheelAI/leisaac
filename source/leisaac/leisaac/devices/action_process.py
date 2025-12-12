@@ -81,7 +81,7 @@ def init_action_cfg(action_cfg, device):
     if device in ["lekiwi-leader", "lekiwi-keyboard", "lekiwi-gamepad"]:
         action_cfg.wheel_action = mdp.JointVelocityActionCfg(
             asset_name="robot",
-            joint_names=["base_back_wheel", "base_left_wheel", "base_right_wheel"],
+            joint_names=["base_x", "base_y", "base_theta"],
             scale=1.0,
         )
 
