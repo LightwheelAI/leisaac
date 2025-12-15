@@ -1,6 +1,8 @@
 import carb
 import numpy as np
+import torch
 from leisaac.devices.keyboard import SO101Keyboard
+from leisaac.utils.robot_utils import convert_lekiwi_wheel_action_robot2env
 
 
 class LeKiwiKeyboard(SO101Keyboard):
@@ -34,6 +36,7 @@ class LeKiwiKeyboard(SO101Keyboard):
 
         # command buffers (x.vel, y.vel, theta.vel)
         self._vel_command = np.zeros(3)
+        self._joint_names = self.env.scene["robot"].data.joint_names
 
     def __str__(self) -> str:
         """Returns: A string containing the information of keyboard controller."""
@@ -49,9 +52,14 @@ class LeKiwiKeyboard(SO101Keyboard):
 
     def get_device_state(self):
         arm_action = super().get_device_state()
-        # TODO: _vel_command is in body frame, but robot action needed world frame. implement in robot_utils.py
-        wheel_action = self._vel_command
-        return np.concatenate([arm_action, wheel_action])
+
+        wheel_action_user = torch.tensor(self._vel_command, device=self.env.device).repeat(self.env.num_envs, 1)
+
+        robot_base_theta = self.env.scene["robot"].data.joint_pos[:, self._joint_names.index("base_theta")]
+        wheel_action_world = convert_lekiwi_wheel_action_robot2env(wheel_action_user, robot_base_theta)[0]
+        wheel_action_world = wheel_action_world.cpu().numpy()
+
+        return np.concatenate([arm_action, wheel_action_world])
 
     def reset(self):
         super().reset()

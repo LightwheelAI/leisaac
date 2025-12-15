@@ -67,3 +67,63 @@ def convert_lerobot_action_to_leisaac(action: torch.Tensor | np.ndarray) -> np.n
         processed_action[:, idx] = processed_radius
 
     return processed_action
+
+
+def convert_lekiwi_wheel_action_robot2env(action: torch.Tensor, base_theta: torch.Tensor) -> torch.Tensor:
+    """
+    Convert the wheel action from robot to environment.
+
+    Args:
+        action: (N, 3) tensor in user command frame, [forward, left, rotate].
+        base_theta: (N,) tensor for robot base yaw (around its own z-axis) in world frame.
+
+    Returns:
+        (N, 3) tensor in world frame, [dx_world, dy_world, dtheta_body], where
+        translation is expressed in world XY axes and rotation remains in the
+        robot/body frame (about its local z-axis).
+    """
+
+    cos_yaw = torch.cos(base_theta)
+    sin_yaw = torch.sin(base_theta)
+
+    # Convert user command frame to body frame
+    dx_body = action[:, 1] * -1.0  # left(negative)
+    dy_body = action[:, 0]  # forward(positive)
+    dtheta_body = action[:, 2]  # rotate(positive)
+
+    # Rotate body-frame translation into world frame
+    dx_world = cos_yaw * dx_body - sin_yaw * dy_body
+    dy_world = sin_yaw * dx_body + cos_yaw * dy_body
+
+    return torch.stack((dx_world, dy_world, dtheta_body), dim=-1)
+
+
+def convert_lekiwi_wheel_action_env2robot(action: torch.Tensor | np.ndarray, base_theta: torch.Tensor) -> torch.Tensor:
+    """
+    Convert the wheel action from environment(world frame) back to user command frame.
+
+    Args:
+        action: (N, 3) tensor in world frame, [dx_world, dy_world, dtheta_body].
+        base_theta: (N,) tensor for robot base yaw (around its own z-axis) in world frame.
+
+    Returns:
+        (N, 3) tensor in user command frame, [forward, left, rotate].
+    """
+
+    cos_yaw = torch.cos(base_theta)
+    sin_yaw = torch.sin(base_theta)
+
+    dx_world = action[:, 0]
+    dy_world = action[:, 1]
+    dtheta_body = action[:, 2]
+
+    # Rotate world-frame translation back to body frame
+    dx_body = cos_yaw * dx_world + sin_yaw * dy_world
+    dy_body = -sin_yaw * dx_world + cos_yaw * dy_world
+
+    # Convert body-frame to user command frame
+    forward = dy_body  # forward(positive)
+    left = -dx_body  # left(negative)
+    rotate = dtheta_body
+
+    return torch.stack((forward, left, rotate), dim=-1)
