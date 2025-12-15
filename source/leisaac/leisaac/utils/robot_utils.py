@@ -74,13 +74,12 @@ def convert_lekiwi_wheel_action_robot2env(action: torch.Tensor, base_theta: torc
     Convert the wheel action from robot to environment.
 
     Args:
-        action: (N, 3) tensor in user command frame, [forward, left, rotate].
+        action: (N, 3) tensor in user command frame, [forward, left, rotate]. (m/s, m/s, rad/s)
         base_theta: (N,) tensor for robot base yaw (around its own z-axis) in world frame.
 
     Returns:
-        (N, 3) tensor in world frame, [dx_world, dy_world, dtheta_body], where
-        translation is expressed in world XY axes and rotation remains in the
-        robot/body frame (about its local z-axis).
+        (N, 3) tensor in world frame, [dx_world, dy_world, dtheta_body](m/s, m/s, rad/s), where translation
+        is expressed in world XY axes and rotation remains in the robot/body frame (about its local z-axis).
     """
 
     cos_yaw = torch.cos(base_theta)
@@ -103,11 +102,11 @@ def convert_lekiwi_wheel_action_env2robot(action: torch.Tensor | np.ndarray, bas
     Convert the wheel action from environment(world frame) back to user command frame.
 
     Args:
-        action: (N, 3) tensor in world frame, [dx_world, dy_world, dtheta_body].
+        action: (N, 3) tensor in world frame, [dx_world, dy_world, dtheta_body]. (m/s, m/s, rad/s)
         base_theta: (N,) tensor for robot base yaw (around its own z-axis) in world frame.
 
     Returns:
-        (N, 3) tensor in user command frame, [forward, left, rotate].
+        (N, 3) tensor in user command frame, [forward, left, rotate]. (m/s, m/s, rad/s)
     """
 
     cos_yaw = torch.cos(base_theta)

@@ -111,19 +111,20 @@ LEKIWI_CFG = ArticulationCfg(
         },
     ),
     actuators={
+        # TODO: need better parameters for sts3215-series motors
         "sts3215-gripper": ImplicitActuatorCfg(
             joint_names_expr=["gripper"],
             effort_limit_sim=10,
             velocity_limit_sim=10,
-            stiffness=17.8,
-            damping=0.60,
+            stiffness=12.8,
+            damping=1.2,
         ),
         "sts3215-arm": ImplicitActuatorCfg(
             joint_names_expr=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
             effort_limit_sim=10,
             velocity_limit_sim=10,
-            stiffness=17.8,
-            damping=0.60,
+            stiffness=12.8,
+            damping=1.2,
         ),
         "sts3215-base": ImplicitActuatorCfg(
             joint_names_expr=["base_x", "base_y", "base_theta"],

@@ -229,10 +229,14 @@ def main():  # noqa: C901
         from leisaac.devices import LeKiwiKeyboard
 
         teleop_interface = LeKiwiKeyboard(env, sensitivity=args_cli.sensitivity)
+    elif args_cli.teleop_device == "lekiwi-leader":
+        from leisaac.devices import LeKiwiLeader
+
+        teleop_interface = LeKiwiLeader(env, port=args_cli.port, recalibrate=args_cli.recalibrate)
     else:
         raise ValueError(
             f"Invalid device interface '{args_cli.teleop_device}'. Supported: 'keyboard', 'gamepad', 'so101leader',"
-            " 'bi-so101leader', 'lekiwi-keyboard'."
+            " 'bi-so101leader', 'lekiwi-keyboard', 'lekiwi-leader'."
         )
 
     # add teleoperation key for env reset
