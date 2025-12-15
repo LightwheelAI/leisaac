@@ -143,7 +143,7 @@ def preprocess_device_action(action: dict[str, Any], teleop_device) -> torch.Ten
             action["joint_state"]["arm_action"], action["motor_limits"], teleop_device
         )
         processed_action[:, 6:] = action["joint_state"]["wheel_action"]
-    elif action.get("lekiwi-keyboard") is not None:
+    elif action.get("lekiwi-keyboard") is not None or action.get("lekiwi-gamepad") is not None:
         processed_action = torch.zeros(teleop_device.env.num_envs, 11, device=teleop_device.env.device)
         processed_action[:, :] = action["joint_state"]
     else:

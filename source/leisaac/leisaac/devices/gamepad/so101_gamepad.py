@@ -34,6 +34,7 @@ class SO101Gamepad(Device):
         if "xbox" not in self._gamepad.name:
             raise ValueError("Only Xbox gamepads are supported. Please connect an Xbox gamepad and try again.")
         self._create_key_mapping()
+        self._action_update_list = [self._update_arm_action]
 
         # command buffers (dx, dy, dz, droll, dpitch, dyaw, d_shoulder_pan, d_gripper)
         self._delta_action = np.zeros(8)
@@ -108,8 +109,12 @@ class SO101Gamepad(Device):
         ]
 
     def _update_action(self):
-        """Update the delta action based on the gamepad state."""
         self._gamepad.update()
+        for update_func in self._action_update_list:
+            update_func()
+
+    def _update_arm_action(self):
+        """Update the delta action based on the gamepad state."""
         for input_key_mapping in self._INPUT_KEY_MAPPING_LIST:
             action_name, controller_name = input_key_mapping[0], input_key_mapping[1]
             reverse = input_key_mapping[2] if len(input_key_mapping) > 2 else False

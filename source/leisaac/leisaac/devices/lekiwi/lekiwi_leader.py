@@ -8,6 +8,19 @@ from ..lerobot import SO101Leader
 
 
 class LeKiwiLeader(Device):
+    """A leader controller for sending SE(2) commands as velocity commands for lekiwi.
+
+    Key bindings:
+        ============================== ================= =================
+        Description                    Key               Key
+        ============================== ================= =================
+        Forward / Backward              UP                DOWN
+        Left / Right                    LEFT              RIGHT
+        Rotate (Theta) Left / Right     Z                 X
+        Speed Level                     1 / 2 / 3
+        ============================== ================= =================
+    """
+
     def __init__(self, env, port: str = "/dev/ttyACM0", recalibrate: bool = False):
         super().__init__(env, "lekiwi-leader")
 
