@@ -125,4 +125,10 @@ def convert_lekiwi_wheel_action_env2robot(action: torch.Tensor | np.ndarray, bas
     left = -dx_body  # left(negative)
     rotate = dtheta_body
 
+    # Apply small-value thresholding to avoid numerical noise
+    eps = 1e-4
+    forward = torch.where(torch.abs(forward) < eps, torch.zeros_like(forward), forward)
+    left = torch.where(torch.abs(left) < eps, torch.zeros_like(left), left)
+    rotate = torch.where(torch.abs(rotate) < eps, torch.zeros_like(rotate), rotate)
+
     return torch.stack((forward, left, rotate), dim=-1)

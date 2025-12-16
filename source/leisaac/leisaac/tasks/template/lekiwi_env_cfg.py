@@ -30,7 +30,6 @@ class LeKiwiTaskSceneCfg(InteractiveSceneCfg):
 
     robot: ArticulationCfg = LEKIWI_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
-    # TODO: check here
     ee_frame: FrameTransformerCfg = FrameTransformerCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base",
         debug_vis=False,
@@ -39,16 +38,17 @@ class LeKiwiTaskSceneCfg(InteractiveSceneCfg):
                 prim_path="{ENV_REGEX_NS}/Robot/gripper", name="gripper"
             ),  # no offset for ik convert
             FrameTransformerCfg.FrameCfg(
-                prim_path="{ENV_REGEX_NS}/Robot/jaw", name="jaw", offset=OffsetCfg(pos=(-0.021, -0.070, 0.02))
+                prim_path="{ENV_REGEX_NS}/Robot/jaw",
+                name="jaw",
+                offset=OffsetCfg(pos=(0.02, 0.052, -0.06), rot=(0.96593, 0.25882, 0.0, 0.0)),
             ),  # set offset for obj detection
         ],
     )
 
-    # TODO: check here
     wrist: TiledCameraCfg = TiledCameraCfg(
         prim_path="{ENV_REGEX_NS}/Robot/gripper/wrist_camera",
         offset=TiledCameraCfg.OffsetCfg(
-            pos=(-0.001, 0.1, -0.04), rot=(-0.404379, -0.912179, -0.0451242, 0.0486914), convention="ros"
+            pos=(-0.001, 0.1, -0.04), rot=(0.91218, -0.40438, 0.04869, 0.04512), convention="opengl"
         ),  # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
@@ -63,17 +63,16 @@ class LeKiwiTaskSceneCfg(InteractiveSceneCfg):
         update_period=1 / 30.0,  # 30FPS
     )
 
-    # TODO: check here
     front: TiledCameraCfg = TiledCameraCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base/front_camera",
         offset=TiledCameraCfg.OffsetCfg(
-            pos=(0.0, -0.5, 0.6), rot=(0.1650476, -0.9862856, 0.0, 0.0), convention="ros"
+            pos=(0.0, 0.13, 0.025), rot=(0.64279, 0.76604, 0.0, 0.0), convention="opengl"
         ),  # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
-            focal_length=28.7,
+            focal_length=36.5,
             focus_distance=400.0,
-            horizontal_aperture=38.11,  # For a 78° FOV (assuming square image)
+            horizontal_aperture=36.83,  # For a 75° FOV (assuming square image)
             clipping_range=(0.01, 50.0),
             lock_camera=True,
         ),
@@ -139,6 +138,7 @@ class LeKiwiObservationsCfg:
             params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "robot_cfg": SceneEntityCfg("robot")},
         )
         joint_pos_target = ObsTerm(func=mdp.joint_pos_target, params={"asset_cfg": SceneEntityCfg("robot")})
+        user_vel_cmd = ObsTerm(func=mdp.user_based_velocity_command, params={"asset_cfg": SceneEntityCfg("robot")})
 
         def __post_init__(self):
             self.enable_corruption = True
