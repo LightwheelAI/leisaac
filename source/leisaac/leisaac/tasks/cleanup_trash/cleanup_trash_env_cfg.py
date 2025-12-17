@@ -28,7 +28,7 @@ class CleanupTrashSceneCfg(LeKiwiTaskSceneCfg):
 @configclass
 class TerminationsCfg(LeKiwiTerminationsCfg):
 
-    object_in_container = DoneTerm(
+    success = DoneTerm(
         func=mdp.object_in_container,
         params={
             "object_cfg": SceneEntityCfg("Tissue005"),
