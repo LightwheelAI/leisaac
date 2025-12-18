@@ -1,7 +1,9 @@
 from typing import Literal
 
+import isaaclab.sim as sim_utils
 import isaaclab.utils.math as math_utils
 import torch
+from isaaclab.assets import Articulation
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import Camera
@@ -72,3 +74,51 @@ def randomize_particle_object_uniform(
     orientations = math_utils.quat_mul(ori_world_quat, orientations_delta)
 
     particle_object.set_world_poses(positions, orientations)
+
+
+def disable_rigid_body_gravity(
+    env: ManagerBasedRLEnv,
+    env_ids: torch.Tensor,
+    asset_cfg: SceneEntityCfg,
+):
+    """Disable gravity for specific bodies in an articulation.
+
+    This function disables gravity for bodies specified in the asset_cfg.body_names.
+    It uses modify_rigid_body_properties to set disable_gravity=True for the specified bodies.
+
+    Args:
+        env: The environment instance.
+        env_ids: The environment IDs to apply the change to.
+        asset_cfg: Configuration specifying the asset and body names to disable gravity for.
+                   Use body_names to specify which bodies to disable gravity (e.g., ".*arm.*" or ["shoulder", "elbow"]).
+    """
+    # Get the asset
+    asset: Articulation = env.scene[asset_cfg.name]
+
+    # Resolve body indices from body_names (already resolved by SceneEntityCfg)
+    if asset_cfg.body_ids == slice(None):
+        body_ids = list(range(asset.num_bodies))
+    else:
+        body_ids = asset_cfg.body_ids if isinstance(asset_cfg.body_ids, list) else [asset_cfg.body_ids]
+
+    # Get link paths from the first environment (they follow the same pattern for all environments)
+    link_paths = asset.root_physx_view.link_paths[0]
+
+    # Disable gravity for each specified body
+    for body_id in body_ids:
+        if body_id >= len(link_paths):
+            continue
+
+        # Get the link path from first environment
+        first_env_link_path = link_paths[body_id]
+
+        # Convert to regex expression by replacing env_0 with env_.*
+        link_path_expr = first_env_link_path.replace("/env_0/", "/env_.*/")
+
+        # Resolve all matching prim paths and apply
+        prim_paths = sim_utils.find_matching_prim_paths(link_path_expr)
+        for prim_path in prim_paths:
+            sim_utils.modify_rigid_body_properties(
+                prim_path,
+                sim_utils.RigidBodyPropertiesCfg(disable_gravity=True),
+            )

@@ -62,7 +62,7 @@ class StreamingHDF5DatasetFileHandler(HDF5DatasetFileHandler):
             def create_dataset_helper(group, key, value):
                 """Helper method to create dataset that contains recursive dict objects."""
                 if isinstance(value, dict):
-                    key_group = group[key] if key in group else group.create_group(key)
+                    key_group = group.require_group(key)
                     for sub_key, sub_value in value.items():
                         create_dataset_helper(key_group, sub_key, sub_value)
                 else:
@@ -112,11 +112,7 @@ class StreamingHDF5DatasetFileHandler(HDF5DatasetFileHandler):
             return
 
         group_name = f"demo_{self._demo_count}"
-        h5_episode_group = (
-            self._hdf5_data_group[group_name]
-            if group_name in self._hdf5_data_group
-            else self._hdf5_data_group.create_group(group_name)
-        )
+        h5_episode_group = self._hdf5_data_group.require_group(group_name)
 
         # store number of steps taken
         if "actions" in episode.data:

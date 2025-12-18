@@ -1,3 +1,4 @@
+from dataclasses import MISSING, fields
 from typing import Any
 
 import isaaclab.envs.mdp as mdp
@@ -6,7 +7,8 @@ from leisaac.assets.robots.lerobot import SO101_FOLLOWER_USD_JOINT_LIMLITS
 
 
 def init_action_cfg(action_cfg, device):
-    if device in ["so101leader"]:
+    """SO101 Follower action configuration: arm_action and gripper_action"""
+    if device in ["so101leader", "lekiwi-leader"]:
         action_cfg.arm_action = mdp.JointPositionActionCfg(
             asset_name="robot",
             joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
@@ -17,7 +19,7 @@ def init_action_cfg(action_cfg, device):
             joint_names=["gripper"],
             scale=1.0,
         )
-    elif device in ["keyboard", "gamepad"]:
+    elif device in ["keyboard", "gamepad", "lekiwi-keyboard", "lekiwi-gamepad"]:
         action_cfg.arm_action = mdp.DifferentialInverseKinematicsActionCfg(
             asset_name="robot",
             joint_names=["shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
@@ -74,9 +76,21 @@ def init_action_cfg(action_cfg, device):
             joint_names=["gripper"],
             scale=1.0,
         )
-    else:
-        action_cfg.arm_action = None
-        action_cfg.gripper_action = None
+
+    """LeKiwi action configuration"""
+    if device in ["lekiwi-leader", "lekiwi-keyboard", "lekiwi-gamepad"]:
+        action_cfg.wheel_action = mdp.JointVelocityActionCfg(
+            asset_name="robot",
+            joint_names=["base_x", "base_y", "base_theta"],
+            scale=1.0,
+        )
+
+    """Check if all the action configurations are set"""
+    for field in fields(action_cfg):
+        value = getattr(action_cfg, field.name, None)
+        if value is None or value is MISSING:
+            raise ValueError(f"Action configuration '{field.name}' for {device} is not set")
+
     return action_cfg
 
 
@@ -123,8 +137,15 @@ def preprocess_device_action(action: dict[str, Any], teleop_device) -> torch.Ten
         processed_action[:, 6:] = convert_action_from_so101_leader(
             action["joint_state"]["right_arm"], action["motor_limits"]["right_arm"], teleop_device
         )
-    else:
-        raise NotImplementedError(
-            "Only teleoperation with so101_leader, bi_so101_leader, keyboard is supported for now."
+    elif action.get("lekiwi-leader") is not None:
+        processed_action = torch.zeros(teleop_device.env.num_envs, 9, device=teleop_device.env.device)
+        processed_action[:, :6] = convert_action_from_so101_leader(
+            action["joint_state"]["arm_action"], action["motor_limits"], teleop_device
         )
+        processed_action[:, 6:] = action["joint_state"]["wheel_action"]
+    elif action.get("lekiwi-keyboard") is not None or action.get("lekiwi-gamepad") is not None:
+        processed_action = torch.zeros(teleop_device.env.num_envs, 11, device=teleop_device.env.device)
+        processed_action[:, :] = action["joint_state"]
+    else:
+        raise NotImplementedError(f"Not implemented for this device now: {teleop_device.device_type}")
     return processed_action

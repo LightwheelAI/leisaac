@@ -81,3 +81,58 @@ SO101_FOLLOWER_REST_POSE_RANGE = {
     "wrist_roll": (0.0 - 30.0, 0.0 + 30.0),  # 0 degree
     "gripper": (-10.0 - 30.0, -10.0 + 30.0),  # -10 degree
 }
+
+
+"""Configuration for the LeKiwi Robot."""
+LEKIWI_ASSET_PATH = Path(ASSETS_ROOT) / "robots" / "lekiwi.usd"
+
+LEKIWI_CFG = ArticulationCfg(
+    spawn=sim_utils.UsdFileCfg(
+        usd_path=str(LEKIWI_ASSET_PATH),
+        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
+            enabled_self_collisions=True,
+            solver_position_iteration_count=4,
+            solver_velocity_iteration_count=4,
+        ),
+    ),
+    init_state=ArticulationCfg.InitialStateCfg(
+        pos=(0.0, 0.0, 0.0),
+        rot=(1.0, 0.0, 0.0, 0.0),
+        joint_pos={
+            "shoulder_pan": 0.0,
+            "shoulder_lift": 0.0,
+            "elbow_flex": 0.0,
+            "wrist_flex": 0.0,
+            "wrist_roll": 0.0,
+            "gripper": 0.0,
+            "base_x": 0.0,
+            "base_y": 0.0,
+            "base_theta": 0.0,
+        },
+    ),
+    actuators={
+        # TODO: need better parameters for sts3215-series motors
+        "sts3215-gripper": ImplicitActuatorCfg(
+            joint_names_expr=["gripper"],
+            effort_limit_sim=10,
+            velocity_limit_sim=10,
+            stiffness=12.8,
+            damping=1.2,
+        ),
+        "sts3215-arm": ImplicitActuatorCfg(
+            joint_names_expr=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
+            effort_limit_sim=10,
+            velocity_limit_sim=10,
+            stiffness=12.8,
+            damping=1.2,
+        ),
+        "sts3215-base": ImplicitActuatorCfg(
+            joint_names_expr=["base_x", "base_y", "base_theta"],
+            effort_limit_sim=10000.0,
+            velocity_limit_sim=100.0,
+            stiffness=0.0,
+            damping=10000.0,
+        ),
+    },
+    soft_joint_pos_limit_factor=1.0,
+)

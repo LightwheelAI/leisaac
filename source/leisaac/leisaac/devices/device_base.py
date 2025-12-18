@@ -65,6 +65,8 @@ class Device(DeviceBase):
         Args:
             env (RobotEnv): The environment which contains the robot(s) to control
                             using this device.
+            device_type: The type of the device.
+            verbose: Whether to display the controls.
         """
         self.env = env
         self.device_type = device_type
