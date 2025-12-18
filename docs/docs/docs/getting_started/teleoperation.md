@@ -23,9 +23,9 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 
 - `--seed`: Specify the seed for environment, e.g., `42`.
 
-- `--teleop_device`: Specify the teleoperation device type, e.g., `so101leader`, `bi-so101leader`, `keyboard`, `gamepad`.
+- `--teleop_device`: Specify the teleoperation device type, e.g., `so101leader`, `bi-so101leader`, `keyboard`, `gamepad`, `lekiwi-leader`, `lekiwi-keyboard`, `lekiwi-gamepad`.
 
--  `--port`: Specify the port of teleoperation device, e.g., `/dev/ttyACM0`. Only used when teleop_device is `so101leader`.
+-  `--port`: Specify the port of teleoperation device, e.g., `/dev/ttyACM0`. Only used when teleop_device is `so101leader` and `lekiwi-leader`.
 
 - `--left_arm_port`: Specify the port of left arm, e.g., `/dev/ttyACM0`. Only used when teleop_device is `bi-so101leader`.
 
@@ -43,7 +43,7 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 
 - `--resume`: Enable resume data recording from the existing dataset file.
 
-- `--task_type`: Specify task type. If your dataset is recorded with keyboard, you should set it to `keyboard`, otherwise not to set it and keep default value None.
+- `--recalibrate`: Recalibrate SO101-Leader or Bi-SO101Leader.
 
 - `--quality`: Whether to enable quality render mode.
 

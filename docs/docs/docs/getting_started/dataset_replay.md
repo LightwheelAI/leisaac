@@ -35,5 +35,9 @@ python scripts/environments/teleoperation/replay.py \
 </details>
 
 :::tip
-NOTE: If you record datasets with devices other than the Leader (for example, the keyboard or gamepad), set `task_type` to the corresponding device, such as `--task_type=keyboard` or `--task_type=gamepad`.
+NOTE:
+
+If you record datasets with devices other than the Leader (for example, the keyboard or gamepad), set `task_type` to the corresponding device, such as `--task_type=keyboard` or `--task_type=gamepad`.
+
+For Lekiwi-related tasks, the default `task_type` is `lekiwi-leader`. If you collect data using other devices, you should likewise set `task_type` to the corresponding device.
 :::
