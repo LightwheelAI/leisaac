@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Scene Composition Tool
 
@@ -9,11 +8,9 @@ Task types: toys, orange, cloth, cube
 """
 
 import argparse
-import json
 from pathlib import Path
-from typing import Dict, List
-import numpy as np
 
+import numpy as np
 
 # Configuration
 
@@ -36,12 +33,27 @@ TASK_TO_ENV = {
 TASK_CONFIG = {
     "toys": {
         "objects": [
-            "Kit1_Box", "Kit1_Bridge", "Kit1_Character_E", "Kit1_Character_G",
-            "Kit1_Character_H", "Kit1_Character_I", "Kit1_Character_L",
-            "Kit1_Character_Lcap", "Kit1_Character_T", "Kit1_Character_W",
-            "Kit1_Cross", "Kit1_Cube3x3", "Kit1_Cube6x6", "Kit1_Cuboid6x3",
-            "Kit1_Cylinder", "Kit1_Icosphere", "Kit1_Sphere", "Kit1_Torus",
-            "Kit1_Triangle", "Kit1_Character_H_01", "Kit1_Character_E_01",
+            "Kit1_Box",
+            "Kit1_Bridge",
+            "Kit1_Character_E",
+            "Kit1_Character_G",
+            "Kit1_Character_H",
+            "Kit1_Character_I",
+            "Kit1_Character_L",
+            "Kit1_Character_Lcap",
+            "Kit1_Character_T",
+            "Kit1_Character_W",
+            "Kit1_Cross",
+            "Kit1_Cube3x3",
+            "Kit1_Cube6x6",
+            "Kit1_Cuboid6x3",
+            "Kit1_Cylinder",
+            "Kit1_Icosphere",
+            "Kit1_Sphere",
+            "Kit1_Torus",
+            "Kit1_Triangle",
+            "Kit1_Character_H_01",
+            "Kit1_Character_E_01",
             "KidRoom_Table01",
         ],
         "source_scene": "scenes/lightwheel_toyroom/scene.usd",
@@ -69,13 +81,14 @@ TASK_CONFIG = {
 
 # Transform Utilities
 
+
 def quat_to_matrix(q):
     """Quaternion [w,x,y,z] -> 3x3 rotation matrix"""
     w, x, y, z = np.array(q) / np.linalg.norm(q)
     return np.array([
-        [1 - 2*(y*y + z*z), 2*(x*y - z*w),     2*(x*z + y*w)],
-        [2*(x*y + z*w),     1 - 2*(x*x + z*z), 2*(y*z - x*w)],
-        [2*(x*z - y*w),     2*(y*z + x*w),     1 - 2*(x*x + y*y)],
+        [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+        [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+        [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)],
     ])
 
 
@@ -84,16 +97,16 @@ def matrix_to_quat(R):
     tr = np.trace(R)
     if tr > 0:
         s = 2 * np.sqrt(tr + 1)
-        return [s/4, (R[2,1]-R[1,2])/s, (R[0,2]-R[2,0])/s, (R[1,0]-R[0,1])/s]
-    elif R[0,0] > R[1,1] and R[0,0] > R[2,2]:
-        s = 2 * np.sqrt(1 + R[0,0] - R[1,1] - R[2,2])
-        return [(R[2,1]-R[1,2])/s, s/4, (R[0,1]+R[1,0])/s, (R[0,2]+R[2,0])/s]
-    elif R[1,1] > R[2,2]:
-        s = 2 * np.sqrt(1 + R[1,1] - R[0,0] - R[2,2])
-        return [(R[0,2]-R[2,0])/s, (R[0,1]+R[1,0])/s, s/4, (R[1,2]+R[2,1])/s]
+        return [s / 4, (R[2, 1] - R[1, 2]) / s, (R[0, 2] - R[2, 0]) / s, (R[1, 0] - R[0, 1]) / s]
+    elif R[0, 0] > R[1, 1] and R[0, 0] > R[2, 2]:
+        s = 2 * np.sqrt(1 + R[0, 0] - R[1, 1] - R[2, 2])
+        return [(R[2, 1] - R[1, 2]) / s, s / 4, (R[0, 1] + R[1, 0]) / s, (R[0, 2] + R[2, 0]) / s]
+    elif R[1, 1] > R[2, 2]:
+        s = 2 * np.sqrt(1 + R[1, 1] - R[0, 0] - R[2, 2])
+        return [(R[0, 2] - R[2, 0]) / s, (R[0, 1] + R[1, 0]) / s, s / 4, (R[1, 2] + R[2, 1]) / s]
     else:
-        s = 2 * np.sqrt(1 + R[2,2] - R[0,0] - R[1,1])
-        return [(R[1,0]-R[0,1])/s, (R[0,2]+R[2,0])/s, (R[1,2]+R[2,1])/s, s/4]
+        s = 2 * np.sqrt(1 + R[2, 2] - R[0, 0] - R[1, 1])
+        return [(R[1, 0] - R[0, 1]) / s, (R[0, 2] + R[2, 0]) / s, (R[1, 2] + R[2, 1]) / s, s / 4]
 
 
 def pose_to_matrix(pos, quat):
@@ -117,8 +130,8 @@ def compute_scene_transform(orig_pos, orig_quat, target_pos, target_quat):
     return matrix_to_pose(T_inv)
 
 
-
 # USD Utilities
+
 
 def get_object_usd_path(task_type: str, obj_name: str, assets_base: str) -> str:
     """Resolve USD file path for an object"""
@@ -146,7 +159,7 @@ def get_object_usd_path(task_type: str, obj_name: str, assets_base: str) -> str:
     raise ValueError(f"Unknown object: {obj_name}")
 
 
-def read_layout_from_usd(usd_path: str, object_names: List[str]) -> Dict[str, Dict]:
+def read_layout_from_usd(usd_path: str, object_names: list[str]) -> dict[str, dict]:
     """Read object poses from USD (first-level children of root prim)"""
     from pxr import Usd, UsdGeom
 
@@ -167,10 +180,7 @@ def read_layout_from_usd(usd_path: str, object_names: List[str]) -> Dict[str, Di
         t = xform.ExtractTranslation()
         r = xform.ExtractRotationQuat()
 
-        layout[name] = {
-            "pos": [t[0], t[1], t[2]],
-            "rot": [r.GetReal(), *r.GetImaginary()]
-        }
+        layout[name] = {"pos": [t[0], t[1], t[2]], "rot": [r.GetReal(), *r.GetImaginary()]}
 
     # Report missing
     for name in object_names:
@@ -180,13 +190,13 @@ def read_layout_from_usd(usd_path: str, object_names: List[str]) -> Dict[str, Di
     return layout
 
 
-def load_robot_pose(task_type: str, use_dual_arm: bool = False) -> Dict[str, List[float]]:
+def load_robot_pose(task_type: str, use_dual_arm: bool = False) -> dict[str, list[float]]:
     """Load robot init pose from EnvCfg (requires Isaac Sim running)
-    
+
     Args:
         task_type: Task type (toys, orange, cloth, cube)
         use_dual_arm: If True, use dual-arm configuration and read left_arm pose
-    
+
     Returns:
         Dictionary with 'pos' and 'quat' keys
     """
@@ -196,7 +206,7 @@ def load_robot_pose(task_type: str, use_dual_arm: bool = False) -> Dict[str, Lis
     task_env = TASK_TO_ENV.get(task_type)
     if not task_env:
         raise ValueError(f"Unknown task type: {task_type}")
-    
+
     if use_dual_arm:
         env_id = task_env.get("dual")
         if not env_id:
@@ -207,28 +217,29 @@ def load_robot_pose(task_type: str, use_dual_arm: bool = False) -> Dict[str, Lis
             print(f"[INFO] Using dual-arm config: {env_id}")
     else:
         env_id = task_env["single"]
-    
+
     env_cfg = parse_env_cfg(env_id, device="cpu", num_envs=1)
-    
+
     # For dual-arm, read left_arm as reference
     if use_dual_arm:
         init = env_cfg.scene.left_arm.init_state
-        print(f"[INFO] Using left_arm as reference")
+        print("[INFO] Using left_arm as reference")
     else:
         init = env_cfg.scene.robot.init_state
-    
+
     return {"pos": list(init.pos), "quat": list(init.rot)}
 
 
 # Main Functions
+
 
 def compose_scene(
     task_type: str,
     background_usd: str,
     output_usd: str,
     assets_base: str,
-    target_pos: List[float],
-    target_quat: List[float],
+    target_pos: list[float],
+    target_quat: list[float],
     include_table: bool = False,
     use_dual_arm: bool = False,
 ) -> str:
@@ -236,12 +247,12 @@ def compose_scene(
     Compose USD scene:
     1. Transform background to align with robot's original position
     2. Place objects at their original positions
-    
+
     Args:
         include_table: Include table in output (default: False)
         use_dual_arm: Use dual-arm configuration (toys/cloth only, uses left_arm as reference)
     """
-    from pxr import Usd, UsdGeom, Gf
+    from pxr import Gf, Usd, UsdGeom
 
     config = TASK_CONFIG[task_type]
     table_name = config.get("table_name")
@@ -270,9 +281,7 @@ def compose_scene(
         orig_pos, orig_quat = robot["pos"], robot["quat"]
         print(f"[INFO] Using robot as reference: pos={orig_pos}")
 
-    scene_pos, scene_quat = compute_scene_transform(
-        orig_pos, orig_quat, target_pos, target_quat
-    )
+    scene_pos, scene_quat = compute_scene_transform(orig_pos, orig_quat, target_pos, target_quat)
 
     # Filter out table if not included
     if not include_table and table_name:
@@ -312,45 +321,50 @@ def compose_scene(
     return output_usd
 
 
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Compose USD scene with transformed background and task objects",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    parser.add_argument("--task", required=True, choices=list(TASK_TO_ENV.keys()),
-                        help="Task type")
-    parser.add_argument("--background", required=True, metavar="USD",
-                        help="Background scene USD")
-    parser.add_argument("--output", required=True, metavar="USD",
-                        help="Output USD path")
-    parser.add_argument("--assets-base", required=True, metavar="DIR",
-                        help="Base path for object assets")
-    parser.add_argument("--target-pos", type=float, nargs=3, required=True,
-                        metavar=("X", "Y", "Z"), help="Target robot position")
-    parser.add_argument("--target-quat", type=float, nargs=4, default=[1, 0, 0, 0],
-                        metavar=("W", "X", "Y", "Z"), help="Target robot quaternion")
-    parser.add_argument("--include-table", action="store_true",
-                        help="Include table in output")
-    parser.add_argument("--dual-arm", action="store_true",
-                        help="Use dual-arm configuration (toys/cloth only, uses left_arm as reference)")
+    parser.add_argument("--task", required=True, choices=list(TASK_TO_ENV.keys()), help="Task type")
+    parser.add_argument("--background", required=True, metavar="USD", help="Background scene USD")
+    parser.add_argument("--output", required=True, metavar="USD", help="Output USD path")
+    parser.add_argument("--assets-base", required=True, metavar="DIR", help="Base path for object assets")
+    parser.add_argument(
+        "--target-pos", type=float, nargs=3, required=True, metavar=("X", "Y", "Z"), help="Target robot position"
+    )
+    parser.add_argument(
+        "--target-quat",
+        type=float,
+        nargs=4,
+        default=[1, 0, 0, 0],
+        metavar=("W", "X", "Y", "Z"),
+        help="Target robot quaternion",
+    )
+    parser.add_argument("--include-table", action="store_true", help="Include table in output")
+    parser.add_argument(
+        "--dual-arm",
+        action="store_true",
+        help="Use dual-arm configuration (toys/cloth only, uses left_arm as reference)",
+    )
 
     args = parser.parse_args()
 
     # Set LEISAAC_ASSETS_ROOT to the provided assets base path
     import os
+
     os.environ["LEISAAC_ASSETS_ROOT"] = args.assets_base
     print(f"[INFO] Set LEISAAC_ASSETS_ROOT={args.assets_base}")
 
     # Initialize Isaac Sim
     from isaaclab.app import AppLauncher
+
     app_launcher = AppLauncher({"headless": True})
     simulation_app = app_launcher.app
 
     # Register environments
-    import leisaac.tasks  
+    import leisaac.tasks  # noqa: F401
 
     # Compose scene
     compose_scene(
