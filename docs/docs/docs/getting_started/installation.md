@@ -103,8 +103,9 @@ Below are the download links for the scenes we provide. For more high-quality sc
 | Lightwheel Toyroom   | Modern room with many toys         | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.1)                  |
 | Table with Cube      | Simple table with one cube         | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.2)                  |
 | Lightwheel Bedroom   | Realistic bedroom scene with cloth | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.2.0)                  |
+| Lightwheel Loft      | Large two-story loft               | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.3.0)                  |
 
-You can also download scenes from [huggingface](https://huggingface.co/LightwheelAI/leisaac_env/tree/main), which be stored in the `assets` directory.
+You can also download scenes from [huggingface](https://huggingface.co/LightwheelAI/leisaac_env/tree/main); they should be placed in the `assets` directory. Robot assets can also be found and downloaded from this repository.
 ::::
 
 ## 3. Device Setup
