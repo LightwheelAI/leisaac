@@ -9,7 +9,7 @@ This tutorial walks you through how to integrate **Marble-Generate** scenes into
     <td width="50%" align="center">
       <div>
         <video
-          src="TOY_ROOM"
+          src="https://github.com/user-attachments/assets/43163069-9c35-4a7e-a7c5-6c309b98061d"
           autoPlay loop muted playsInline style={{maxHeight: '250px'}}
         ></video>
       </div>
@@ -17,7 +17,7 @@ This tutorial walks you through how to integrate **Marble-Generate** scenes into
     <td width="50%" align="center">
       <div>
         <video
-          src="KITCHEN"
+          src="https://github.com/user-attachments/assets/b6580022-9f6b-428f-ab27-a4dae0248e0e"
           autoPlay loop muted playsInline style={{maxHeight: '250px'}}
         ></video>
       </div>
@@ -83,7 +83,7 @@ In this step, we combine **Gaussian Splatting** for high-quality visual renderin
 
 <video
   controls
-  src="Load and Align the Gaussian Scene and Collision Mesh"
+  src="https://github.com/user-attachments/assets/8a30d743-8deb-4f8b-b663-99914f665339"
   style={{ width: '100%', maxWidth: '960px', borderRadius: '8px' }}
 />
 
@@ -94,7 +94,7 @@ In this step, we combine **Gaussian Splatting** for high-quality visual renderin
 
 <video
   controls
-  src="Configure Physics and Colliders for the Mesh"
+  src="https://github.com/user-attachments/assets/c5e312b4-4d65-49b8-bee9-94d12595edce"
   style={{ width: '100%', maxWidth: '960px', borderRadius: '8px' }}
 />
 
@@ -106,7 +106,7 @@ In this step, we combine **Gaussian Splatting** for high-quality visual renderin
 
 <video
   controls
-  src="Optimize Visuals and Export the Final USD"
+  src="https://github.com/user-attachments/assets/55e3ba79-df1d-4189-9359-5b64c5ded54a"
   style={{ width: '100%', maxWidth: '960px', borderRadius: '8px' }}
 />
 
@@ -139,7 +139,7 @@ Record the robot transform:
 
 <video
   controls
-  src="Robot_tranform"
+  src="https://github.com/user-attachments/assets/bd511d11-3395-4466-92e8-6f1f82ead1b8"
   style={{ width: '100%', maxWidth: '960px', borderRadius: '8px' }}
 />
 
@@ -190,7 +190,6 @@ The table USD files are located under the corresponding task directories in
 * **toys**: `KidRoom_Table01`
 * **cloth**: `Table038`
 
-
 #### 2.2.1: Place the Table
 1. Create a new `Xform` prim for the table.
 2. Add the **Table USD** as a **reference** under this `Xform`.
@@ -203,7 +202,7 @@ The table USD files are located under the corresponding task directories in
 
 <video
   controls
-  src="Table_transform"
+  src="https://github.com/user-attachments/assets/4f9d0c8c-4951-4436-a4ea-de47c5a6a7f6"
   style={{ width: '100%', maxWidth: '960px', borderRadius: '8px' }}
 />
 
@@ -305,12 +304,13 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 ```
 
 #### Results Example
+
 <table>
   <tr>
     <td width="50%" align="center">
       <div>
         <video
-          src="notable_record"
+          src="https://github.com/user-attachments/assets/42899f7e-2513-4ede-859b-a259b187816f"
           autoPlay loop muted playsInline style={{maxHeight: '250px'}}
         ></video>
       </div>
@@ -318,7 +318,7 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
     <td width="50%" align="center">
       <div>
         <video
-          src="table_record"
+          src="https://github.com/user-attachments/assets/d264f1ef-e094-4935-8c88-5b6af3874eac"
           autoPlay loop muted playsInline style={{maxHeight: '250px'}}
         ></video>
       </div>
