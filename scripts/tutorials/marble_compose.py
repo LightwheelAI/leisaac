@@ -26,7 +26,7 @@ TASK_TO_ENV = {
         "dual": "LeIsaac-SO101-FoldCloth-BiArm-v0",
     },
     "cube": {
-        "single": "LeIsaac-SO101-PickCube-v0",
+        "single": "LeIsaac-SO101-LiftCube-v0",
     },
 }
 

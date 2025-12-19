@@ -69,6 +69,12 @@ const sidebars = {
           link: { type: 'doc', id: 'docs/tutorials/custom_task' },
           items: [],
         },
+        {
+          type: 'category',
+          label: 'Marble × LeIsaac',
+          link: { type: 'doc', id: 'docs/tutorials/marble_tutorial' },
+          items: [],
+        },
       ],
     },
     {
