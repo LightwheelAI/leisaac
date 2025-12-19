@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "leisaac"
-version = "0.2.0"
+version = "0.3.0"
 description = "leisaac: Lerobot & IsaacLab Integration"
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -15,8 +15,8 @@ maintainers = []
 keywords = ["extension", "isaaclab", "leisaac", "lerobot"]
 classifiers = [
     "Natural Language :: English",
-    "Programming Language :: Python :: 3.10",
-    "Isaac Sim :: 4.5.0",
+    "Programming Language :: Python :: 3.11",
+    "Isaac Sim :: 5.1.0",
 ]
 requires-python = ">=3.10"
 dependencies = [
