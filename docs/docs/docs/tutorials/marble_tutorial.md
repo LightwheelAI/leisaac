@@ -311,7 +311,7 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
       <div>
         <video
           src="https://github.com/user-attachments/assets/42899f7e-2513-4ede-859b-a259b187816f"
-          autoPlay loop muted playsInline style={{maxHeight: '250px'}}
+          controls muted playsInline style={{maxHeight: '250px'}}
         ></video>
       </div>
     </td>
@@ -319,7 +319,7 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
       <div>
         <video
           src="https://github.com/user-attachments/assets/d264f1ef-e094-4935-8c88-5b6af3874eac"
-          autoPlay loop muted playsInline style={{maxHeight: '250px'}}
+          controls muted playsInline style={{maxHeight: '250px'}}
         ></video>
       </div>
     </td>
