@@ -41,7 +41,7 @@ Follow the instructions in the **[Marble documentation](https://docs.worldlabs.a
 ![marble](/img/tutorials/marble_instruct.jpg)
 
 ::::tip
-- For best results, please use high-resolution images or videos.  
+- For best results, please use high-resolution images or videos.
 - It is recommended to refine and finalize the **panorama** before generating the full world.
 - **Real-world capture tips:** Use an **eye-level view**, maintain a **moderate distance**, and capture the scene **without occlusions**. **Avoid top-down or bottom-up angles** and ensure objects appearing in mirrors are also directly visible.
 - When possible, **using panorama image** usually improves spatial completeness, background continuity, and overall clarity. **Panorama** resources can be referenced at: [PolyHaven](https://polyhaven.com/), or you can capture your own **multi-angle images and feed them into Marble.**
@@ -75,10 +75,10 @@ In this step, we combine **Gaussian Splatting** for high-quality visual renderin
 
 #### 1.3.1: Load and Align the Gaussian Scene and Collision Mesh
 
-- Begin by double-clicking the generated `.usdz` file to extract its contents. Locate `default.usda` in the extracted folder and drag it into the **Isaac Sim GUI viewport** to load the Gaussian splatting scene used for rendering.  
-- Next, in the **Stage** panel, create an Xform at `/World/Xform`, select it, and add a reference to the `texture_mesh.glb` file using an **absolute file path**. At this point, the scene should contain `/World/gauss` for Gaussian rendering and `/World/Xform` for mesh-based collisions.  
-- Before adjusting the mesh, first ensure that `/World/gauss` is **aligned with the world coordinate system**.Then **align `/World/Xform` to match the Gaussian scene**.Always ensure that the Gaussian splats and mesh geometry overlap correctly in the viewport. 
-   * In most cases, rotating `/World/Xform` by **180 degrees around the Z axis** is sufficient. Depending on the source data, you may also need to apply scaling (commonly ×100) or additional translation and rotation adjustments.     
+- Begin by double-clicking the generated `.usdz` file to extract its contents. Locate `default.usda` in the extracted folder and drag it into the **Isaac Sim GUI viewport** to load the Gaussian splatting scene used for rendering.
+- Next, in the **Stage** panel, create an Xform at `/World/Xform`, select it, and add a reference to the `texture_mesh.glb` file using an **absolute file path**. At this point, the scene should contain `/World/gauss` for Gaussian rendering and `/World/Xform` for mesh-based collisions.
+- Before adjusting the mesh, first ensure that `/World/gauss` is **aligned with the world coordinate system**.Then **align `/World/Xform` to match the Gaussian scene**.Always ensure that the Gaussian splats and mesh geometry overlap correctly in the viewport.
+   * In most cases, rotating `/World/Xform` by **180 degrees around the Z axis** is sufficient. Depending on the source data, you may also need to apply scaling (commonly ×100) or additional translation and rotation adjustments.
    * In this example, `/World/gauss` is first **rotated 180 degrees around the X axis**, and `/World/Xform` is rotated **90 degrees around the X axis** followed by **180 degrees around the Z axis** to achieve proper alignment.
 
 <video
@@ -89,7 +89,7 @@ In this step, we combine **Gaussian Splatting** for high-quality visual renderin
 
 #### 1.3.2: Configure Physics and Colliders for the Mesh
 
-- After alignment is complete, configure physics on the collision mesh. Select `/World/Xform` and add physics using the **Rigid Body with Colliders Preset**, then enable **Kinematic** in the **Rigid Body** settings so the mesh behaves as a static collision object.  
+- After alignment is complete, configure physics on the collision mesh. Select `/World/Xform` and add physics using the **Rigid Body with Colliders Preset**, then enable **Kinematic** in the **Rigid Body** settings so the mesh behaves as a static collision object.
 - Next, locate the mesh prim under `/World/Xform` (typically `/World/Xform/decimated_mesh` or `/World/Xform/decimated_mesh/Mesh0`, i.e., **the prim whose Type is `Mesh`**).Under **Physics → Collider**, set the **Approximation** mode to `meshSimplification`. This setup provides accurate collision behavior while maintaining good simulation performance.
 
 <video
@@ -100,8 +100,8 @@ In this step, we combine **Gaussian Splatting** for high-quality visual renderin
 
 #### 1.3.3: Optimize Visuals and Export the Final USD
 
-- For improved visual quality, you may optionally **hide the mesh geometry and keep only the Gaussian splats visible**, while still preserving the underlying collision volumes.  
-- **Collision visualization** can be enabled when needed for debugging or inspection.  
+- For improved visual quality, you may optionally **hide the mesh geometry and keep only the Gaussian splats visible**, while still preserving the underlying collision volumes.
+- **Collision visualization** can be enabled when needed for debugging or inspection.
 - Once both rendering and collision behavior are verified, **save the combined scene as a single USD file** (for example, `scene.usd`).This USD will be used as the **background scene** in the next step.
 
 <video
@@ -207,7 +207,7 @@ The table USD files are located under the corresponding task directories in
 />
 
 #### 2.2.2: Compose the Scene
-To compose the scene, please run the follwing script:
+To compose the scene, please run the following script:
 
 ```bash
 python scripts/tutorials/marble_compose.py \
@@ -232,7 +232,7 @@ For dual-arm tasks, the workflow remains the same with one key assumption:
 > You still use **one single-arm SO101 Follower** to locate desired pose.
 > This robot is considered as the **left arm** in the dual-arm setup
 
-To compose the scene, please run the follwing script:
+To compose the scene, please run the following script:
 
 ```bash
 python scripts/tutorials/marble_compose.py \
