@@ -1,4 +1,4 @@
-# Marble × LeIsaac: Large-Scale Generalization and Customization of Embodied Environments
+# LeIsaac × Marble: Large-Scale Generalization and Customization of Embodied Environments
 
 This tutorial walks you through how to integrate **Marble-Generate** scenes into **LeIsaac**, allowing you to build and evaluate diverse embodied tasks across large-scale generalized environments.
 

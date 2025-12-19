@@ -71,7 +71,7 @@ const sidebars = {
         },
         {
           type: 'category',
-          label: 'Marble × LeIsaac',
+          label: 'LeIsaac × Marble',
           link: { type: 'doc', id: 'docs/tutorials/marble_tutorial' },
           items: [],
         },
