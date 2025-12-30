@@ -1,7 +1,9 @@
 import os
+from typing import Optional
 
 import h5py
 import numpy as np
+import typer
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from tqdm import tqdm
 
@@ -212,8 +214,9 @@ def process_single_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py
             "observation.state": joint_pos[frame_index],
             "observation.images.front": front_images[frame_index],
             "observation.images.wrist": wrist_images[frame_index],
+            "task": task,
         }
-        dataset.add_frame(frame=frame, task=task)
+        dataset.add_frame(frame=frame)
 
     return True
 
@@ -262,21 +265,32 @@ def process_bi_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Gro
     return True
 
 
-def convert_isaaclab_to_lerobot():
-    """NOTE: Modify the following parameters to fit your own dataset"""
-    repo_id = "EverNorif/so101_test_orange_pick"
-    robot_type = "so101_follower"  # so101_follower, bi_so101_follower
-    fps = 30
-    hdf5_root = "./datasets"
-    hdf5_files = [os.path.join(hdf5_root, "dataset.hdf5")]
-    task = "Grab orange and place into plate"
-    push_to_hub = False
+app = typer.Typer()
 
-    """parameters check"""
+
+@app.command()
+def convert_isaaclab_to_lerobot(
+    repo_id: str = typer.Option("EverNorif/so101_test_orange_pick", "--repo-id", "-r", help="Repository ID"),
+    robot_type: str = typer.Option("so101_follower", "--robot-type", "-t", help="Robot type: so101_follower or bi_so101_follower"),
+    fps: int = typer.Option(30, "--fps", "-f", help="Frames per second"),
+    hdf5_root: str = typer.Option("./datasets", "--hdf5-root", "-d", help="HDF5 root directory"),
+    hdf5_files: Optional[str] = typer.Option(None, "--hdf5-files", help="HDF5 files (comma-separated). If not provided, uses dataset.hdf5 in hdf5_root"),
+    task: str = typer.Option("Grab orange and place into plate", "--task", help="Task description"),
+    push_to_hub: bool = typer.Option(False, "--push-to-hub", help="Push to hub"),
+):
+    """Convert IsaacLab dataset to LeRobot format"""
+    # parameters check
     assert robot_type in [
         "so101_follower",
         "bi_so101_follower",
     ], "robot_type must be so101_follower or bi_so101_follower"
+    
+    # Set default hdf5_files if not provided
+    if hdf5_files is None:
+        hdf5_files_list = [os.path.join(hdf5_root, "dataset.hdf5")]
+    else:
+        hdf5_files_list = [os.path.join(hdf5_root, f.strip()) if not os.path.isabs(f.strip()) else f.strip() 
+                          for f in hdf5_files.split(",")]
 
     """convert to LeRobotDataset"""
     now_episode_index = 0
@@ -287,8 +301,8 @@ def convert_isaaclab_to_lerobot():
         features=SINGLE_ARM_FEATURES if robot_type == "so101_follower" else BI_ARM_FEATURES,
     )
 
-    for hdf5_id, hdf5_file in enumerate(hdf5_files):
-        print(f"[{hdf5_id+1}/{len(hdf5_files)}] Processing hdf5 file: {hdf5_file}")
+    for hdf5_id, hdf5_file in enumerate(hdf5_files_list):
+        print(f"[{hdf5_id+1}/{len(hdf5_files_list)}] Processing hdf5 file: {hdf5_file}")
         with h5py.File(hdf5_file, "r") as f:
             demo_names = list(f["data"].keys())
             print(f"Found {len(demo_names)} demos: {demo_names}")
@@ -314,4 +328,5 @@ def convert_isaaclab_to_lerobot():
 
 
 if __name__ == "__main__":
-    convert_isaaclab_to_lerobot()
+    app()
+
