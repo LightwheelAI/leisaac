@@ -26,6 +26,22 @@ Please refer to our [documentation](https://lightwheelai.github.io/leisaac/) to 
 >
 > For more features and updates, please refer to the [News](https://lightwheelai.github.io/leisaac/#news) section on our website!
 
+## Citation 📝
+
+If you use leisaac, please cite it as follows.
+
+```txt
+@software{Lightwheel_and_LeIsaac_Project_Developers_LeIsaac_2025,
+author = {{Lightwheel} and {LeIsaac Project Developers}},
+license = {Apache-2.0},
+month = dec,
+title = {{LeIsaac}},
+url = {https://github.com/LightwheelAI/leisaac},
+version = {0.3.0},
+year = {2025}
+}
+```
+
 ## Acknowledgements 🙏
 
 We gratefully acknowledge [IsaacLab](https://github.com/isaac-sim/IsaacLab) and [LeRobot](https://github.com/huggingface/lerobot) for their excellent work, from which we have borrowed some code.
