@@ -10,7 +10,7 @@ from tqdm import tqdm
 NOTE: Please use the environment of lerobot.
 
 Because lerobot is rapidly developing, we don't guarantee the compatibility for the latest version of lerobot.
-Currently, the commit we used is https://github.com/huggingface/lerobot/tree/v0.3.3
+Currently, the commit we used is https://github.com/huggingface/lerobot/tree/v0.4.2
 """
 
 # Feature definition for single-arm so101_follower
@@ -258,8 +258,9 @@ def process_bi_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Gro
             "observation.images.left_wrist": left_images[frame_index],
             "observation.images.top": top_images[frame_index],
             "observation.images.right_wrist": right_images[frame_index],
+            "task": task,
         }
-        dataset.add_frame(frame=frame, task=task)
+        dataset.add_frame(frame=frame)
 
     return True
 
