@@ -87,7 +87,7 @@ class Gr00tServicePolicyClient(ZMQServicePolicy):
 class LeRobotServicePolicyClient(Policy):
     """
     Service policy client for Lerobot: https://github.com/huggingface/lerobot
-    Target Commit: https://github.com/huggingface/lerobot/tree/v0.3.3
+    Target Commit: https://github.com/huggingface/lerobot/tree/v0.4.2
     """
 
     def __init__(
