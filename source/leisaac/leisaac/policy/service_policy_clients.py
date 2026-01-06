@@ -224,7 +224,6 @@ class LeRobotServicePolicyClient(Policy):
             self._send_observation(observation_dict)
         action_chunk = self._receive_action()
         if action_chunk is None:
-            self.skip_send_observation = True
             return torch.from_numpy(self.last_action).repeat(self.actions_per_chunk, 1)[:, None, :]
 
         action_list = [action.get_action()[None, :] for action in action_chunk]
