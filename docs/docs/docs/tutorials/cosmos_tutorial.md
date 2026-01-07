@@ -112,7 +112,7 @@ After post-training, the Cosmos-Predict2.5 model checkpoints are typically saved
 
 Once the checkpoint has been converted, run video generation inference following the [official running-inference instructions ](https://github.com/nvidia-cosmos/cosmos-predict2.5/blob/main/docs/post-training_video2world_gr00t.md#32-running-inference). 
 
-#### 🔬**Batch Inference (Used for fine-tuning IDM)**
+🔬 **Batch Inference (Used for fine-tuning IDM)**
 
 For large-scale video generation, batch inference is supported.  
 Copy the batch inference helper script `generate_batch_config.py` into the folder:`cosmos-predict2.5/scripts/`.
@@ -155,7 +155,7 @@ For IDM fine-tuning, please refer to **[training-custom-idm-model](https://githu
 
 #### 3.2.1 Preparation: Modality Metadata and DataConfig
 
-##### Step 1: Add modality.json
+**Step 1: Add modality.json**
 
 Create `modality.json` under `GR00T-Dreams/IDM_dump/global_metadata/{embodiment_name}/` and copy the same file to `<path_to_lerobot_dataset>/meta/`
 
@@ -189,7 +189,7 @@ Create `modality.json` under `GR00T-Dreams/IDM_dump/global_metadata/{embodiment_
 ```
 </details>
 
-##### Step 2: Add a New DataConfig (So101DataConfig)
+**Step 2: Add a New DataConfig (So101DataConfig)**
 
 Add a new `So101DataConfig` class defining in `GR00T-Dreams/gr00t/experiment/data_config_idm.py`:
 
