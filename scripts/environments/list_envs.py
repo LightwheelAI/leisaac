@@ -24,9 +24,8 @@ simulation_app = app_launcher.app
 """Rest everything follows."""
 
 import gymnasium as gym
-from prettytable import PrettyTable
-
 import leisaac  # noqa: F401
+from prettytable import PrettyTable
 
 
 def main():
