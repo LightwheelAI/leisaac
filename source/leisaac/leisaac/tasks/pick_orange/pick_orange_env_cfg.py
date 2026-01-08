@@ -84,6 +84,8 @@ class PickOrangeEnvCfg(SingleArmTaskEnvCfg):
 
     terminations: TerminationsCfg = TerminationsCfg()
 
+    task_description: str = "Pick three oranges and put them into the plate, then reset the arm to rest state."
+
     def __post_init__(self) -> None:
         super().__post_init__()
 

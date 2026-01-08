@@ -28,6 +28,8 @@ class EnhanceDatasetExportMode(enum.IntEnum):
 
     EXPORT_ALL_RESUME = 0  # Export all episodes to a single dataset file and resume recording
     # NOTE: the exact value is same as DatasetExportMode.EXPORT_NONE, we don't support DatasetExportMode.EXPORT_NONE when recording
+    EXPORT_SUCCEEDED_ONLY_RESUME = 4  # Export only succeeded episodes to a single dataset file and resume recording
+    # NOTE: the exact value is different from DatasetExportMode, which contains 0-3
 
 
 class StreamingRecorderManager(RecorderManager):

@@ -11,6 +11,7 @@ import multiprocessing
 if multiprocessing.get_start_method() != "spawn":
     multiprocessing.set_start_method("spawn", force=True)
 import argparse
+import signal
 
 from isaaclab.app import AppLauncher
 
@@ -64,6 +65,9 @@ parser.add_argument(
 
 parser.add_argument("--recalibrate", action="store_true", help="recalibrate SO101-Leader or Bi-SO101Leader")
 parser.add_argument("--quality", action="store_true", help="whether to enable quality render mode.")
+parser.add_argument("--use_lerobot_recorder", action="store_true", help="whether to use lerobot recorder.")
+parser.add_argument("--lerobot_dataset_repo_id", type=str, default=None, help="Lerobot Dataset repository ID.")
+parser.add_argument("--lerobot_dataset_fps", type=int, default=30, help="Lerobot Dataset frames per second.")
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -180,16 +184,22 @@ def main():  # noqa: C901
             env_cfg.terminations.success = None
     # recorder preprocess & manual success terminate preprocess
     if args_cli.record:
-        if args_cli.resume:
-            env_cfg.recorders.dataset_export_mode = EnhanceDatasetExportMode.EXPORT_ALL_RESUME
-            assert os.path.exists(
-                args_cli.dataset_file
-            ), "the dataset file does not exist, please don't use '--resume' if you want to record a new dataset"
+        if args_cli.use_lerobot_recorder:
+            if args_cli.resume:
+                env_cfg.recorders.dataset_export_mode = EnhanceDatasetExportMode.EXPORT_SUCCEEDED_ONLY_RESUME
+            else:
+                env_cfg.recorders.dataset_export_mode = DatasetExportMode.EXPORT_SUCCEEDED_ONLY
         else:
-            env_cfg.recorders.dataset_export_mode = DatasetExportMode.EXPORT_ALL
-            assert not os.path.exists(
-                args_cli.dataset_file
-            ), "the dataset file already exists, please use '--resume' to resume recording"
+            if args_cli.resume:
+                env_cfg.recorders.dataset_export_mode = EnhanceDatasetExportMode.EXPORT_ALL_RESUME
+                assert os.path.exists(
+                    args_cli.dataset_file
+                ), "the dataset file does not exist, please don't use '--resume' if you want to record a new dataset"
+            else:
+                env_cfg.recorders.dataset_export_mode = DatasetExportMode.EXPORT_ALL
+                assert not os.path.exists(
+                    args_cli.dataset_file
+                ), "the dataset file already exists, please use '--resume' to resume recording"
         env_cfg.recorders.dataset_export_dir_path = output_dir
         env_cfg.recorders.dataset_filename = output_file_name
         if is_direct_env:
@@ -208,9 +218,23 @@ def main():  # noqa: C901
     # replace the original recorder manager with the streaming recorder manager
     if args_cli.record:
         del env.recorder_manager
-        env.recorder_manager = StreamingRecorderManager(env_cfg.recorders, env)
-        env.recorder_manager.flush_steps = 100
-        env.recorder_manager.compression = "lzf"
+        if args_cli.use_lerobot_recorder:
+            from leisaac.enhance.datasets.lerobot_dataset_handler import (
+                LeRobotDatasetCfg,
+            )
+            from leisaac.enhance.managers.lerobot_recorder_manager import (
+                LeRobotRecorderManager,
+            )
+
+            dataset_cfg = LeRobotDatasetCfg(
+                repo_id=args_cli.lerobot_dataset_repo_id,
+                fps=args_cli.lerobot_dataset_fps,
+            )
+            env.recorder_manager = LeRobotRecorderManager(env_cfg.recorders, dataset_cfg, env)
+        else:
+            env.recorder_manager = StreamingRecorderManager(env_cfg.recorders, env)
+            env.recorder_manager.flush_steps = 100
+            env.recorder_manager.compression = "lzf"
 
     # create controller
     if args_cli.teleop_device == "keyboard":
@@ -284,61 +308,81 @@ def main():  # noqa: C901
 
     start_record_state = False
 
-    # simulate environment
-    while simulation_app.is_running():
-        # run everything in inference mode
-        with torch.inference_mode():
-            if env.cfg.dynamic_reset_gripper_effort_limit:
-                dynamic_reset_gripper_effort_limit_sim(env, args_cli.teleop_device)
-            actions = teleop_interface.advance()
-            if should_reset_task_success:
-                print("Task Success!!!")
-                should_reset_task_success = False
-                if args_cli.record:
-                    manual_terminate(env, True)
-            if should_reset_recording_instance:
-                env.reset()
-                should_reset_recording_instance = False
-                if start_record_state:
-                    if args_cli.record:
-                        print("Stop Recording!!!")
-                    start_record_state = False
-                if args_cli.record:
-                    manual_terminate(env, False)
-                # print out the current demo count if it has changed
-                if (
-                    args_cli.record
-                    and env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
-                    > current_recorded_demo_count
-                ):
-                    current_recorded_demo_count = (
-                        env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
-                    )
-                    print(f"Recorded {current_recorded_demo_count} successful demonstrations.")
-                if (
-                    args_cli.record
-                    and args_cli.num_demos > 0
-                    and env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
-                    >= args_cli.num_demos
-                ):
-                    print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
-                    break
+    interrupted = False
 
-            elif actions is None:
-                env.render()
-            # apply actions
-            else:
-                if not start_record_state:
-                    if args_cli.record:
-                        print("Start Recording!!!")
-                    start_record_state = True
-                env.step(actions)
-            if rate_limiter:
-                rate_limiter.sleep(env)
+    def signal_handler(signum, frame):
+        """Handle SIGINT (Ctrl+C) signal."""
+        nonlocal interrupted
+        interrupted = True
+        print("\n[INFO] KeyboardInterrupt (Ctrl+C) detected. Cleaning up resources...")
 
-    # close the simulator
-    env.close()
-    simulation_app.close()
+    original_sigint_handler = signal.signal(signal.SIGINT, signal_handler)
+
+    try:
+        while simulation_app.is_running() and not interrupted:
+            # run everything in inference mode
+            with torch.inference_mode():
+                if env.cfg.dynamic_reset_gripper_effort_limit:
+                    dynamic_reset_gripper_effort_limit_sim(env, args_cli.teleop_device)
+                actions = teleop_interface.advance()
+                if should_reset_task_success:
+                    print("Task Success!!!")
+                    should_reset_task_success = False
+                    if args_cli.record:
+                        manual_terminate(env, True)
+                if should_reset_recording_instance:
+                    env.reset()
+                    should_reset_recording_instance = False
+                    if start_record_state:
+                        if args_cli.record:
+                            print("Stop Recording!!!")
+                        start_record_state = False
+                    if args_cli.record:
+                        manual_terminate(env, False)
+                    # print out the current demo count if it has changed
+                    if (
+                        args_cli.record
+                        and env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
+                        > current_recorded_demo_count
+                    ):
+                        current_recorded_demo_count = (
+                            env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
+                        )
+                        print(f"Recorded {current_recorded_demo_count} successful demonstrations.")
+                    if (
+                        args_cli.record
+                        and args_cli.num_demos > 0
+                        and env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
+                        >= args_cli.num_demos
+                    ):
+                        print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
+                        break
+
+                elif actions is None:
+                    env.render()
+                # apply actions
+                else:
+                    if not start_record_state:
+                        if args_cli.record:
+                            print("Start Recording!!!")
+                        start_record_state = True
+                    env.step(actions)
+                if rate_limiter:
+                    rate_limiter.sleep(env)
+            if interrupted:
+                break
+    except Exception as e:
+        print(f"\n[ERROR] An error occurred: {e}")
+        print("[INFO] Cleaning up resources...")
+    finally:
+        # Restore original signal handler
+        signal.signal(signal.SIGINT, original_sigint_handler)
+        # finalize the recorder manager
+        if args_cli.record and hasattr(env.recorder_manager, "finalize"):
+            env.recorder_manager.finalize()
+        # close the simulator
+        env.close()
+        simulation_app.close()
 
 
 if __name__ == "__main__":
