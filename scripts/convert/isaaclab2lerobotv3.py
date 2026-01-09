@@ -1,8 +1,8 @@
+import argparse
 import os
 
 import h5py
 import numpy as np
-import typer
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from tqdm import tqdm
 
@@ -265,22 +265,14 @@ def process_bi_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Gro
     return True
 
 
-app = typer.Typer()
-
-
-@app.command()
 def convert_isaaclab_to_lerobot(
-    repo_id: str = typer.Option("EverNorif/so101_test_orange_pick", "--repo-id", "-r", help="Repository ID"),
-    robot_type: str = typer.Option(
-        "so101_follower", "--robot-type", "-t", help="Robot type: so101_follower or bi_so101_follower"
-    ),
-    fps: int = typer.Option(30, "--fps", "-f", help="Frames per second"),
-    hdf5_root: str = typer.Option("./datasets", "--hdf5-root", "-d", help="HDF5 root directory"),
-    hdf5_files: str | None = typer.Option(
-        None, "--hdf5-files", help="HDF5 files (comma-separated). If not provided, uses dataset.hdf5 in hdf5_root"
-    ),
-    task: str = typer.Option("Grab orange and place into plate", "--task", help="Task description"),
-    push_to_hub: bool = typer.Option(False, "--push-to-hub", help="Push to hub"),
+    repo_id: str,
+    robot_type: str,
+    fps: int,
+    hdf5_root: str,
+    hdf5_files: str | None,
+    task: str,
+    push_to_hub: bool,
 ):
     """Convert IsaacLab dataset to LeRobot format"""
     # parameters check
@@ -334,4 +326,61 @@ def convert_isaaclab_to_lerobot(
 
 
 if __name__ == "__main__":
-    app()
+    parser = argparse.ArgumentParser(description="Convert IsaacLab dataset to LeRobot format")
+    parser.add_argument(
+        "--repo-id",
+        "-r",
+        type=str,
+        default="EverNorif/so101_test_orange_pick",
+        help="Repository ID",
+    )
+    parser.add_argument(
+        "--robot-type",
+        "-t",
+        type=str,
+        default="so101_follower",
+        choices=["so101_follower", "bi_so101_follower"],
+        help="Robot type: so101_follower or bi_so101_follower",
+    )
+    parser.add_argument(
+        "--fps",
+        "-f",
+        type=int,
+        default=30,
+        help="Frames per second",
+    )
+    parser.add_argument(
+        "--hdf5-root",
+        "-d",
+        type=str,
+        default="./datasets",
+        help="HDF5 root directory",
+    )
+    parser.add_argument(
+        "--hdf5-files",
+        type=str,
+        default=None,
+        help="HDF5 files (comma-separated). If not provided, uses dataset.hdf5 in hdf5_root",
+    )
+    parser.add_argument(
+        "--task",
+        type=str,
+        default="Grab orange and place into plate",
+        help="Task description",
+    )
+    parser.add_argument(
+        "--push-to-hub",
+        action="store_true",
+        help="Push to hub",
+    )
+
+    args = parser.parse_args()
+    convert_isaaclab_to_lerobot(
+        repo_id=args.repo_id,
+        robot_type=args.robot_type,
+        fps=args.fps,
+        hdf5_root=args.hdf5_root,
+        hdf5_files=args.hdf5_files,
+        task=args.task,
+        push_to_hub=args.push_to_hub,
+    )
