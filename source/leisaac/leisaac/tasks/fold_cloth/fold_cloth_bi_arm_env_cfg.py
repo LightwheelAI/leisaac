@@ -38,6 +38,8 @@ class FoldClothBiArmEnvCfg(BiArmTaskEnvCfg):
 
     terminations: BiArmTerminationsCfg = BiArmTerminationsCfg()
 
+    task_description: str = "Fold the cloth, and reset the arm to rest state."
+
     def __post_init__(self) -> None:
         super().__post_init__()
 

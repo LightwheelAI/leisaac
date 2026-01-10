@@ -31,6 +31,8 @@ class AssembleHamburgerBiArmEnvCfg(BiArmTaskEnvCfg):
 
     terminations: BiArmTerminationsCfg = BiArmTerminationsCfg()
 
+    task_description: str = "Assemble the hamburger in order."
+
     def __post_init__(self) -> None:
         super().__post_init__()
 
