@@ -47,6 +47,12 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 
 - `--quality`: Whether to enable quality render mode.
 
+- `--use_lerobot_recorder`: Whether to use lerobot recorder.
+
+- `--lerobot_dataset_repo_id`: LeRobot dataset repository ID.
+
+- `--lerobot_dataset_fps`: LeRobot dtaset frames per second.
+
 </details>
 
 ::::tip

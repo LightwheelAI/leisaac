@@ -75,6 +75,18 @@ If you are using a 50-series GPU, we recommend using IsaacSim 5.0+ and IsaacLab 
 | PyTorch    | 2.5.1       | 2.7.0      | 2.7.0       |
 ::::
 
+### [Optional] Install Lerobot
+
+We also provide integration with LeRobot. In certain cases, you may need the lerobot dependency, such as for data conversion, lerobot dataset recorder, lerobot model inference, and envhub support. This is optional; you can install lerobot alongside leisaac when you need these features.
+
+```bash
+# Install with lerobot
+pip install -e "source/leisaac[lerobot]"
+
+# Fix numpy version
+pip install numpy==1.26.0
+```
+
 ## 2. Asset Preparation
 
 We provide an example USD asset—a kitchen scene. Please download related scene [here](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.0) and extract it into the `assets` directory. The directory structure should look like this:

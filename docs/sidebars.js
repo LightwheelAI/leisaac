@@ -105,6 +105,12 @@ const sidebars = {
           link: { type: 'doc', id: 'docs/features/envhub_support' },
           items: [],
         },
+        {
+          type: 'category',
+          label: 'LeRobot Recorder',
+          link: { type: 'doc', id: 'docs/features/lerobot_recorder' },
+          items: [],
+        },
       ],
     },
     'docs/trouble_shooting',
