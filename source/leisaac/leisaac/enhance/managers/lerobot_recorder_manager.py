@@ -28,7 +28,6 @@ class LeRobotRecorderManager(RecorderManager):
 
         dataset_cfg.robot_type = env.cfg.robot_name
         dataset_cfg.features = build_feature_from_env(env, dataset_cfg)
-        dataset_cfg.task = env.cfg.task_description
 
         self._dataset_cfg = dataset_cfg
 

@@ -18,8 +18,6 @@ class LeRobotDatasetCfg:
     """Robot type: so101_follower or bi_so101_follower, etc."""
     features: dict = None
     """Features for the LeRobotDataset."""
-    task: str = None
-    """Task for the LeRobotDataset."""
 
 
 class LeRobotDatasetHandler(DatasetFileHandlerBase):

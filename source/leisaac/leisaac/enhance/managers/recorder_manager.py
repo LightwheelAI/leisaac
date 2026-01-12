@@ -104,7 +104,6 @@ class StreamingRecorderManager(RecorderManager):
                 and (self._env_steps_record[env_id] >= self._flush_steps or not from_step)
             ):
                 # NOTE: pre_export() is only available in IsaacLab 2.3.0+
-                # TODO: remove this after we use IsaacLab 2.3.0+ by default
                 if _AFTER_ISAACLAB_2_3_0:
                     self._episodes[env_id].pre_export()
                 if self._env.cfg.seed is not None:
