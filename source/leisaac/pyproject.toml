@@ -20,11 +20,12 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "psutil",
-    "pyserial",
     "deepdiff",
     "feetech-servo-sdk",
+    "prettytable>=3.14.0",
+    "psutil",
     "pygame>=2.5.1,<2.7.0",
+    "pyserial",
 ]
 
 [project.urls]
