@@ -10,6 +10,13 @@ class PreStepDirectEnvActionsRecorder(RecorderTerm):
         return "actions", self._env.actions
 
 
+class PostStepDirectEnvProcessedActionsRecorder(RecorderTerm):
+    """Direct Env don't have processed actions, use actions to replace processed actions"""
+
+    def record_post_step(self):
+        return "processed_actions", self._env.actions
+
+
 class InitialStateWithParticleObjectsRecorder(RecorderTerm):
     """Recorder term that records the initial state with particle objects."""
 
