@@ -119,6 +119,8 @@ class CustomTaskEnvCfg(SingleArmTaskEnvCfg):
 
     terminations: TerminationsCfg = TerminationsCfg()
 
+    task_description: str = "pick up the red cube and place it into the box."
+
     def __post_init__(self) -> None:
         super().__post_init__()
 

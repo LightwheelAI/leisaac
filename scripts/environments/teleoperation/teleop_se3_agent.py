@@ -215,7 +215,7 @@ def main():  # noqa: C901
 
     # create environment
     env: ManagerBasedRLEnv | DirectRLEnv = gym.make(task_name, cfg=env_cfg).unwrapped
-    # replace the original recorder manager with the streaming recorder manager
+    # replace the original recorder manager with the streaming recorder manager or lerobot recorder manager
     if args_cli.record:
         del env.recorder_manager
         if args_cli.use_lerobot_recorder:
@@ -372,7 +372,10 @@ def main():  # noqa: C901
             if interrupted:
                 break
     except Exception as e:
-        print(f"\n[ERROR] An error occurred: {e}")
+        import traceback
+
+        print(f"\n[ERROR] An error occurred: {e}\n")
+        traceback.print_exc()
         print("[INFO] Cleaning up resources...")
     finally:
         # Restore original signal handler

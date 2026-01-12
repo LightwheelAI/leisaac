@@ -43,3 +43,7 @@ Simply enable `--use_lerobot_recorder` and specify the `repo_id` and `dataset_fp
 - `--use_lerobot_recorder`: Enables the LeRobot format recorder
 - `--lerobot_dataset_repo_id`: HuggingFace dataset repository ID (format: `username/repository_name`)
 - `--lerobot_dataset_fps`: Dataset frame rate, typically set to 30 FPS
+
+::::tip
+Compared to recording as hdf5, LeRobot Recorder integration may cause slight delays in teleoperation. If you encounter this issue, consider not using `--use_lerobot_recorder`.
+::::

@@ -216,7 +216,9 @@ class LeKiwiTaskEnvCfg(ManagerBasedRLEnvCfg):
         obs_data = episode_data._data["obs"]
         frame = {
             "action": obs_data["actions"][-1].cpu().numpy(),
-            "observation.state": obs_data["joint_pos"][-1].cpu().numpy(),
+            "observation.state": (
+                torch.cat([obs_data["joint_pos"][-1][:-3], obs_data["user_vel_cmd"][-1]]).cpu().numpy()
+            ),
             "task": self.task_description,
         }
         for frame_key in features.keys():
