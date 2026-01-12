@@ -16,6 +16,7 @@ import numpy as np
 import omni
 import torch
 from leisaac.utils.math_utils import rotvec_to_euler
+from prettytable import PrettyTable
 
 
 class DeviceBase(ABC):
@@ -60,13 +61,12 @@ class DeviceBase(ABC):
 
 
 class Device(DeviceBase):
-    def __init__(self, env, device_type: str, verbose: bool = True):
+    def __init__(self, env, device_type: str):
         """
         Args:
             env (RobotEnv): The environment which contains the robot(s) to control
                             using this device.
             device_type: The type of the device.
-            verbose: Whether to display the controls.
         """
         self.env = env
         self.device_type = device_type
@@ -86,9 +86,18 @@ class Device(DeviceBase):
         self._reset_state = False
         self._additional_callbacks = {}
 
-        # display controls
-        if verbose:
-            self._display_controls()
+        # display control table
+        self._display_controls_table = PrettyTable()
+        self._display_controls_table.title = f"Teleoperation Controls for {self.device_type}"
+        self._display_controls_table.field_names = ["Key", "Description"]
+        self._display_controls_table.align["Description"] = "l"
+        # basic controls
+        self._display_controls_table.add_row(["B", "start control"])
+        self._display_controls_table.add_row(["R", "reset simulation and set task success to False"])
+        self._display_controls_table.add_row(["N", "reset simulation and set task success to True"])
+        self._display_controls_table.add_row(["Control+C", "quit"])
+        self._display_controls_table.add_divider()
+        self._add_device_control_description()
 
     def __del__(self):
         """Release the keyboard interface."""
@@ -164,21 +173,14 @@ class Device(DeviceBase):
             self._input.unsubscribe_to_keyboard_events(self._keyboard, self._keyboard_sub)
             self._keyboard_sub = None
 
-    def _display_controls(self):
+    def _add_device_control_description(self):
         """
-        Method to pretty print controls.
+        Add device control description to the display control table.
         """
+        raise NotImplementedError
 
-        def print_command(char, info):
-            char += " " * (30 - len(char))
-            print(f"{char}\t{info}")
-
-        print("teleoperation controls:")
-        print_command("b", "start control")
-        print_command("r", "reset simulation and set task success to False")
-        print_command("n", "reset simulation and set task success to True")
-        print_command("Control+C", "quit")
-        print("")
+    def display_controls(self):
+        print(self._display_controls_table)
 
     def _convert_delta_from_frame(self, delta_action: np.ndarray) -> np.ndarray:
         """

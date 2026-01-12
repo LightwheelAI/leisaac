@@ -290,8 +290,7 @@ def main():  # noqa: C901
 
     teleop_interface.add_callback("R", reset_recording_instance)
     teleop_interface.add_callback("N", reset_task_success)
-    print(teleop_interface)
-
+    teleop_interface.display_controls()
     rate_limiter = RateLimiter(args_cli.step_hz)
 
     # reset environment
