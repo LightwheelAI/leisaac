@@ -31,6 +31,8 @@ class AssembleHamburgerEnvCfg(SingleArmTaskEnvCfg):
 
     terminations: SingleArmTerminationsCfg = SingleArmTerminationsCfg()
 
+    task_description: str = "Assemble the hamburger in order."
+
     def __post_init__(self) -> None:
         super().__post_init__()
 

@@ -16,8 +16,10 @@ from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import TiledCameraCfg
 from isaaclab.utils import configclass
+from isaaclab.utils.datasets.episode_data import EpisodeData
 from leisaac.assets.robots.lerobot import SO101_FOLLOWER_CFG
 from leisaac.devices.action_process import init_action_cfg, preprocess_device_action
+from leisaac.utils.constant import BI_ARM_JOINT_NAMES
 
 from . import mdp
 
@@ -179,6 +181,13 @@ class BiArmTaskEnvCfg(ManagerBasedRLEnvCfg):
     dynamic_reset_gripper_effort_limit: bool = True
     """Whether to dynamically reset the gripper effort limit."""
 
+    robot_name: str = "bi_so101_follower"
+    """Robot name for lerobot dataset export."""
+    default_feature_joint_names: list[str] = MISSING
+    """Default feature joint names for lerobot dataset export."""
+    task_description: str = MISSING
+    """Task description for lerobot dataset export."""
+
     def __post_init__(self) -> None:
         super().__post_init__()
 
@@ -194,9 +203,28 @@ class BiArmTaskEnvCfg(ManagerBasedRLEnvCfg):
         self.scene.left_arm.init_state.pos = (3.4, -0.65, 0.89)
         self.scene.right_arm.init_state.pos = (3.8, -0.65, 0.89)
 
+        self.default_feature_joint_names = [f"{joint_name}.pos" for joint_name in BI_ARM_JOINT_NAMES]
+
     def use_teleop_device(self, teleop_device) -> None:
         self.task_type = teleop_device
         self.actions = init_action_cfg(self.actions, device=teleop_device)
 
     def preprocess_device_action(self, action: dict[str, Any], teleop_device) -> torch.Tensor:
         return preprocess_device_action(action, teleop_device)
+
+    def build_lerobot_frame(self, episode_data: EpisodeData, features: dict) -> dict:
+        obs_data = episode_data._data["obs"]
+        frame = {
+            "action": obs_data["actions"][-1].cpu().numpy(),
+            "observation.state": (
+                torch.cat([obs_data["left_joint_pos"][-1], obs_data["right_joint_pos"][-1]]).cpu().numpy()
+            ),
+            "task": self.task_description,
+        }
+        for frame_key in features.keys():
+            if not frame_key.startswith("observation.images"):
+                continue
+            camera_key = frame_key.split(".")[-1]
+            frame[frame_key] = obs_data[camera_key][-1].cpu().numpy()
+
+        return frame

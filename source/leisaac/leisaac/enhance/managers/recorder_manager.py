@@ -28,6 +28,8 @@ class EnhanceDatasetExportMode(enum.IntEnum):
 
     EXPORT_ALL_RESUME = 0  # Export all episodes to a single dataset file and resume recording
     # NOTE: the exact value is same as DatasetExportMode.EXPORT_NONE, we don't support DatasetExportMode.EXPORT_NONE when recording
+    EXPORT_SUCCEEDED_ONLY_RESUME = 4  # Export only succeeded episodes to a single dataset file and resume recording
+    # NOTE: the exact value is different from DatasetExportMode, which contains 0-3
 
 
 class StreamingRecorderManager(RecorderManager):
@@ -102,7 +104,6 @@ class StreamingRecorderManager(RecorderManager):
                 and (self._env_steps_record[env_id] >= self._flush_steps or not from_step)
             ):
                 # NOTE: pre_export() is only available in IsaacLab 2.3.0+
-                # TODO: remove this after we use IsaacLab 2.3.0+ by default
                 if _AFTER_ISAACLAB_2_3_0:
                     self._episodes[env_id].pre_export()
                 if self._env.cfg.seed is not None:

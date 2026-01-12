@@ -47,6 +47,8 @@ class SingleArmTaskDirectEnvCfg(DirectRLEnvCfg):
     dynamic_reset_gripper_effort_limit: bool = True
     """Whether to dynamically reset the gripper effort limit."""
 
+    # TODO: add lerobot dataset export support
+
     def __post_init__(self) -> None:
         super().__post_init__()
 

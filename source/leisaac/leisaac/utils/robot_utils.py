@@ -1,10 +1,75 @@
+from dataclasses import asdict, dataclass, field
+
 import numpy as np
 import torch
+from isaaclab.envs import ManagerBasedEnv
+from isaaclab.sensors import Camera
 from leisaac.assets.robots.lerobot import (
     SO101_FOLLOWER_MOTOR_LIMITS,
     SO101_FOLLOWER_REST_POSE_RANGE,
     SO101_FOLLOWER_USD_JOINT_LIMLITS,
 )
+from leisaac.enhance.datasets.lerobot_dataset_handler import LeRobotDatasetCfg
+
+
+@dataclass
+class StateFeatureItem:
+    dtype: str = "float32"
+    shape: tuple = (6,)
+    names: list[str] = field(
+        default_factory=lambda: ["joint1.pos", "joint2.pos", "joint3.pos", "joint4.pos", "joint5.pos", "joint6.pos"]
+    )
+
+
+@dataclass
+class VideoFeatureItem:
+    dtype: str = "video"
+    shape: list = field(default_factory=lambda: [480, 640, 3])  # [h, w, c]
+    names: list[str] = field(default_factory=lambda: ["height", "width", "channels"])
+    video_info: dict = field(
+        default_factory=lambda: {
+            "video.height": 480,
+            "video.width": 640,
+            "video.codec": "av1",
+            "video.pix_fmt": "yuv420p",
+            "video.is_depth_map": False,
+            "video.fps": 30.0,
+            "video.channels": 3,
+            "has_audio": False,
+        }
+    )
+
+
+def build_feature_from_env(env: ManagerBasedEnv, dataset_cfg: LeRobotDatasetCfg) -> dict:
+    """
+    Build the feature from the environment.
+    """
+    features = {}
+
+    default_feature_joint_names = env.cfg.default_feature_joint_names
+    action_dim = env.action_manager.total_action_dim
+    if action_dim != len(default_feature_joint_names):
+        # [A bit tricky, currently works because the action dimension matches the joints only when we use leader control]
+        action_joint_names = [f"dim_{index}" for index in range(action_dim)]
+    else:
+        action_joint_names = default_feature_joint_names
+    features["action"] = asdict(StateFeatureItem(dtype="float32", shape=(action_dim,), names=action_joint_names))
+    features["observation.state"] = asdict(
+        StateFeatureItem(dtype="float32", shape=(len(default_feature_joint_names),), names=default_feature_joint_names)
+    )
+
+    for camera_key, camera_sensor in env.scene.sensors.items():
+        if isinstance(camera_sensor, Camera):
+            height, width = camera_sensor.image_shape
+            video_feature_item = VideoFeatureItem(
+                dtype="video", shape=[height, width, 3], names=["height", "width", "channels"]
+            )
+            video_feature_item.video_info["video.height"] = height
+            video_feature_item.video_info["video.width"] = width
+            video_feature_item.video_info["video.fps"] = dataset_cfg.fps
+            features[f"observation.images.{camera_key}"] = asdict(video_feature_item)
+
+    return features
 
 
 def is_so101_at_rest_pose(joint_pos: torch.Tensor, joint_names: list[str]) -> torch.Tensor:

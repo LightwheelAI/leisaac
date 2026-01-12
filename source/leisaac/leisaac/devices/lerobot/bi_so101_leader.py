@@ -10,9 +10,9 @@ class BiSO101Leader(Device):
 
         # use left so101 leader as the main device to store state
         print("Connecting to left_so101_leader...")
-        self.left_so101_leader = SO101Leader(env, left_port, recalibrate, "left_so101_leader.json", verbose=False)
+        self.left_so101_leader = SO101Leader(env, left_port, recalibrate, "left_so101_leader.json")
         print("Connecting to right_so101_leader...")
-        self.right_so101_leader = SO101Leader(env, right_port, recalibrate, "right_so101_leader.json", verbose=False)
+        self.right_so101_leader = SO101Leader(env, right_port, recalibrate, "right_so101_leader.json")
 
         self.left_so101_leader._stop_keyboard_listener()
         self.right_so101_leader._stop_keyboard_listener()

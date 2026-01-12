@@ -39,3 +39,14 @@ BI_ARM_JOINT_NAMES = [
     "right_wrist_roll",
     "right_gripper",
 ]
+LEKIWI_JOINT_NAMES = [
+    "shoulder_pan",
+    "shoulder_lift",
+    "elbow_flex",
+    "wrist_flex",
+    "wrist_roll",
+    "gripper",
+    "x",
+    "y",
+    "theta",
+]
