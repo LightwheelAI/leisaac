@@ -20,6 +20,8 @@ class PickOrangeEnvCfg(SingleArmTaskDirectEnvCfg):
 
     scene: PickOrangeSceneCfg = PickOrangeSceneCfg(env_spacing=8.0)
 
+    task_description: str = "Pick three oranges and put them into the plate, then reset the arm to rest state."
+
     def __post_init__(self) -> None:
         super().__post_init__()
 

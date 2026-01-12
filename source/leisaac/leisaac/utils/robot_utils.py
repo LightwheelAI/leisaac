@@ -2,7 +2,7 @@ from dataclasses import asdict, dataclass, field
 
 import numpy as np
 import torch
-from isaaclab.envs import ManagerBasedEnv
+from isaaclab.envs import DirectRLEnv, ManagerBasedEnv
 from isaaclab.sensors import Camera
 from leisaac.assets.robots.lerobot import (
     SO101_FOLLOWER_MOTOR_LIMITS,
@@ -40,14 +40,18 @@ class VideoFeatureItem:
     )
 
 
-def build_feature_from_env(env: ManagerBasedEnv, dataset_cfg: LeRobotDatasetCfg) -> dict:
+def build_feature_from_env(env: ManagerBasedEnv | DirectRLEnv, dataset_cfg: LeRobotDatasetCfg) -> dict:
     """
     Build the feature from the environment.
     """
     features = {}
 
     default_feature_joint_names = env.cfg.default_feature_joint_names
-    action_dim = env.action_manager.total_action_dim
+    if isinstance(env, ManagerBasedEnv):
+        action_dim = env.action_manager.total_action_dim
+    else:
+        action_dim = env.actions.shape[-1]
+
     if action_dim != len(default_feature_joint_names):
         # [A bit tricky, currently works because the action dimension matches the joints only when we use leader control]
         action_joint_names = [f"dim_{index}" for index in range(action_dim)]
