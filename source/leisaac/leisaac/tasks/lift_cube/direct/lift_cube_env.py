@@ -20,6 +20,8 @@ class LiftCubeEnvCfg(SingleArmTaskDirectEnvCfg):
 
     scene: LiftCubeSceneCfg = LiftCubeSceneCfg(env_spacing=8.0)
 
+    task_description: str = "Lift the red cube up."
+
     def __post_init__(self) -> None:
         super().__post_init__()
 
