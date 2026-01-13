@@ -4,7 +4,7 @@ This tutorial extends **[LeIsaac](https://github.com/LightwheelAI/leisaac)** by 
 
 ## 🎥 From a Single Demonstration to Large-Scale Synthetic Rollouts via Cosmos
 <div align="center">
-  <video src="https://github.com/user-attachments/assets/e89c5400-ab23-49a9-9487-6204808c3ac4"
+  <video src="https://github.com/user-attachments/assets/f0820382-d525-4007-90bc-04c0ceb2a5fc"
          controls
          width="100%">
   </video>
@@ -1222,10 +1222,8 @@ python scripts/tutorials/cosmos_merge.py \
 
 After conversion and merging, the final **HDF5 dataset** can be replayed using **LeIsaac’s action replay mode**. You can refer to **[dataset_replay](https://lightwheelai.github.io/leisaac/docs/getting_started/dataset_replay)** for detailed instructions.
 
-
-
 <div align="center">
-  <video src="https://github.com/user-attachments/assets/119ac294-a1cd-4721-b0bf-71725dddab0f"
+  <video src="https://github.com/user-attachments/assets/a4eff3dd-05c0-4213-b87c-faa01c384f86"
          controls
          width="100%">
   </video>
