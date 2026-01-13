@@ -1,414 +1,400 @@
-#!/usr/bin/env python3
-
 """
-Convert IDM parquet (LeRobot-style rows) + source LeIsaac HDF5 (initial_state/template)
-to a new replayable LeIsaac HDF5.
+Convert a local LeRobot dataset folder (v2.1 episode-based layout) to a single HDF5 file.
 
-Input parquet row example:
-{
-  "observation.state":[...6...],
-  "action":[...6...],
-  "timestamp":0,
-  "episode_index":0,
-  "index":0
-}
+Compared to the original version, this script can optionally:
+  1) Sort frames inside each episode by a chosen column (default: "index" if present),
+  2) Convert LeRobot normalized joint values (roughly degrees in [-100, 100]) into
+     IsaacLab joint angles in RADIANS, using the same limits mapping as your replay-correct script.
 
-Source HDF5 episode structure (example):
-/actions (T,6)
-/initial_state/...
-/obs/actions (T,6)
-/processed_actions (T,6)
-/states/articulation/robot/joint_position (T,6)
-...
+Expected input layout (v2.1):
+dataset_root/
+├── data/chunk-000/episode_000000.parquet
+├── data/chunk-000/episode_000001.parquet
+├── videos/chunk-000/<camera_name>/episode_000000.mp4
+└── meta/episodes.jsonl (optional) + other meta files
 
-We will:
-- Copy root metadata groups (everything except /data) from source HDF5.
-- For each episode:
-  - Copy initial_state + attrs from a template episode in source HDF5
-  - Write /actions, /obs/actions, /processed_actions from parquet "action"
-  - Optionally write /states/.../joint_position from parquet "observation.state"
-  - Optionally write /timestamps from parquet "timestamp"
-  - Optionally copy template obs/states arrays (including images) from source HDF5(can be huge)
+Output HDF5 layout (mirrors folder-like structure):
+/
+  attrs: source_dir, layout_version, created_at
+  /meta/<filename>                 (text dataset, utf-8)
+  /data/<chunk>/<episode>/...      (datasets from parquet columns)
+  /videos/<chunk>/<camera>/<episode>.mp4  (uint8 bytes dataset, optional)
+
 """
 
 import argparse
-import os
-import re
+import datetime as dt
+import json
 from pathlib import Path
+from typing import Any
 
 import h5py
 import numpy as np
-import pandas as pd
 from tqdm import tqdm
 
-# ------------------------
-# Denormalize function (same as isaaclab2lerobot)
-# ------------------------
+ISAACLAB_LIMITS_DEG = [
+    (-110.0, 110.0),
+    (-100.0, 100.0),
+    (-100.0, 90.0),
+    (-95.0, 95.0),
+    (-160.0, 160.0),
+    (-10.0, 100.0),
+]
+LEROBOT_LIMITS_DEG = [
+    (-100.0, 100.0),
+    (-100.0, 100.0),
+    (-100.0, 100.0),
+    (-100.0, 100.0),
+    (-100.0, 100.0),
+    (0.0, 100.0),
+]
 
-ISAACLAB_LIMITS = [(-110.0, 110.0), (-100.0, 100.0), (-100.0, 90.0), (-95.0, 95.0), (-160.0, 160.0), (-10.0, 100.0)]
-LEROBOT_LIMITS = [(-100.0, 100.0), (-100.0, 100.0), (-100.0, 100.0), (-100.0, 100.0), (-100.0, 100.0), (0.0, 100.0)]
 
-
-def denormalize_lerobot_to_isaaclab_radians(joint_pos: np.ndarray) -> np.ndarray:
+def denormalize_lerobot_to_isaaclab_radians(joint_values_lerobot: np.ndarray) -> np.ndarray:
     """
-    LeRobot normalized degrees in roughly [-100,100] -> IsaacLab joint limits (degrees) -> radians.
-    joint_pos: (T,6)
+    LeRobot normalized degrees (roughly within LEROBOT_LIMITS_DEG) ->
+    IsaacLab joint limits (degrees) -> radians.
+
+    joint_values_lerobot:
+      shape (T, D) where D >= 6.
+      If D == 12, treated as bimanual (6+6).
+      Otherwise, treated as single arm (first 6 processed, others converted deg->rad only).
     """
-    result = joint_pos.astype(np.float32).copy()
-    for i in range(6):
-        isa_min, isa_max = ISAACLAB_LIMITS[i]
-        le_min, le_max = LEROBOT_LIMITS[i]
-        isa_range = isa_max - isa_min
-        le_range = le_max - le_min
-        result[:, i] = (result[:, i] - le_min) / le_range * isa_range + isa_min
+    joint_values_lerobot = np.asarray(joint_values_lerobot, dtype=np.float32)
+
+    if joint_values_lerobot.ndim != 2:
+        raise ValueError(f"Expected 2D array (T,D), got shape {joint_values_lerobot.shape}")
+
+    dimension = joint_values_lerobot.shape[1]
+    if dimension < 6:
+        raise ValueError(f"Expected D>=6, got D={dimension}")
+
+    result_deg = joint_values_lerobot.copy()
+
+    if dimension == 12:
+        # bimanual: apply same 6-dim mapping to left [0:6] and right [6:12]
+        for arm_offset in (0, 6):
+            for joint_index in range(6):
+                isa_min, isa_max = ISAACLAB_LIMITS_DEG[joint_index]
+                le_min, le_max = LEROBOT_LIMITS_DEG[joint_index]
+                col = arm_offset + joint_index
+                result_deg[:, col] = (result_deg[:, col] - le_min) / (le_max - le_min) * (isa_max - isa_min) + isa_min
+    else:
+        # single arm (or single arm + extra features): only map the first 6
+        for joint_index in range(6):
+            isa_min, isa_max = ISAACLAB_LIMITS_DEG[joint_index]
+            le_min, le_max = LEROBOT_LIMITS_DEG[joint_index]
+            result_deg[:, joint_index] = (result_deg[:, joint_index] - le_min) / (le_max - le_min) * (
+                isa_max - isa_min
+            ) + isa_min
+
     # degrees -> radians
-    result = result * (np.pi / 180.0)
-    return result
+    result_rad = result_deg * (np.pi / 180.0)
+    return result_rad
 
 
-# ------------------------
-# HDF5 copy helpers
-# ------------------------
+def write_text_dataset(h5_group: h5py.Group, dataset_name: str, text: str) -> None:
+    """Store UTF-8 text as variable-length string dataset."""
+    string_dtype = h5py.string_dtype(encoding="utf-8")
+    if dataset_name in h5_group:
+        del h5_group[dataset_name]
+    h5_group.create_dataset(dataset_name, data=text, dtype=string_dtype)
 
 
-def copy_attrs(src_obj, dst_obj):
-    for k, v in src_obj.attrs.items():
-        dst_obj.attrs[k] = v
+def read_file_as_uint8_bytes(file_path: Path) -> np.ndarray:
+    data = file_path.read_bytes()
+    return np.frombuffer(data, dtype=np.uint8)
 
 
-def copy_group_recursive(src: h5py.Group, dst: h5py.Group, skip: list[str] | None = None):
+def stack_object_column_to_numpy(column_values: Any) -> tuple[np.ndarray, str | None]:
     """
-    Recursively copy a group, skipping relative paths in `skip`.
+    Convert a parquet column to a numpy array.
+    - If it's already a numpy array -> return directly
+    - If it's a 1D array/list of per-row arrays/lists -> stack to (T, D)
+    - If it's scalar-like -> return (T,) or scalar
+    Returns: (array, note)
     """
-    skip = set(skip or [])
+    note = None
 
-    def _rec(s: h5py.Group | h5py.File, d: h5py.Group, rel: str):
-        copy_attrs(s, d)
-        for name, item in s.items():
-            child_rel = f"{rel}/{name}" if rel else name
-            if child_rel in skip:
-                continue
-            if isinstance(item, h5py.Dataset):
-                ds = d.create_dataset(name, data=item[()], compression=item.compression)
-                for ak, av in item.attrs.items():
-                    ds.attrs[ak] = av
-            else:
-                g = d.create_group(name)
-                _rec(item, g, child_rel)
+    if isinstance(column_values, np.ndarray):
+        if (
+            column_values.dtype == object
+            and len(column_values) > 0
+            and isinstance(column_values[0], (list, tuple, np.ndarray))
+        ):
+            try:
+                stacked = np.stack([np.asarray(x) for x in column_values], axis=0)
+                return stacked, note
+            except Exception as exc:
+                note = f"object-stack-failed: {exc}"
+                return np.asarray(column_values), note
+        return column_values, note
 
-    _rec(src, dst, "")
+    if isinstance(column_values, (list, tuple)):
+        if len(column_values) > 0 and isinstance(column_values[0], (list, tuple, np.ndarray)):
+            try:
+                stacked = np.stack([np.asarray(x) for x in column_values], axis=0)
+                return stacked, note
+            except Exception as exc:
+                note = f"list-stack-failed: {exc}"
+                return np.asarray(column_values, dtype=object), note
+        return np.asarray(column_values), note
+
+    return np.asarray(column_values), note
 
 
-def ensure_group(root: h5py.Group, path: str) -> h5py.Group:
+def write_numpy_dataset(
+    h5_group: h5py.Group,
+    dataset_name: str,
+    array: np.ndarray,
+    compression: str | None,
+    compression_level: int | None,
+) -> None:
+    """Write/overwrite a dataset. If dtype=object, store JSON strings."""
+    if dataset_name in h5_group:
+        del h5_group[dataset_name]
+
+    # Object dtype: store each row as json string
+    if array.dtype == object:
+        string_dtype = h5py.string_dtype(encoding="utf-8")
+        string_list = []
+        for value in array.tolist():
+            try:
+                string_list.append(json.dumps(value, ensure_ascii=False))
+            except Exception:
+                string_list.append(str(value))
+        h5_group.create_dataset(dataset_name, data=np.asarray(string_list, dtype=object), dtype=string_dtype)
+        h5_group[dataset_name].attrs["stored_as"] = "json_string_list"
+        return
+
+    h5_group.create_dataset(
+        dataset_name,
+        data=array,
+        compression=compression,
+        compression_opts=compression_level,
+        shuffle=True if compression else None,
+    )
+
+
+def load_episode_parquet(parquet_path: Path):
+    import pandas as pd
+
+    return pd.read_parquet(parquet_path)
+
+
+def sort_episode_dataframe_inplace(dataframe, sort_column: str | None) -> str:
     """
-    Ensure group path exists under root. Return the group.
+    Sort dataframe by a chosen column if present.
+    If sort_column is None, try common ordering keys in priority:
+      index > frame_index > timestamp
+    Returns the column used, or "" if not sorted.
     """
-    path = path.strip("/")
-    cur = root
-    if not path:
-        return cur
-    for part in path.split("/"):
-        if part not in cur:
-            cur = cur.create_group(part)
-        else:
-            cur = cur[part]
-            if not isinstance(cur, h5py.Group):
-                raise ValueError(f"Path conflict: {path} has non-group at {part}")
-    return cur
+    candidate_columns = []
+    if sort_column:
+        candidate_columns.append(sort_column)
+    candidate_columns += ["index", "frame_index", "timestamp"]
+
+    for col in candidate_columns:
+        if col in dataframe.columns:
+            dataframe.sort_values(col, ascending=True, inplace=True)
+            dataframe.reset_index(drop=True, inplace=True)
+            return col
+
+    return ""
 
 
-def write_dataset(root: h5py.Group, path: str, data: np.ndarray, compression: str | None = None):
-    """
-    Overwrite dataset at path with given data.
-    """
-    path = path.strip("/")
-    parent_path, name = path.rsplit("/", 1) if "/" in path else ("", path)
-    parent = ensure_group(root, parent_path)
-    if name in parent:
-        del parent[name]
-    parent.create_dataset(name, data=data, compression=compression)
-
-
-# ------------------------
-# Parquet loading
-# ------------------------
-
-_EP_RE = re.compile(r"episode_(\d+)\.parquet$")
-
-
-def list_episode_parquet_files(parquet_dir: str) -> list[tuple[int, Path]]:
-    """Return [(episode_id_from_filename, path), ...] sorted by episode_id."""
-    p = Path(parquet_dir)
-    if not p.is_dir():
-        raise ValueError(f"--parquet must be a directory when using filename mapping: {parquet_dir}")
-    files = sorted(p.glob("**/episode_*.parquet"))
-    items: list[tuple[int, Path]] = []
-    for f in files:
-        m = _EP_RE.search(f.name)
-        if not m:
-            continue
-        items.append((int(m.group(1)), f))
-    if not items:
-        raise FileNotFoundError(f"No episode_*.parquet found under: {parquet_dir}")
-    items.sort(key=lambda x: x[0])
-    return items
-
-
-def load_parquet_input(parquet_path_or_dir: str) -> pd.DataFrame:
-    p = Path(parquet_path_or_dir)
-    if p.is_dir():
-        files = sorted(
-            p.glob("**/*.parquet"),
-            key=lambda x: (
-                int(re.search(r"episode_(\d+)", x.name).group(1)) if re.search(r"episode_(\d+)", x.name) else 0
-            ),
-        )
-        if not files:
-            raise FileNotFoundError(f"No parquet files found in dir: {parquet_path_or_dir}")
-        dfs = [pd.read_parquet(f) for f in files]
-        df = pd.concat(dfs, ignore_index=True)
-    else:
-        if not p.exists():
-            raise FileNotFoundError(parquet_path_or_dir)
-        df = pd.read_parquet(p)
-    return df
-
-
-def stack_vector_column(df: pd.DataFrame, col: str) -> np.ndarray:
-    # column entries are list/np.ndarray per row
-    return np.stack(df[col].to_numpy())
-
-
-# ------------------------
-# Main conversion
-# ------------------------
-
-
-def convert(  # noqa: C901
-    parquet_path_or_dir: str,
-    src_hdf5: str,
-    out_hdf5: str,
-    overwrite: bool,
-    episode_col: str,
-    sort_col: str | None,
-    action_col: str,
-    state_col: str,
-    timestamp_col: str | None,
-    write_states: bool,
-    keep_template_obs: bool,
+def convert_lerobot_folder_to_hdf5(
+    dataset_directory: str,
+    output_hdf5_path: str,
+    include_videos: bool,
+    compression: str | None,
+    compression_level: int,
+    sort_column: str | None,
+    convert_to_isaaclab_radians: bool,
+    lerobot_action_column_name: str,
+    lerobot_state_column_name: str,
 ):
-    if os.path.exists(out_hdf5):
-        if overwrite:
-            os.remove(out_hdf5)
-        else:
-            raise FileExistsError(f"Output exists: {out_hdf5} (use --overwrite)")
+    dataset_root = Path(dataset_directory).expanduser().resolve()
+    output_file_path = Path(output_hdf5_path).expanduser().resolve()
+    output_file_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Use filename-based mapping when input is a directory containing episode_*.parquet
-    parquet_items = list_episode_parquet_files(parquet_path_or_dir) if Path(parquet_path_or_dir).is_dir() else None
+    data_directory = dataset_root / "data"
+    videos_directory = dataset_root / "videos"
+    meta_directory = dataset_root / "meta"
 
-    if parquet_items is None:
-        # fallback: single parquet file mode (still uses episode_index)
-        df = load_parquet_input(parquet_path_or_dir)
+    episode_parquet_files = sorted(data_directory.glob("chunk-*/episode_*.parquet"))
+    file_parquet_files = sorted(data_directory.glob("chunk-*/file-*.parquet"))
 
-        for need in [episode_col, action_col]:
-            if need not in df.columns:
-                raise ValueError(f"Missing required column '{need}' in parquet. columns={list(df.columns)}")
+    if not episode_parquet_files:
+        if file_parquet_files:
+            raise RuntimeError(
+                "Detected LeRobot Dataset v3.0 style (file-xxx.parquet). This script targets v2.1 (episode_*.parquet)."
+            )
+        raise RuntimeError(
+            "No parquet files found under data/chunk-*/episode_*.parquet. "
+            f"Please check dataset_directory: {dataset_root}"
+        )
 
-        if write_states and state_col not in df.columns:
-            raise ValueError(f"--write_states enabled but missing column '{state_col}'")
+    with h5py.File(output_file_path, "w") as output_h5:
+        output_h5.attrs["source_dir"] = str(dataset_root)
+        output_h5.attrs["layout_version"] = "lerobot_v2.1_episode_based__optionally_converted_to_isaaclab_radians"
+        output_h5.attrs["created_at"] = dt.datetime.now().isoformat()
+        output_h5.attrs["convert_to_isaaclab_radians"] = bool(convert_to_isaaclab_radians)
+        output_h5.attrs["sort_column_requested"] = "" if sort_column is None else str(sort_column)
+        output_h5.attrs["lerobot_action_column_name"] = lerobot_action_column_name
+        output_h5.attrs["lerobot_state_column_name"] = lerobot_state_column_name
 
-        if sort_col and sort_col not in df.columns:
-            raise ValueError(f"--sort_col '{sort_col}' not in columns")
+        # Write meta files
+        if meta_directory.exists():
+            meta_group = output_h5.require_group("meta")
+            for meta_file_path in sorted(meta_directory.glob("*")):
+                if not meta_file_path.is_file():
+                    continue
+                try:
+                    text = meta_file_path.read_text(encoding="utf-8", errors="ignore")
+                except Exception:
+                    text = meta_file_path.read_bytes().decode("utf-8", errors="ignore")
+                write_text_dataset(meta_group, meta_file_path.name, text)
 
-        if timestamp_col and timestamp_col not in df.columns:
-            raise ValueError(f"--timestamp_col '{timestamp_col}' not in columns")
+        # Convert parquet episodes
+        for parquet_path in tqdm(episode_parquet_files, desc="Converting episodes (parquet)"):
+            chunk_name = parquet_path.parent.name
+            episode_name = parquet_path.stem
 
-        ep_ids = sorted(df[episode_col].unique().tolist())
-        print(f"[INFO] parquet episodes (from column {episode_col}): {len(ep_ids)}")
-    else:
-        print(f"[INFO] parquet files (from filename): {len(parquet_items)}")
+            episode_dataframe = load_episode_parquet(parquet_path)
 
-    with h5py.File(src_hdf5, "r") as f_src, h5py.File(out_hdf5, "w") as f_out:
-        if "data" not in f_src:
-            raise ValueError("Source HDF5 missing /data")
+            used_sort_column = sort_episode_dataframe_inplace(episode_dataframe, sort_column)
 
-        # copy root metadata except /data
-        for k, item in f_src.items():
-            if k == "data":
-                continue
-            if isinstance(item, h5py.Dataset):
-                ds = f_out.create_dataset(k, data=item[()], compression=item.compression)
-                for ak, av in item.attrs.items():
-                    ds.attrs[ak] = av
-            else:
-                g = f_out.create_group(k)
-                copy_group_recursive(item, g)
+            episode_group = output_h5.require_group(f"data/{chunk_name}/{episode_name}")
+            episode_group.attrs["parquet_relpath"] = str(parquet_path.relative_to(dataset_root))
+            episode_group.attrs["num_frames"] = int(len(episode_dataframe))
+            episode_group.attrs["sorted_by"] = used_sort_column
 
-        g_data_out = f_out.create_group("data")
-        g_data_src = f_src["data"]
-        copy_attrs(g_data_src, g_data_out)
+            # Write each column
+            for column_name in episode_dataframe.columns:
+                column_values = episode_dataframe[column_name].to_numpy()
+                numpy_array, note = stack_object_column_to_numpy(column_values)
 
-        src_ep_names = list(g_data_src.keys())
-        if not src_ep_names:
-            raise ValueError("Source HDF5 has zero episodes under /data")
-        template_name = src_ep_names[0]
+                # Normalize float dtype if possible
+                if numpy_array.dtype == np.float64:
+                    numpy_array = numpy_array.astype(np.float32)
 
-        # We will copy:
-        # - attrs
-        # - initial_state group
-        # optionally: obs/states skeleton (but not the big image arrays unless user wants to keep)
-        # Note: copying images can explode file size; default keep_template_obs=False.
-        base_skip = []
-        if not keep_template_obs:
-            # skip heavy video/images and other per-step arrays from template
-            # we'll only write the minimum required datasets.
-            base_skip += [
-                "obs/front",
-                "obs/ee_frame_state",
-                "obs/joint_pos",
-                "obs/joint_pos_rel",
-                "obs/joint_pos_target",
-                "obs/joint_vel",
-                "obs/joint_vel_rel",
-                "states",
-                "actions",
-                "obs/actions",
-                "processed_actions",
-            ]
+                # If enabled: convert action/state columns from LeRobot normalized degrees -> IsaacLab radians
+                if convert_to_isaaclab_radians and numpy_array.ndim == 2:
+                    if column_name in (lerobot_action_column_name, lerobot_state_column_name):
+                        numpy_array = denormalize_lerobot_to_isaaclab_radians(numpy_array)
 
-        if parquet_items is None:
-            # old behavior: split by episode_col inside one big df
-            iterator = [(int(ep_id), None) for ep_id in ep_ids]
-        else:
-            # new behavior: each file defines one episode, use filename episode id
-            iterator = parquet_items  # [(ep_id, path), ...]
+                safe_dataset_name = column_name.replace("/", "_")
+                write_numpy_dataset(
+                    h5_group=episode_group,
+                    dataset_name=safe_dataset_name,
+                    array=numpy_array,
+                    compression=compression,
+                    compression_level=compression_level if compression else None,
+                )
 
-        for ep_id, pq_path in tqdm(iterator, desc="Writing episodes"):
-            if pq_path is None:
-                dfe = df[df[episode_col] == ep_id].copy()
-            else:
-                dfe = pd.read_parquet(pq_path)
+                if note:
+                    episode_group[safe_dataset_name].attrs["note"] = note
 
-            # basic column checks (per-file for filename mode)
-            if action_col not in dfe.columns:
-                raise ValueError(f"Missing required column '{action_col}' in parquet for ep={ep_id}: {pq_path}")
-            if write_states and state_col not in dfe.columns:
-                raise ValueError(f"--write_states enabled but missing '{state_col}' for ep={ep_id}: {pq_path}")
-            if sort_col and sort_col not in dfe.columns:
-                raise ValueError(f"--sort_col '{sort_col}' not in parquet columns for ep={ep_id}: {pq_path}")
-            if timestamp_col and timestamp_col not in dfe.columns:
-                raise ValueError(f"--timestamp_col '{timestamp_col}' not in parquet columns for ep={ep_id}: {pq_path}")
+        # Optionally store mp4 bytes in HDF5
+        if include_videos and videos_directory.exists():
+            video_files = sorted(videos_directory.glob("chunk-*/**/episode_*.mp4"))
+            videos_group = output_h5.require_group("videos")
 
-            if sort_col:
-                dfe = dfe.sort_values(sort_col, ascending=True)
+            for video_path in tqdm(video_files, desc="Packing videos into HDF5"):
+                relative_video_path = video_path.relative_to(dataset_root)
+                parts = relative_video_path.parts
+                if len(parts) < 4:
+                    continue
 
-            # actions (T,6) in lerobot normalized degrees
-            act_raw = stack_vector_column(dfe, action_col).astype(np.float32)
-            if act_raw.ndim != 2 or act_raw.shape[1] != 6:
-                raise ValueError(f"Action shape expected (T,6), got {act_raw.shape} for ep={ep_id}")
-            act = denormalize_lerobot_to_isaaclab_radians(act_raw)
+                _, chunk_name, camera_name = parts[0], parts[1], parts[2]
+                episode_filename = parts[-1]
+                episode_stem = Path(episode_filename).stem
 
-            # states (T,6) optional
-            st = None
-            if write_states:
-                st_raw = stack_vector_column(dfe, state_col).astype(np.float32)
-                if st_raw.ndim != 2 or st_raw.shape[1] != 6:
-                    raise ValueError(f"State shape expected (T,6), got {st_raw.shape} for ep={ep_id}")
-                st = denormalize_lerobot_to_isaaclab_radians(st_raw)
+                camera_group = videos_group.require_group(f"{chunk_name}/{camera_name}")
+                dataset_name = f"{episode_stem}.mp4"
 
-            ts = None
-            if timestamp_col:
-                ts = dfe[timestamp_col].to_numpy(dtype=np.int64)
+                if dataset_name in camera_group:
+                    del camera_group[dataset_name]
 
-            # choose a source episode to copy initial_state from (now: use ep_id from filename)
-            src_name = f"demo_{int(ep_id)}"
-            if src_name not in g_data_src:
-                # fallback map by index
-                if int(ep_id) < len(src_ep_names):
-                    src_name = src_ep_names[int(ep_id)]
-                else:
-                    src_name = template_name
+                video_bytes = read_file_as_uint8_bytes(video_path)
+                camera_group.create_dataset(
+                    dataset_name,
+                    data=video_bytes,
+                    dtype=np.uint8,
+                    compression=compression,
+                    compression_opts=compression_level if compression else None,
+                    shuffle=True if compression else None,
+                )
+                camera_group[dataset_name].attrs["video_relpath"] = str(relative_video_path)
 
-            g_src_ep = g_data_src[src_name]
-            dst_name = f"demo_{int(ep_id)}"
-            g_dst_ep = g_data_out.create_group(dst_name)
-
-            # copy template stuff (attrs + initial_state + maybe skeleton)
-            copy_attrs(g_src_ep, g_dst_ep)
-            if "initial_state" in g_src_ep:
-                g_init = g_dst_ep.create_group("initial_state")
-                copy_group_recursive(g_src_ep["initial_state"], g_init)
-            else:
-                raise ValueError(f"Source episode {src_name} missing /initial_state")
-
-            for grp_name in ["obs", "states"]:
-                if grp_name in g_src_ep and keep_template_obs:
-                    g = g_dst_ep.create_group(grp_name)
-                    copy_group_recursive(g_src_ep[grp_name], g)
-
-            # Write actions into required places
-            write_dataset(g_dst_ep, "actions", act, compression=None)
-            write_dataset(g_dst_ep, "obs/actions", act, compression=None)
-            write_dataset(g_dst_ep, "processed_actions", act, compression=None)
-
-            if write_states and st is not None:
-                write_dataset(g_dst_ep, "states/articulation/robot/joint_position", st, compression=None)
-
-            if ts is not None:
-                write_dataset(g_dst_ep, "timestamps", ts, compression=None)
-
-            g_dst_ep.attrs["num_steps"] = int(act.shape[0])
-            g_dst_ep.attrs["action_dim"] = int(act.shape[1])
-            g_dst_ep.attrs["converted_from_src_episode"] = src_name
-            g_dst_ep.attrs["idm_source"] = str(Path(parquet_path_or_dir).resolve())
-            if pq_path is not None:
-                g_dst_ep.attrs["idm_parquet_file"] = pq_path.name
-
-        print(f"[DONE] Output written: {out_hdf5}")
-        print("Run replay with:")
-        print(f"  --dataset_file {out_hdf5}")
-
-
-def build_parser():
-    p = argparse.ArgumentParser("IDM parquet -> LeIsaac HDF5 converter")
-    p.add_argument("--parquet", type=str, required=True, help="Parquet file OR directory containing parquet(s).")
-    p.add_argument("--src_hdf5", type=str, required=True, help="Source teleop HDF5 for initial_state/template.")
-    p.add_argument("--out_hdf5", type=str, required=True, help="Output HDF5 for replay.")
-    p.add_argument("--overwrite", action="store_true")
-
-    p.add_argument("--episode_col", type=str, default="episode_index")
-    p.add_argument("--sort_col", type=str, default="index", help="Order within episode. default: index")
-    p.add_argument("--action_col", type=str, default="action")
-    p.add_argument("--state_col", type=str, default="observation.state")
-    p.add_argument("--timestamp_col", type=str, default="timestamp")
-
-    p.add_argument(
-        "--write_states",
-        action="store_true",
-        help="Also write /states/articulation/robot/joint_position from observation.state",
-    )
-    p.add_argument(
-        "--keep_template_obs",
-        action="store_true",
-        help="Copy template obs/states arrays (including images) from source (can be huge). Default off.",
-    )
-    return p
+    print(f"[OK] Wrote HDF5 to: {output_file_path}")
 
 
 def main():
-    args = build_parser().parse_args()
-    convert(
-        parquet_path_or_dir=args.parquet,
-        src_hdf5=args.src_hdf5,
-        out_hdf5=args.out_hdf5,
-        overwrite=args.overwrite,
-        episode_col=args.episode_col,
-        sort_col=args.sort_col,
-        action_col=args.action_col,
-        state_col=args.state_col,
-        timestamp_col=args.timestamp_col,
-        write_states=args.write_states,
-        keep_template_obs=args.keep_template_obs,
+    argument_parser = argparse.ArgumentParser(
+        description="Convert local LeRobot dataset folder (v2.1) to a single HDF5 file."
+    )
+    argument_parser.add_argument("--lerobot_dir", type=str, required=True, help="Local LeRobot dataset folder path")
+    argument_parser.add_argument("--output_hdf5", type=str, required=True, help="Output HDF5 file path")
+
+    argument_parser.add_argument(
+        "--include_videos",
+        action="store_true",
+        help="Store mp4 bytes into HDF5 (may be large)",
+    )
+    argument_parser.add_argument(
+        "--no_compression",
+        action="store_true",
+        help="Disable HDF5 compression",
+    )
+    argument_parser.add_argument(
+        "--compression_level",
+        type=int,
+        default=4,
+        help="gzip compression level (1-9)",
+    )
+    argument_parser.add_argument(
+        "--sort_column",
+        type=str,
+        default=None,
+        help=(
+            "Sort frames inside each episode by this column if present. "
+            "If not provided, tries: index > frame_index > timestamp."
+        ),
+    )
+    argument_parser.add_argument(
+        "--no_convert_to_isaaclab_radians",
+        action="store_true",
+        help="Disable conversion of LeRobot normalized degrees to IsaacLab radians (default: conversion is ENABLED).",
+    )
+    argument_parser.add_argument(
+        "--lerobot_action_column_name",
+        type=str,
+        default="action",
+        help="Column name in parquet for action vectors (default: action)",
+    )
+    argument_parser.add_argument(
+        "--lerobot_state_column_name",
+        type=str,
+        default="observation.state",
+        help="Column name in parquet for state vectors (default: observation.state)",
+    )
+
+    args = argument_parser.parse_args()
+
+    compression = None if args.no_compression else "gzip"
+
+    convert_lerobot_folder_to_hdf5(
+        dataset_directory=args.lerobot_dir,
+        output_hdf5_path=args.output_hdf5,
+        include_videos=args.include_videos,
+        compression=compression,
+        compression_level=args.compression_level,
+        sort_column=args.sort_column,
+        convert_to_isaaclab_radians=not args.no_convert_to_isaaclab_radians,
+        lerobot_action_column_name=args.lerobot_action_column_name,
+        lerobot_state_column_name=args.lerobot_state_column_name,
     )
 
 

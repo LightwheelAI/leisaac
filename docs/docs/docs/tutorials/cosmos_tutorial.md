@@ -1,6 +1,6 @@
 # LeIsaac × Cosmos: Video-to-Action Data Generation Pipeline
 
-This tutorial extends **LeIsaac** by integrating **Cosmos-Predict2.5** and **GR00T-Dreams IDM** into a LeIsaac-native data generation loop. **LeIsaac** is used to collect teleoperated demonstrations (HDF5) and convert them into LeRobot datasets. **Cosmos-Predict 2.5** is post-trained on these videos to synthesize additional rollout videos at scale, and **IDM** is fine-tuned on the same dataset to infer robot actions from the generated videos. Together, this produces **a scalable pipeline for constructing synthetic, complete LeRobot datasets** , which can be replayed and evaluated directly in **LeIsaac**.
+This tutorial extends **[LeIsaac](https://github.com/LightwheelAI/leisaac)** by integrating **[Cosmos-Predict2.5](https://github.com/nvidia-cosmos/cosmos-predict2.5)** and **[GR00T-Dreams IDM](https://github.com/nvidia/GR00T-dreams)** into a LeIsaac-native data generation loop. **LeIsaac** is used to collect teleoperated demonstrations (HDF5) and convert them into LeRobot datasets. **Cosmos-Predict 2.5** is post-trained on these videos to synthesize additional rollout videos at scale, and **IDM** is fine-tuned on the same dataset to infer robot actions from the generated videos. Together, this produces **a scalable pipeline for constructing synthetic, complete LeRobot datasets** , which can be replayed and evaluated directly in **LeIsaac**.
 
 ## 🎥 From a Single Demonstration to Large-Scale Synthetic Rollouts via Cosmos
 <div align="center">
@@ -1192,28 +1192,35 @@ This step produces the complete LeRobot-format outputs based on the Cosmos-gener
 
 ## Step 4: Replay and Evaluate in LeIsaac
 
-In this step, the **original HDF5 dataset** and the **IDM-generated LeRobot trajectories (parquet)** are first converted into a **replayable LeIsaac HDF5 dataset**,and then replayed in **Isaac Sim** using **LeIsaac**.This replay process is used to validate the quality and physical plausibility of the inferred action trajectories.
-
+In this step, the **original HDF5 dataset** and the **IDM-generated LeRobot trajectories (parquet)** are first converted and merged into a **replayable LeIsaac HDF5 dataset**, and then replayed in **Isaac Sim** using **LeIsaac**. This replay process is used to validate the quality and physical plausibility of the inferred action trajectories.
 
 ### 4.1 Convert IDM Outputs to LeIsaac HDF5
 
-IDM inference produces action trajectories in **LeRobot parquet format**.
-To replay these trajectories in LeIsaac, they must be merged with a source
-LeIsaac HDF5 file (used as an initial-state and metadata template).
+IDM inference produces action trajectories in **LeRobot parquet format**. To process these in LeIsaac, they must first be converted into a LeIsaac-compatible HDF5 format.
 
 Switch to the **LeIsaac** environment and run the conversion script from the **LeIsaac project directory**:
+
 ```bash
 python scripts/convert/lerobot2isaaclab.py \
-  --parquet <path_to_idm_output_parquet> \
-  --src_hdf5 <path_to_source_leisaac_hdf5> \
-  --out_hdf5 <path_to_output_hdf5> \
-  --overwrite
+    --lerobot_dir <path_to_idm_output_lerobot> \
+    --output_hdf5 <path_to_idm_output_hdf5> \
+    --include_videos
 ```
-This conversion creates a new, fully replayable LeIsaac HDF5 dataset.
 
-### 4.2 Replay the Generated Dataset in LeIsaac
+### 4.2 Merge with Source HDF5 Dataset
 
-After conversion, the newly generated **HDF5 dataset** can be replayed using **LeIsaac’s action replay mode**.You can refer to **[dataset_replay](https://lightwheelai.github.io/leisaac/docs/getting_started/dataset_replay)**
+The HDF5 file generated in the step4.1 needs to be merged with the source LeIsaac HDF5 file (from chapter 1.1) to restore initial states required for replay.
+
+```bash
+python scripts/tutorials/cosmos_merge.py \
+    --lerobot_hdf5 <path_to_idm_output_hdf5> \
+    --source_hdf5 <path_to_source_leisaac_hdf5> \
+    --output_hdf5 <path_to_output_hdf5>
+```
+
+### 4.3 Replay the Generated Dataset in LeIsaac
+
+After conversion and merging, the final **HDF5 dataset** can be replayed using **LeIsaac’s action replay mode**. You can refer to **[dataset_replay](https://lightwheelai.github.io/leisaac/docs/getting_started/dataset_replay)** for detailed instructions.
 
 
 
