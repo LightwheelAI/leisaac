@@ -79,7 +79,6 @@ if args_cli.enable_pinocchio:
     import isaaclab_mimic.envs.pinocchio_envs  # noqa: F401
 
 import isaaclab_tasks  # noqa: F401
-import leisaac  # noqa: F401
 from isaaclab_mimic.datagen.generation import (
     env_loop,
     setup_async_generation,
@@ -87,6 +86,8 @@ from isaaclab_mimic.datagen.generation import (
 )
 from isaaclab_mimic.datagen.utils import get_env_name_from_dataset, setup_output_paths
 from leisaac.utils.env_utils import get_task_type
+
+import leisaac  # noqa: F401
 
 
 def main():

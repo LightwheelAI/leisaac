@@ -53,7 +53,6 @@ import time
 
 import carb
 import gymnasium as gym
-import leisaac  # noqa: F401
 import omni
 import torch
 from isaaclab.envs import ManagerBasedRLEnv
@@ -62,6 +61,8 @@ from leisaac.utils.env_utils import (
     dynamic_reset_gripper_effort_limit_sim,
     get_task_type,
 )
+
+import leisaac  # noqa: F401
 
 
 class RateLimiter:
