@@ -131,33 +131,35 @@ def iterate_lerobot_episode_groups(
     """
     Iterate episodes from a lerobot-converted HDF5:
 
-    Expected layout:
-      /data/chunk-000/episode_000000
-      /data/chunk-000/episode_000001
-      ...
+    Supports layouts:
+      1) /data/chunk-000/episode_000000 (nested)
+      2) /data/episode_000000 (flat)
 
     Returns list of:
       (episode_identifier_string, episode_group)
-    where episode_identifier_string is like 'chunk-000/episode_000000'.
+    where episode_identifier_string is like 'chunk-000/episode_000000' or 'episode_000000'.
     """
     episodes: list[tuple[str, h5py.Group]] = []
 
     if "data" not in lerobot_hdf5_file:
         return episodes
 
-    for chunk_group_name in sorted(lerobot_hdf5_file["data"].keys()):
-        chunk_group = lerobot_hdf5_file["data"][chunk_group_name]
-        if not isinstance(chunk_group, h5py.Group):
+    for key in sorted(lerobot_hdf5_file["data"].keys()):
+        item = lerobot_hdf5_file["data"][key]
+
+        # Case 1: Flat structure /data/episode_XXXXXX
+        if key.startswith("episode_") and isinstance(item, h5py.Group):
+            episodes.append((key, item))
             continue
 
-        for episode_group_name in sorted(chunk_group.keys()):
-            if not episode_group_name.startswith("episode_"):
-                continue
-
-            episode_group = chunk_group[episode_group_name]
-            if isinstance(episode_group, h5py.Group):
-                episode_identifier = f"{chunk_group_name}/{episode_group_name}"
-                episodes.append((episode_identifier, episode_group))
+        # Case 2: Nested structure /data/chunk-XXX/episode_XXXXXX
+        # We assume any other group might contain episodes (e.g. chunk-000)
+        if isinstance(item, h5py.Group):
+            for sub_key in sorted(item.keys()):
+                if sub_key.startswith("episode_"):
+                    sub_item = item[sub_key]
+                    if isinstance(sub_item, h5py.Group):
+                        episodes.append((f"{key}/{sub_key}", sub_item))
 
     return episodes
 
@@ -244,7 +246,9 @@ def merge_lerobot_converted_hdf5_with_source_template(
         # 3) Iterate lerobot episodes
         lerobot_episode_list = iterate_lerobot_episode_groups(lerobot_hdf5_file)
         if not lerobot_episode_list:
-            raise RuntimeError("lerobot_converted_hdf5 has no episodes under '/data/chunk-*/episode_*'.")
+            raise RuntimeError(
+                "lerobot_converted_hdf5 has no episodes under '/data/chunk-*/episode_*' or '/data/episode_*'."
+            )
 
         # Apply slicing
         lerobot_episode_list = lerobot_episode_list[skip_first_n_lerobot_episodes:]
