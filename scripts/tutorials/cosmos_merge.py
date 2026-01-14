@@ -58,6 +58,12 @@ def main():
 
         # 3. Process episodes
         out_data = out.create_group("data")
+
+        # Copy attributes from source 'data' group (crucial for env_args)
+        if "data" in src:
+            for key in src["data"].attrs:
+                out_data.attrs[key] = src["data"].attrs[key]
+
         lerobot_data = lerobot.get("data")
 
         if not lerobot_data:
@@ -65,31 +71,31 @@ def main():
             return
 
         # Sort input episodes to ensure order
-        input_ep_names = sorted(lerobot_data.keys())
+        input_episodes_names = sorted(lerobot_data.keys())
 
-        for i, in_ep_name in enumerate(tqdm(input_ep_names, desc="Merging")):
+        for i, in_episodes_name in enumerate(tqdm(input_episodes_names, desc="Merging")):
             # Output naming convention: demo_{i}
-            out_ep_name = f"demo_{args.start_idx + i}"
+            out_episodes_name = f"demo_{args.start_idx + i}"
 
             # Copy template to output
-            src["data"].copy(template_name, out_data, name=out_ep_name)
-            out_ep = out_data[out_ep_name]
+            src["data"].copy(template_name, out_data, name=out_episodes_name)
+            out_episodes = out_data[out_episodes_name]
 
             # Get action data from LeRobot HDF5
             # Expecting: data/<episode>/action
-            action = lerobot_data[in_ep_name]["action"][:]
+            action = lerobot_data[in_episodes_name]["action"][:]
 
             # Overwrite specific datasets
-            overwrite_dataset(out_ep, "actions", action)
-            overwrite_dataset(out_ep, "processed_actions", action)
+            overwrite_dataset(out_episodes, "actions", action)
+            overwrite_dataset(out_episodes, "processed_actions", action)
 
             # Overwrite /obs/actions only if it exists in template
-            if "obs" in out_ep and "actions" in out_ep["obs"]:
-                overwrite_dataset(out_ep["obs"], "actions", action)
+            if "obs" in out_episodes and "actions" in out_episodes["obs"]:
+                overwrite_dataset(out_episodes["obs"], "actions", action)
 
             # Update length metadata
-            out_ep.attrs["num_samples"] = len(action)
-            out_ep.attrs["num_frames"] = len(action)  # Update both if present (common convention)
+            out_episodes.attrs["num_samples"] = len(action)
+            out_episodes.attrs["num_frames"] = len(action)  # Update both if present (common convention)
 
     print(f"[OK] Wrote to {output_path}")
 

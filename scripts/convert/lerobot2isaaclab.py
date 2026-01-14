@@ -1,6 +1,6 @@
 """
 Convert a local LeRobot dataset folder (v2.1 episode-based layout) to a single HDF5 file.
-Only extracts 'action' column, applies denormalization.
+Extracts selected columns (default: 'action'), applies denormalization to 'action'.
 """
 
 import argparse
@@ -10,9 +10,6 @@ import os
 from contextlib import suppress
 from pathlib import Path
 
-# Disable HDF5 file locking
-os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
-
 import h5py
 import numpy as np
 import pandas as pd
@@ -20,6 +17,9 @@ import torch
 from lerobot.datasets.compute_stats import aggregate_stats, compute_episode_stats
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from tqdm import tqdm
+
+# Disable HDF5 file locking
+os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 
 ISAACLAB_LIMITS_DEG = [
     (-110.0, 110.0),
@@ -165,7 +165,9 @@ def generate_stats_if_missing(dataset_root: Path):
 def convert_lerobot_folder_to_hdf5(
     lerobot_dir: str,
     output_hdf5_path: str,
-    action_key: str = "action",
+    column_keys: list[str] = ["action"],
+    list_available_keys: bool = False,
+    use_all_keys: bool = False,
 ):
     dataset_root = Path(lerobot_dir).expanduser().resolve()
     output_path = Path(output_hdf5_path).expanduser().resolve()
@@ -173,11 +175,32 @@ def convert_lerobot_folder_to_hdf5(
     # 1. Ensure stats exist
     generate_stats_if_missing(dataset_root)
 
-    # 2. Setup output HDF5
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
     print(f"Loading LeRobotDataset from {dataset_root}...")
     dataset = LeRobotDataset(repo_id=dataset_root.name, root=dataset_root)
+
+    if use_all_keys:
+        if dataset.num_episodes > 0:
+            first_idx = dataset.episode_data_index["from"][0].item()
+            # Get keys from the first frame
+            column_keys = list(dataset[first_idx].keys())
+            print(f"[Info] Using all available keys: {column_keys}")
+        else:
+            print("[Warning] Dataset appears empty, cannot determine keys.")
+
+    if list_available_keys:
+        print("\n[Available Keys in Dataset]")
+        if dataset.num_episodes > 0:
+            # Peek at first frame
+            first_idx = dataset.episode_data_index["from"][0].item()
+            keys = list(dataset[first_idx].keys())
+            for k in keys:
+                print(f"  - {k}")
+        else:
+            print("  (Dataset is empty)")
+        return
+
+    # 2. Setup output HDF5
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(output_path, "w") as output_hdf5_file:
         output_hdf5_file.attrs["source_dir"] = str(dataset_root)
@@ -197,62 +220,81 @@ def convert_lerobot_folder_to_hdf5(
                     except Exception:
                         pass
 
-        # 3. Iterate episodes and save ONLY action
+        # 3. Iterate episodes and save selected columns
         for episode_index in tqdm(range(dataset.num_episodes), desc="Converting to HDF5"):
-            # Load raw data manually or via dataset
-            # Helper to get full episode data as dict
-            # Use slice to get all frames
+            # Load frames
             start_index = dataset.episode_data_index["from"][episode_index].item()
             end_index = dataset.episode_data_index["to"][episode_index].item()
 
-            # Efficient loading? LeRobotDataset.__getitem__ loads one frame.
-            # We can use the logic from reference script or simpler loop
-            # Simpler: just loop and stack.
             frames = [dataset[i] for i in range(start_index, end_index)]
             if not frames:
                 continue
 
-            # Extract action
-            actions_list = [frame[action_key] for frame in frames]
-
-            # Stack
-            if isinstance(actions_list[0], torch.Tensor):
-                actions = torch.stack(actions_list).numpy()
-            else:
-                actions = np.array(actions_list)
-
-            # Denormalize
-            actions = denormalize_lerobot_to_isaaclab_radians(actions)
-
-            # Write Action
-            episode_group_name = f"data/episode_{episode_index:06d}"
+            # Create Group with new naming convention
+            episode_group_name = f"data/demo_{episode_index}"
             episode_group = output_hdf5_file.require_group(episode_group_name)
 
-            episode_group.attrs["num_frames"] = len(actions)
+            # Set frames count (based on first requested key found, or total frames)
+            episode_group.attrs["num_frames"] = len(frames)
 
-            # Save compressed
-            episode_group.create_dataset(
-                "action",
-                data=actions,
-                compression="gzip",
-                compression_opts=4,
-            )
+            for key in column_keys:
+                # Extract specific column
+                try:
+                    values_list = [frame[key] for frame in frames]
+                except KeyError:
+                    print(f"Warning: Key '{key}' not found in episode {episode_index}, skipping.")
+                    continue
+
+                # Stack
+                if isinstance(values_list[0], torch.Tensor):
+                    values_array = torch.stack(values_list).numpy()
+                else:
+                    values_array = np.array(values_list)
+
+                if key == "action":
+                    values_array = denormalize_lerobot_to_isaaclab_radians(values_array)
+
+                # Save compressed
+                # Sanitize key for HDF5 dataset name
+                safe_key = key.replace("/", "_")
+
+                # Handle string data types (e.g. 'task')
+                if values_array.dtype.kind in ("U", "S"):
+                    episode_group.create_dataset(
+                        safe_key,
+                        data=values_array.astype("S"),  # Convert to fixed-length bytes (simplest for compatibility)
+                        compression="gzip",
+                        compression_opts=4,
+                    )
+                else:
+                    episode_group.create_dataset(
+                        safe_key,
+                        data=values_array,
+                        compression="gzip",
+                        compression_opts=4,
+                    )
 
     print(f"[OK] Wrote HDF5 to: {output_path}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Compact LeRobot to HDF5 converter (Action Only)")
+    parser = argparse.ArgumentParser(description="Compact LeRobot to HDF5 converter")
     parser.add_argument("--lerobot_dir", type=str, required=True, help="Path to local LeRobot dataset")
     parser.add_argument("--output_hdf5", type=str, required=True, help="Path to output HDF5")
-    parser.add_argument("--action_key", type=str, default="action", help="Column name for action (default: action)")
+    parser.add_argument(
+        "--column_keys", type=str, nargs="+", default=["action"], help="Column names to extract (default: action)"
+    )
+    parser.add_argument("--all_keys", action="store_true", help="Extract all available keys (overrides --column_keys)")
+    parser.add_argument("--list_keys", action="store_true", help="List available column keys in the dataset and exit")
 
     args = parser.parse_args()
 
     convert_lerobot_folder_to_hdf5(
         lerobot_dir=args.lerobot_dir,
         output_hdf5_path=args.output_hdf5,
-        action_key=args.action_key,
+        column_keys=args.column_keys,
+        list_available_keys=args.list_keys,
+        use_all_keys=args.all_keys,
     )
 
 
