@@ -19,7 +19,9 @@ from isaaclab.utils import configclass
 from isaaclab.utils.datasets.episode_data import EpisodeData
 from leisaac.assets.robots.lerobot import SO101_FOLLOWER_CFG
 from leisaac.devices.action_process import init_action_cfg, preprocess_device_action
+from leisaac.enhance.datasets.lerobot_dataset_handler import LeRobotDatasetCfg
 from leisaac.utils.constant import SINGLE_ARM_JOINT_NAMES
+from leisaac.utils.robot_utils import convert_leisaac_action_to_lerobot
 
 from . import mdp
 
@@ -198,14 +200,19 @@ class SingleArmTaskEnvCfg(ManagerBasedRLEnvCfg):
     def preprocess_device_action(self, action: dict[str, Any], teleop_device) -> torch.Tensor:
         return preprocess_device_action(action, teleop_device)
 
-    def build_lerobot_frame(self, episode_data: EpisodeData, features: dict) -> dict:
+    def build_lerobot_frame(self, episode_data: EpisodeData, dataset_cfg: LeRobotDatasetCfg) -> dict:
         obs_data = episode_data._data["obs"]
+        action = obs_data["actions"][-1]
+        if dataset_cfg.action_align:
+            processed_action = convert_leisaac_action_to_lerobot(action.unsqueeze(0)).squeeze(0)
+        else:
+            processed_action = action.cpu().numpy()
         frame = {
-            "action": obs_data["actions"][-1].cpu().numpy(),
-            "observation.state": obs_data["joint_pos"][-1].cpu().numpy(),
+            "action": processed_action,
+            "observation.state": convert_leisaac_action_to_lerobot(obs_data["joint_pos"][-1].unsqueeze(0)).squeeze(0),
             "task": self.task_description,
         }
-        for frame_key in features.keys():
+        for frame_key in dataset_cfg.features.keys():
             if not frame_key.startswith("observation.images"):
                 continue
             camera_key = frame_key.split(".")[-1]

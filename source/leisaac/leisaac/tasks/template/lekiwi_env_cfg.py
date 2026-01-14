@@ -2,6 +2,7 @@ from dataclasses import MISSING
 from typing import Any
 
 import isaaclab.sim as sim_utils
+import numpy as np
 import torch
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
@@ -19,7 +20,9 @@ from isaaclab.utils import configclass
 from isaaclab.utils.datasets.episode_data import EpisodeData
 from leisaac.assets.robots.lerobot import LEKIWI_CFG
 from leisaac.devices.action_process import init_action_cfg, preprocess_device_action
+from leisaac.enhance.datasets.lerobot_dataset_handler import LeRobotDatasetCfg
 from leisaac.utils.constant import LEKIWI_JOINT_NAMES
+from leisaac.utils.robot_utils import convert_leisaac_action_to_lerobot
 
 from . import mdp
 
@@ -140,7 +143,8 @@ class LeKiwiObservationsCfg:
             params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "robot_cfg": SceneEntityCfg("robot")},
         )
         joint_pos_target = ObsTerm(func=mdp.joint_pos_target, params={"asset_cfg": SceneEntityCfg("robot")})
-        user_vel_cmd = ObsTerm(func=mdp.user_based_velocity_command, params={"asset_cfg": SceneEntityCfg("robot")})
+        user_vel_state = ObsTerm(func=mdp.user_based_velocity_state, params={"asset_cfg": SceneEntityCfg("robot")})
+        user_vel_action = ObsTerm(func=mdp.user_based_velocity_action, params={"asset_cfg": SceneEntityCfg("robot")})
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -212,16 +216,28 @@ class LeKiwiTaskEnvCfg(ManagerBasedRLEnvCfg):
     def preprocess_device_action(self, action: dict[str, Any], teleop_device) -> torch.Tensor:
         return preprocess_device_action(action, teleop_device)
 
-    def build_lerobot_frame(self, episode_data: EpisodeData, features: dict) -> dict:
+    def build_lerobot_frame(self, episode_data: EpisodeData, dataset_cfg: LeRobotDatasetCfg) -> dict:
         obs_data = episode_data._data["obs"]
+        action = obs_data["actions"][-1]
+        if dataset_cfg.action_align:
+            action = action.unsqueeze(0)
+            arm_action = convert_leisaac_action_to_lerobot(action[:, :6]).squeeze(0)
+            wheel_action = obs_data["user_vel_action"][-1].cpu().numpy()
+            processed_action = np.concatenate([arm_action, wheel_action], axis=0)
+        else:
+            processed_action = action.cpu().numpy()
         frame = {
-            "action": obs_data["actions"][-1].cpu().numpy(),
-            "observation.state": (
-                torch.cat([obs_data["joint_pos"][-1][:-3], obs_data["user_vel_cmd"][-1]]).cpu().numpy()
+            "action": processed_action,
+            "observation.state": np.concatenate(
+                [
+                    convert_leisaac_action_to_lerobot(obs_data["joint_pos"][-1][:-3].unsqueeze(0)).squeeze(0),
+                    obs_data["user_vel_state"][-1].cpu().numpy(),
+                ],
+                axis=0,
             ),
             "task": self.task_description,
         }
-        for frame_key in features.keys():
+        for frame_key in dataset_cfg.features.keys():
             if not frame_key.startswith("observation.images"):
                 continue
             camera_key = frame_key.split(".")[-1]

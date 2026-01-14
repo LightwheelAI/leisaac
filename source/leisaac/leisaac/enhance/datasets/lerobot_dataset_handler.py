@@ -18,6 +18,8 @@ class LeRobotDatasetCfg:
     """Robot type: so101_follower or bi_so101_follower, etc."""
     features: dict = None
     """Features for the LeRobotDataset."""
+    action_align: bool = False
+    """Whether the action shape equals to the joint number. If action align, we will convert action to lerobot limit range."""
 
 
 class LeRobotDatasetHandler(DatasetFileHandlerBase):

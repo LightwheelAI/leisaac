@@ -1,17 +1,20 @@
 from dataclasses import MISSING
 from typing import Any
 
+import numpy as np
 import torch
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.datasets.episode_data import EpisodeData
 from leisaac.devices.action_process import preprocess_device_action
+from leisaac.enhance.datasets.lerobot_dataset_handler import LeRobotDatasetCfg
 from leisaac.enhance.envs import RecorderEnhanceDirectRLEnv as DirectRLEnv
 from leisaac.enhance.envs import RecorderEnhanceDirectRLEnvCfg as DirectRLEnvCfg
 from leisaac.enhance.envs.mdp.recorders.recorders_cfg import (
     DirectEnvActionStateRecorderManagerCfg as RecordTerm,
 )
 from leisaac.utils.constant import BI_ARM_JOINT_NAMES
+from leisaac.utils.robot_utils import convert_leisaac_action_to_lerobot
 
 from .. import mdp
 from ..bi_arm_env_cfg import BiArmEventCfg, BiArmTaskSceneCfg
@@ -93,16 +96,28 @@ class BiArmTaskDirectEnvCfg(DirectRLEnvCfg):
     def preprocess_device_action(self, action: dict[str, Any], teleop_device) -> torch.Tensor:
         return preprocess_device_action(action, teleop_device)
 
-    def build_lerobot_frame(self, episode_data: EpisodeData, features: dict) -> dict:
+    def build_lerobot_frame(self, episode_data: EpisodeData, dataset_cfg: LeRobotDatasetCfg) -> dict:
         obs_data = episode_data._data["obs"]
+        action = obs_data["actions"][-1]
+        if dataset_cfg.action_align:
+            action = action.unsqueeze(0)
+            left_arm_action = convert_leisaac_action_to_lerobot(action[:, :6]).squeeze(0)
+            right_arm_action = convert_leisaac_action_to_lerobot(action[:, 6:]).squeeze(0)
+            processed_action = np.concatenate([left_arm_action, right_arm_action], axis=0)
+        else:
+            processed_action = action.cpu().numpy()
         frame = {
-            "action": obs_data["actions"][-1].cpu().numpy(),
-            "observation.state": (
-                torch.cat([obs_data["left_joint_pos"][-1], obs_data["right_joint_pos"][-1]]).cpu().numpy()
+            "action": processed_action,
+            "observation.state": np.concatenate(
+                [
+                    convert_leisaac_action_to_lerobot(obs_data["left_joint_pos"][-1].unsqueeze(0)).squeeze(0),
+                    convert_leisaac_action_to_lerobot(obs_data["right_joint_pos"][-1].unsqueeze(0)).squeeze(0),
+                ],
+                axis=0,
             ),
             "task": self.task_description,
         }
-        for frame_key in features.keys():
+        for frame_key in dataset_cfg.features.keys():
             if not frame_key.startswith("observation.images"):
                 continue
             camera_key = frame_key.split(".")[-1]

@@ -59,7 +59,7 @@ class LeRobotRecorderManager(RecorderManager):
         self._env_steps_record[env_idx] += 1
         if self._env_steps_record[env_idx] <= self._skip_frames:
             return
-        frame = self._env.cfg.build_lerobot_frame(self._episodes[env_idx], self._dataset_cfg.features)
+        frame = self._env.cfg.build_lerobot_frame(self._episodes[env_idx], self._dataset_cfg)
         self._dataset_file_handler.add_frame(frame)
         self._episodes[env_idx]._data.clear()
 
