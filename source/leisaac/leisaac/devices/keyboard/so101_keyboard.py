@@ -43,20 +43,19 @@ class SO101Keyboard(Device):
         body_idxs, _ = self.robot_asset.find_bodies(self.target_frame)
         self.target_frame_idx = body_idxs[0]
 
-    def __str__(self) -> str:
-        """Returns: A string containing the information of keyboard controller."""
-        msg = "Keyboard Controller for SO101 Single Arm (SE(3) Control).\n"
-        msg += f"\tKeyboard name: {self._input.get_keyboard_name(self._keyboard)}\n"
-        msg += f"\ttarget frame: {self.target_frame}\n"
-        msg += "\t----------------------------------------------\n"
-        msg += "\tForward / Backward:                W / S\n"
-        msg += "\tLeft / Right:                      A / D\n"
-        msg += "\tUp / Down:                         Q / E\n"
-        msg += "\tRotate (Yaw) Left / Right:         J / L\n"
-        msg += "\tRotate (Pitch) Up / Down:          K / I\n"
-        msg += "\tGripper Open / Close:              U / O\n"
-        msg += "\t----------------------------------------------\n"
-        return msg
+    def _add_device_control_description(self):
+        self._display_controls_table.add_row(["W", "forward"])
+        self._display_controls_table.add_row(["S", "backward"])
+        self._display_controls_table.add_row(["A", "left"])
+        self._display_controls_table.add_row(["D", "right"])
+        self._display_controls_table.add_row(["Q", "up"])
+        self._display_controls_table.add_row(["E", "down"])
+        self._display_controls_table.add_row(["J", "rotate_left"])
+        self._display_controls_table.add_row(["L", "rotate_right"])
+        self._display_controls_table.add_row(["K", "rotate_up"])
+        self._display_controls_table.add_row(["I", "rotate_down"])
+        self._display_controls_table.add_row(["U", "gripper_open"])
+        self._display_controls_table.add_row(["O", "gripper_close"])
 
     def get_device_state(self):
         return self._convert_delta_from_frame(self._delta_action)

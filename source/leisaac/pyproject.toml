@@ -20,12 +20,12 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "typer",
-    "psutil",
-    "pyserial",
     "deepdiff",
     "feetech-servo-sdk",
+    "prettytable>=3.14.0",
+    "psutil",
     "pygame>=2.5.1,<2.7.0",
+    "pyserial",
 ]
 
 [project.urls]
@@ -42,4 +42,5 @@ zip-safe = false
 isaaclab = ["isaaclab[isaacsim,all]==2.3.0"]
 gr00t = ["pyzmq>=27.0.0", "pydantic==2.10.6", "msgpack>=1.0.5"]
 lerobot-async = ["grpcio==1.74.0", "protobuf==6.32.0"] # original isaaclab install protobuf version is 3.20.3
+lerobot = ["lerobot==0.4.2"]
 openpi = ["dm-tree>=0.1.8", "msgpack>=1.0.5", "numpy>=1.22.4,<2.0.0", "pillow>=9.0.0", "tree>=0.2.4", "websockets>=11.0"]

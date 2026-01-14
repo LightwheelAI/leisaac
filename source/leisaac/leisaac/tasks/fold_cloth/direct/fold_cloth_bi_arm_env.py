@@ -25,6 +25,8 @@ class FoldClothBiArmEnvCfg(BiArmTaskDirectEnvCfg):
 
     scene: FoldClothBiArmSceneCfg = FoldClothBiArmSceneCfg(env_spacing=8.0)
 
+    task_description: str = "Fold the cloth, and reset the arm to rest state."
+
     def __post_init__(self) -> None:
         super().__post_init__()
 

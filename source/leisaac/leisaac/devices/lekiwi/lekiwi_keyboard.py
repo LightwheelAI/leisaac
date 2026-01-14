@@ -38,17 +38,17 @@ class LeKiwiKeyboard(SO101Keyboard):
         self._vel_command = np.zeros(3)
         self._joint_names = self.env.scene["robot"].data.joint_names
 
-    def __str__(self) -> str:
-        """Returns: A string containing the information of keyboard controller."""
-        msg = "Keyboard Controller for LeKiwi Control).\n"
-        msg += f"\tKeyboard name: {self._input.get_keyboard_name(self._keyboard)}\n"
-        msg += "\t----------------------------------------------\n"
-        msg += "\tForward / Backward:                UP / DOWN\n"
-        msg += "\tLeft / Right:                      LEFT / RIGHT\n"
-        msg += "\tRotate (Theta) Left / Right:       Z / X\n"
-        msg += "\tSpeed Level:                       1 / 2 / 3\n"
-        msg += "\t----------------------------------------------\n"
-        return msg
+    def _add_device_control_description(self):
+        super()._add_device_control_description()
+        self._display_controls_table.add_row(["UP", "forward"])
+        self._display_controls_table.add_row(["DOWN", "backward"])
+        self._display_controls_table.add_row(["LEFT", "left"])
+        self._display_controls_table.add_row(["RIGHT", "right"])
+        self._display_controls_table.add_row(["Z", "rotate_left"])
+        self._display_controls_table.add_row(["X", "rotate_right"])
+        self._display_controls_table.add_row(["1", "speed_level_1"])
+        self._display_controls_table.add_row(["2", "speed_level_2"])
+        self._display_controls_table.add_row(["3", "speed_level_3"])
 
     def get_device_state(self):
         arm_action = super().get_device_state()

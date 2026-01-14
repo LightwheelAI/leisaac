@@ -52,20 +52,19 @@ class SO101Gamepad(Device):
         super().__del__()
         self._gamepad.stop()
 
-    def __str__(self) -> str:
-        """Returns: A string containing the information of gamepad controller."""
-        msg = "Gamepad Controller for SO101 Single Arm (SE(3) Control).\n"
-        msg += f"\tGamepad name: {self._gamepad.name}\n"
-        msg += f"\ttarget frame: {self.target_frame}\n"
-        msg += "\t----------------------------------------------\n"
-        msg += "\tForward / Backward:       Left stick Y (forward / backward)\n"
-        msg += "\tLeft / Right:             Left stick X (left / right)\n"
-        msg += "\tUp / Down:                Right stick Y (forward / backward)\n"
-        msg += "\tRotate (Yaw) Left/Right:  Right stick X (left / right)\n"
-        msg += "\tRotate (Pitch) Up/Down:   LB / LT\n"
-        msg += "\tGripper Open / Close:     RT / RB\n"
-        msg += "\t----------------------------------------------\n"
-        return msg
+    def _add_device_control_description(self):
+        self._display_controls_table.add_row(["Left Stick Y (forward)", "forward"])
+        self._display_controls_table.add_row(["Left Stick Y (backward)", "backward"])
+        self._display_controls_table.add_row(["Left Stick X (left)", "left"])
+        self._display_controls_table.add_row(["Left Stick X (right)", "right"])
+        self._display_controls_table.add_row(["Right Stick Y (up)", "up"])
+        self._display_controls_table.add_row(["Right Stick Y (down)", "down"])
+        self._display_controls_table.add_row(["Right Stick X (left)", "rotate_left"])
+        self._display_controls_table.add_row(["Right Stick X (right)", "rotate_right"])
+        self._display_controls_table.add_row(["LB", "rotate_up"])
+        self._display_controls_table.add_row(["LT", "rotate_down"])
+        self._display_controls_table.add_row(["RT", "gripper_open"])
+        self._display_controls_table.add_row(["RB", "gripper_close"])
 
     def get_device_state(self):
         return self._convert_delta_from_frame(self._delta_action)
