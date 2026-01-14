@@ -1204,7 +1204,7 @@ Switch to the **LeIsaac** environment and run the conversion script from the **L
 python scripts/convert/lerobot2isaaclab.py \
     --lerobot_dir <path_to_idm_output_lerobot> \
     --output_hdf5 <path_to_idm_output_hdf5> \
-    --include_videos
+    --column_keys action observation.state
 ```
 
 ### 4.2 Merge with Source HDF5 Dataset
