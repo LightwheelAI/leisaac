@@ -1,188 +1,94 @@
+"""This script converts IsaacLab HDF5 datasets into LeRobot Dataset v2 format.
+
+Since LeRobot is evolving rapidly, compatibility with the latest LeRobot versions is not guaranteed.
+Please install the following specific versions of the dependencies:
+
+pip install lerobot==0.3.3
+pip install numpy==1.26.0
+
+"""
+
+import argparse
 import os
 
 import h5py
 import numpy as np
+from isaaclab.app import AppLauncher
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from tqdm import tqdm
 
-"""
-NOTE: Please use the environment of lerobot.
+# add argparse arguments
+parser = argparse.ArgumentParser(description="Convert IsaacLab dataset to LeRobot Dataset v2.")
+parser.add_argument("--task_name", type=str, default=None, help="Name of the task.")
+parser.add_argument(
+    "--task_type",
+    type=str,
+    default=None,
+    help=(
+        "Specify task type. If your dataset is recorded with keyboard, you should set it to 'keyboard', otherwise not"
+        " to set it and keep default value None."
+    ),
+)
+parser.add_argument(
+    "--repo-id",
+    "-r",
+    type=str,
+    default="EverNorif/so101_test_orange_pick",
+    help="Repository ID",
+)
+parser.add_argument(
+    "--fps",
+    "-f",
+    type=int,
+    default=30,
+    help="Frames per second",
+)
+parser.add_argument(
+    "--hdf5-root",
+    "-d",
+    type=str,
+    default="./datasets",
+    help="HDF5 root directory",
+)
+parser.add_argument(
+    "--hdf5-files",
+    type=str,
+    default=None,
+    help="HDF5 files (comma-separated). If not provided, uses dataset.hdf5 in hdf5_root",
+)
+parser.add_argument(
+    "--task_description",
+    type=str,
+    default="Grab orange and place into plate",
+    help="Task description",
+)
+parser.add_argument(
+    "--push-to-hub",
+    action="store_true",
+    help="Push to hub",
+)
 
-Because lerobot is rapidly developing, we don't guarantee the compatibility for the latest version of lerobot.
-Currently, the commit we used is https://github.com/huggingface/lerobot/tree/v0.3.3
-"""
+# append AppLauncher cli args
+AppLauncher.add_app_launcher_args(parser)
+# parse the arguments
+args_cli = parser.parse_args()
 
-# Feature definition for single-arm so101_follower
-SINGLE_ARM_FEATURES = {
-    "action": {
-        "dtype": "float32",
-        "shape": (6,),
-        "names": [
-            "shoulder_pan.pos",
-            "shoulder_lift.pos",
-            "elbow_flex.pos",
-            "wrist_flex.pos",
-            "wrist_roll.pos",
-            "gripper.pos",
-        ],
-    },
-    "observation.state": {
-        "dtype": "float32",
-        "shape": (6,),
-        "names": [
-            "shoulder_pan.pos",
-            "shoulder_lift.pos",
-            "elbow_flex.pos",
-            "wrist_flex.pos",
-            "wrist_roll.pos",
-            "gripper.pos",
-        ],
-    },
-    "observation.images.front": {
-        "dtype": "video",
-        "shape": [480, 640, 3],
-        "names": ["height", "width", "channels"],
-        "video_info": {
-            "video.height": 480,
-            "video.width": 640,
-            "video.codec": "av1",
-            "video.pix_fmt": "yuv420p",
-            "video.is_depth_map": False,
-            "video.fps": 30.0,
-            "video.channels": 3,
-            "has_audio": False,
-        },
-    },
-    "observation.images.wrist": {
-        "dtype": "video",
-        "shape": [480, 640, 3],
-        "names": ["height", "width", "channels"],
-        "video_info": {
-            "video.height": 480,
-            "video.width": 640,
-            "video.codec": "av1",
-            "video.pix_fmt": "yuv420p",
-            "video.is_depth_map": False,
-            "video.fps": 30.0,
-            "video.channels": 3,
-            "has_audio": False,
-        },
-    },
-}
+app_launcher_args = vars(args_cli)
 
-# Feature definition for bi-arm so101_follower
-BI_ARM_FEATURES = {
-    "action": {
-        "dtype": "float32",
-        "shape": (12,),
-        "names": [
-            "left_shoulder_pan.pos",
-            "left_shoulder_lift.pos",
-            "left_elbow_flex.pos",
-            "left_wrist_flex.pos",
-            "left_wrist_roll.pos",
-            "left_gripper.pos",
-            "right_shoulder_pan.pos",
-            "right_shoulder_lift.pos",
-            "right_elbow_flex.pos",
-            "right_wrist_flex.pos",
-            "right_wrist_roll.pos",
-            "right_gripper.pos",
-        ],
-    },
-    "observation.state": {
-        "dtype": "float32",
-        "shape": (12,),
-        "names": [
-            "left_shoulder_pan.pos",
-            "left_shoulder_lift.pos",
-            "left_elbow_flex.pos",
-            "left_wrist_flex.pos",
-            "left_wrist_roll.pos",
-            "left_gripper.pos",
-            "right_shoulder_pan.pos",
-            "right_shoulder_lift.pos",
-            "right_elbow_flex.pos",
-            "right_wrist_flex.pos",
-            "right_wrist_roll.pos",
-            "right_gripper.pos",
-        ],
-    },
-    "observation.images.left_wrist": {
-        "dtype": "video",
-        "shape": [480, 640, 3],
-        "names": ["height", "width", "channels"],
-        "video_info": {
-            "video.height": 480,
-            "video.width": 640,
-            "video.codec": "av1",
-            "video.pix_fmt": "yuv420p",
-            "video.is_depth_map": False,
-            "video.fps": 30.0,
-            "video.channels": 3,
-            "has_audio": False,
-        },
-    },
-    "observation.images.top": {
-        "dtype": "video",
-        "shape": [480, 640, 3],
-        "names": ["height", "width", "channels"],
-        "video_info": {
-            "video.height": 480,
-            "video.width": 640,
-            "video.codec": "av1",
-            "video.pix_fmt": "yuv420p",
-            "video.is_depth_map": False,
-            "video.fps": 30.0,
-            "video.channels": 3,
-            "has_audio": False,
-        },
-    },
-    "observation.images.right_wrist": {
-        "dtype": "video",
-        "shape": [480, 640, 3],
-        "names": ["height", "width", "channels"],
-        "video_info": {
-            "video.height": 480,
-            "video.width": 640,
-            "video.codec": "av1",
-            "video.pix_fmt": "yuv420p",
-            "video.is_depth_map": False,
-            "video.fps": 30.0,
-            "video.channels": 3,
-            "has_audio": False,
-        },
-    },
-}
-
-# preprocess actions and joint pos
-ISAACLAB_JOINT_POS_LIMIT_RANGE = [
-    (-110.0, 110.0),
-    (-100.0, 100.0),
-    (-100.0, 90.0),
-    (-95.0, 95.0),
-    (-160.0, 160.0),
-    (-10, 100.0),
-]
-LEROBOT_JOINT_POS_LIMIT_RANGE = [
-    (-100, 100),
-    (-100, 100),
-    (-100, 100),
-    (-100, 100),
-    (-100, 100),
-    (0, 100),
-]
+# launch omniverse app
+app_launcher = AppLauncher(app_launcher_args)
+simulation_app = app_launcher.app
 
 
-def preprocess_joint_pos(joint_pos: np.ndarray) -> np.ndarray:
-    joint_pos = joint_pos / np.pi * 180
-    for i in range(6):
-        isaaclab_min, isaaclab_max = ISAACLAB_JOINT_POS_LIMIT_RANGE[i]
-        lerobot_min, lerobot_max = LEROBOT_JOINT_POS_LIMIT_RANGE[i]
-        isaac_range = isaaclab_max - isaaclab_min
-        lerobot_range = lerobot_max - lerobot_min
-        joint_pos[:, i] = (joint_pos[:, i] - isaaclab_min) / isaac_range * lerobot_range + lerobot_min
-    return joint_pos
+import gymnasium as gym
+
+# import torch
+from isaaclab.envs import DirectRLEnv, ManagerBasedRLEnv
+from isaaclab.utils.datasets import EpisodeData, HDF5DatasetFileHandler
+from isaaclab_tasks.utils import parse_env_cfg
+from leisaac.enhance.datasets.lerobot_dataset_handler import LeRobotDatasetCfg
+from leisaac.utils.env_utils import get_task_type
+from leisaac.utils.robot_utils import build_feature_from_env
 
 
 def process_single_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Group, demo_name: str) -> bool:
@@ -200,8 +106,8 @@ def process_single_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py
         return False
 
     # preprocess actions and joint pos
-    actions = preprocess_joint_pos(actions)
-    joint_pos = preprocess_joint_pos(joint_pos)
+    # actions = preprocess_joint_pos(actions)
+    # joint_pos = preprocess_joint_pos(joint_pos)
 
     assert actions.shape[0] == joint_pos.shape[0] == front_images.shape[0] == wrist_images.shape[0]
     total_state_frames = actions.shape[0]
@@ -235,9 +141,9 @@ def process_bi_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Gro
         return False
 
     # preprocess actions and joint pos
-    actions = preprocess_joint_pos(actions)
-    left_joint_pos = preprocess_joint_pos(left_joint_pos)
-    right_joint_pos = preprocess_joint_pos(right_joint_pos)
+    # actions = preprocess_joint_pos(actions)
+    # left_joint_pos = preprocess_joint_pos(left_joint_pos)
+    # right_joint_pos = preprocess_joint_pos(right_joint_pos)
 
     assert (
         actions.shape[0]
@@ -262,54 +168,67 @@ def process_bi_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Gro
     return True
 
 
+def save_episode(dataset: LeRobotDataset, episode: EpisodeData):
+    # for frame_index in range(len(episode)):
+    # frame = episode[frame_index]
+    # dataset.add_frame(frame=frame, task=task)
+    return True
+
+
 def convert_isaaclab_to_lerobot():
-    """NOTE: Modify the following parameters to fit your own dataset"""
-    repo_id = "EverNorif/so101_test_orange_pick"
-    robot_type = "so101_follower"  # so101_follower, bi_so101_follower
-    fps = 30
-    hdf5_root = "./datasets"
-    hdf5_files = [os.path.join(hdf5_root, "dataset.hdf5")]
-    task = "Grab orange and place into plate"
-    push_to_hub = False
+    """automatically build features and dataset"""
+    env_cfg = parse_env_cfg(args_cli.task_name, device=args_cli.device, num_envs=args_cli.num_envs)
+    task_type = get_task_type(args_cli.task_name, args_cli.task_type)
+    env_cfg.use_teleop_device(task_type)
 
-    """parameters check"""
-    assert robot_type in [
-        "so101_follower",
-        "bi_so101_follower",
-    ], "robot_type must be so101_follower or bi_so101_follower"
+    env: ManagerBasedRLEnv | DirectRLEnv = gym.make(args_cli.task, cfg=env_cfg).unwrapped
 
-    """convert to LeRobotDataset"""
-    now_episode_index = 0
+    dataset_cfg = LeRobotDatasetCfg(
+        repo_id=args_cli.repo_id,
+        fps=args_cli.fps,
+        robot_type=env_cfg.robot_name,
+        features=build_feature_from_env(env, env_cfg),
+    )
+    dataset_cfg.features = build_feature_from_env(env, env_cfg)
+
     dataset = LeRobotDataset.create(
-        repo_id=repo_id,
-        fps=fps,
-        robot_type=robot_type,
-        features=SINGLE_ARM_FEATURES if robot_type == "so101_follower" else BI_ARM_FEATURES,
+        repo_id=dataset_cfg.repo_id,
+        fps=dataset_cfg.fps,
+        robot_type=dataset_cfg.robot_type,
+        features=dataset_cfg.features,
     )
 
-    for hdf5_id, hdf5_file in enumerate(hdf5_files):
-        print(f"[{hdf5_id+1}/{len(hdf5_files)}] Processing hdf5 file: {hdf5_file}")
-        with h5py.File(hdf5_file, "r") as f:
-            demo_names = list(f["data"].keys())
-            print(f"Found {len(demo_names)} demos: {demo_names}")
+    """load datasets"""
+    if args_cli.hdf5_files is None:
+        hdf5_files_list = [os.path.join(args_cli.hdf5_root, "dataset.hdf5")]
+    else:
+        hdf5_files_list = [
+            os.path.join(args_cli.hdf5_root, f.strip()) if not os.path.isabs(f.strip()) else f.strip()
+            for f in args_cli.hdf5_files.split(",")
+        ]
 
-            for demo_name in tqdm(demo_names, desc="Processing each demo"):
-                demo_group = f["data"][demo_name]
-                if "success" in demo_group.attrs and not demo_group.attrs["success"]:
-                    print(f"Demo {demo_name} is not successful, skip it")
-                    continue
+    now_episode_index = 0
+    for hdf5_id, hdf5_file in enumerate(hdf5_files_list):
+        print(f"[{hdf5_id+1}/{len(hdf5_files_list)}] Processing hdf5 file: {hdf5_file}")
+        dataset_file_handler = HDF5DatasetFileHandler()
+        dataset_file_handler.open(hdf5_file)
+        episode_names = dataset_file_handler.get_episode_names()
+        print(f"Found {len(episode_names)} episodes: {episode_names}")
+        for episode_name in tqdm(episode_names, desc="Processing each episode"):
+            episode = dataset_file_handler.load_episode(episode_name)
+            # if not success:
+            # pass
+            valid = save_episode(dataset, episode)
+            if valid:
+                now_episode_index += 1
+                dataset.save_episode()
+                print(f"Saving episode {now_episode_index} successfully")
+            print(episode)
+            save_episode(dataset, episode)
 
-                if robot_type == "so101_follower":
-                    valid = process_single_arm_data(dataset, task, demo_group, demo_name)
-                elif robot_type == "bi_so101_follower":
-                    valid = process_bi_arm_data(dataset, task, demo_group, demo_name)
+        dataset_file_handler.close()
 
-                if valid:
-                    now_episode_index += 1
-                    dataset.save_episode()
-                    print(f"Saving episode {now_episode_index} successfully")
-
-    if push_to_hub:
+    if args_cli.push_to_hub:
         dataset.push_to_hub()
 
 
