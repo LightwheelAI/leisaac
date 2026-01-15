@@ -16,7 +16,7 @@ from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from tqdm import tqdm
 
 # add argparse arguments
-parser = argparse.ArgumentParser(description="Convert IsaacLab dataset to LeRobot Dataset v2.")
+parser = argparse.ArgumentParser(description="Convert IsaacLab dataset to LeRobot Dataset v3.")
 parser.add_argument("--task_name", type=str, default=None, help="Name of the task.")
 parser.add_argument(
     "--task_type",

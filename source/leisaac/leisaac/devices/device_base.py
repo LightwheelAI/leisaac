@@ -96,7 +96,7 @@ class Device(DeviceBase):
         self._display_controls_table.add_row(["R", "reset simulation and set task success to False"])
         self._display_controls_table.add_row(["N", "reset simulation and set task success to True"])
         self._display_controls_table.add_row(["Control+C", "quit"])
-        self._display_controls_table.add_divider()
+        self._display_controls_table.add_row(["==========", "=========="])
         self._add_device_control_description()
 
     def __del__(self):
