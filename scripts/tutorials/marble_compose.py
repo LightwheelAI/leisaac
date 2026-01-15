@@ -8,9 +8,11 @@ Task types: toys, orange, cloth, cube
 """
 
 import argparse
+import os
 from pathlib import Path
 
 import numpy as np
+from scipy.spatial.transform import Rotation as R
 
 # Configuration
 
@@ -27,6 +29,12 @@ TASK_TO_ENV = {
     },
     "cube": {
         "single": "LeIsaac-SO101-LiftCube-v0",
+    },
+    "burger": {
+        "dual": "LeIsaac-SO101-AssembleHamburger-BiArm-v0",
+    },
+    "sausage": {
+        "dual": "LeIsaac-SO101-SausageCut-BiArm-v0",
     },
 }
 
@@ -58,7 +66,7 @@ TASK_CONFIG = {
         ],
         "source_scene": "scenes/lightwheel_toyroom/scene.usd",
         "assets_subpath": "scenes/lightwheel_toyroom/Assets",
-        "table_name": "KidRoom_Table01",
+        "platform_name": "KidRoom_Table01",
     },
     "orange": {
         "objects": ["Orange001", "Orange002", "Orange003", "Plate"],
@@ -69,12 +77,31 @@ TASK_CONFIG = {
         "objects": ["Table038_01", "cloth"],
         "source_scene": "scenes/lightwheel_bedroom/scene.usd",
         "assets_subpath": "scenes/lightwheel_bedroom",
-        "table_name": "Table038_01",
+        "platform_name": "Table038_01",
     },
     "cube": {
         "objects": ["cube"],
         "source_scene": "scenes/table_with_cube/scene.usd",
         "assets_subpath": "scenes/table_with_cube/cube",
+    },
+    "burger": {
+        "objects": [
+            "Burger_ChoppingBlock",
+            "Burger_Plate",
+            "Burger_Beef_Patties001",
+            "Burger_Cheese001",
+            "Burger_Bread002",
+        ],
+        "source_scene": "scenes/kitchen_with_burger/scene.usd",
+        "assets_subpath": "scenes/kitchen_with_burger/objects/burger/Assets",
+        "parent_prim": "Burger",
+        "platform_name": "Burger_ChoppingBlock",
+    },
+    "sausage": {
+        "objects": ["ChoppingBlock"],
+        "source_scene": "scenes/kitchen_with_sausage/scene.usd",
+        "assets_subpath": "scenes/kitchen_with_sausage/objects",
+        "platform_name": "ChoppingBlock",
     },
 }
 
@@ -130,25 +157,33 @@ def compute_scene_transform(orig_pos, orig_quat, target_pos, target_quat):
     return matrix_to_pose(T_inv)
 
 
+def compute_lookat(eye, euler_deg, distance=2.0):
+    """Compute lookat point from eye position and euler angles"""
+    eye = np.array(eye)
+    rot = R.from_euler("xyz", euler_deg, degrees=True)
+    rot_matrix = rot.as_matrix()
+    forward = rot_matrix @ np.array([0, 0, -1])
+    lookat = eye + forward * distance
+
+    print(f"  self.viewer.eye = ({eye[0]:.5f}, {eye[1]:.5f}, {eye[2]:.5f})")
+    print(f"  self.viewer.lookat = ({lookat[0]:.5f}, {lookat[1]:.5f}, {lookat[2]:.5f})")
+
+
 # USD Utilities
 
 
 def get_object_usd_path(task_type: str, obj_name: str, assets_base: str) -> str:
     """Resolve USD file path for an object"""
-    config = TASK_CONFIG[task_type]
-    table_name = config.get("table_name")
-
     if task_type == "toys":
-        if obj_name == table_name:
+        platform_name = TASK_CONFIG[task_type].get("platform_name")
+        if obj_name == platform_name:
             return f"{assets_base}/{obj_name}/{obj_name}.usd"
         name = obj_name[:-3] if obj_name.endswith("_01") else obj_name
         return f"{assets_base}/Kit1/{name}.usd"
 
-    if task_type == "orange":
-        return f"{assets_base}/{obj_name}/{obj_name}.usd"
-
     if task_type == "cloth":
-        if obj_name == table_name:
+        platform_name = TASK_CONFIG[task_type].get("platform_name")
+        if obj_name == platform_name:
             folder = obj_name[:-3] if obj_name.endswith("_01") else obj_name
             return f"{assets_base}/LW_Loft/Loft/{folder}/{folder}.usd"
         return f"{assets_base}/cloth/cloth.usd"
@@ -156,10 +191,16 @@ def get_object_usd_path(task_type: str, obj_name: str, assets_base: str) -> str:
     if task_type == "cube":
         return f"{assets_base}/cube.usd"
 
-    raise ValueError(f"Unknown object: {obj_name}")
+    # Common pattern: orange, burger, sausage
+    if task_type in ("orange", "burger", "sausage"):
+        return f"{assets_base}/{obj_name}/{obj_name}.usd"
+
+    raise ValueError(f"Unknown task type: {task_type}")
 
 
-def read_layout_from_usd(usd_path: str, object_names: list[str]) -> dict[str, dict]:
+def read_layout_from_usd(
+    usd_path: str, object_names: list[str], parent_prim_name: str | None = None
+) -> dict[str, dict]:
     """Read object poses from USD (first-level children of root prim)"""
     from pxr import Usd, UsdGeom
 
@@ -167,7 +208,12 @@ def read_layout_from_usd(usd_path: str, object_names: list[str]) -> dict[str, di
     if not stage:
         raise RuntimeError(f"Cannot open: {usd_path}")
 
-    root = stage.GetDefaultPrim() or stage.GetPrimAtPath("/")
+    if parent_prim_name:
+        root = stage.GetPrimAtPath(f"/World/{parent_prim_name}")
+        if not root.IsValid():
+            raise RuntimeError(f"Parent prim '{parent_prim_name}' not found in {usd_path}")
+    else:
+        root = stage.GetDefaultPrim() or stage.GetPrimAtPath("/")
     object_set = set(object_names)
     layout = {}
 
@@ -210,13 +256,11 @@ def load_robot_pose(task_type: str, use_dual_arm: bool = False) -> dict[str, lis
     if use_dual_arm:
         env_id = task_env.get("dual")
         if not env_id:
-            print(f"[WARN] Dual-arm not supported for '{task_type}', using single-arm")
-            env_id = task_env["single"]
-            use_dual_arm = False
-        else:
-            print(f"[INFO] Using dual-arm config: {env_id}")
+            raise ValueError(f"Dual-arm not supported for '{task_type}'")
     else:
-        env_id = task_env["single"]
+        env_id = task_env.get("single")
+        if not env_id:
+            raise ValueError(f"Single-arm not supported for '{task_type}'")
 
     env_cfg = parse_env_cfg(env_id, device="cpu", num_envs=1)
 
@@ -240,7 +284,7 @@ def compose_scene(
     assets_base: str,
     target_pos: list[float],
     target_quat: list[float],
-    include_table: bool = False,
+    include_platform: bool = False,
     use_dual_arm: bool = False,
 ) -> str:
     """
@@ -249,32 +293,32 @@ def compose_scene(
     2. Place objects at their original positions
 
     Args:
-        include_table: Include table in output (default: False)
+        include_platform: Include platform (table/board) in output (default: False)
         use_dual_arm: Use dual-arm configuration (toys/cloth only, uses left_arm as reference)
     """
     from pxr import Gf, Usd, UsdGeom
 
     config = TASK_CONFIG[task_type]
-    table_name = config.get("table_name")
+    platform_name = config.get("platform_name")
 
-    # Warn if table not supported
-    if include_table and not table_name:
-        print(f"[WARN] Table not supported for '{task_type}'")
-        include_table = False
+    # Warn if platform not supported
+    if include_platform and not platform_name:
+        print(f"[WARN] Platform not supported for '{task_type}'")
+        include_platform = False
 
     # Build source USD path and read layout
     source_usd = f"{assets_base}/{config['source_scene']}"
     print(f"[INFO] Reading layout from: {source_usd}")
-    layout = read_layout_from_usd(source_usd, config["objects"])
+    layout = read_layout_from_usd(source_usd, config["objects"], parent_prim_name=config.get("parent_prim"))
 
     # Compute scene transform based on reference point
-    if include_table and table_name:
-        # Use table as reference point
-        table_pose = layout.get(table_name)
-        if not table_pose:
-            raise RuntimeError(f"Table '{table_name}' not found in source USD")
-        orig_pos, orig_quat = table_pose["pos"], table_pose["rot"]
-        print(f"[INFO] Using table '{table_name}' as reference: pos={orig_pos}")
+    if include_platform and platform_name:
+        # Use platform as reference point
+        platform_pose = layout.get(platform_name)
+        if not platform_pose:
+            raise RuntimeError(f"Platform '{platform_name}' not found in source USD")
+        orig_pos, orig_quat = platform_pose["pos"], platform_pose["rot"]
+        print(f"[INFO] Using platform '{platform_name}' as reference: pos={orig_pos}")
     else:
         # Use robot as reference point (dual-arm uses left_arm)
         robot = load_robot_pose(task_type, use_dual_arm=use_dual_arm)
@@ -283,18 +327,30 @@ def compose_scene(
 
     scene_pos, scene_quat = compute_scene_transform(orig_pos, orig_quat, target_pos, target_quat)
 
-    # Filter out table if not included
-    if not include_table and table_name:
-        layout = {k: v for k, v in layout.items() if k != table_name}
+    # Filter out platform if not included
+    if not include_platform and platform_name:
+        layout = {k: v for k, v in layout.items() if k != platform_name}
 
     # Create output stage
     stage = Usd.Stage.CreateNew(output_usd)
     world = UsdGeom.Xform.Define(stage, "/World")
     stage.SetDefaultPrim(world.GetPrim())
 
-    # Add background with transform
+    # Helper to compute relative path from output USD to referenced USD
+    output_dir = Path(output_usd).resolve().parent
+
+    def to_relative(abs_path: str) -> str:
+        try:
+            return os.path.relpath(abs_path, output_dir)
+        except ValueError:
+            # On Windows, relpath fails across drives - use absolute path
+            return abs_path
+
+    # Add background with transform (use relative path)
     bg_prim = stage.DefinePrim("/World/Scene")
-    bg_prim.GetReferences().AddReference(background_usd)
+    bg_relative = to_relative(background_usd)
+    bg_prim.GetReferences().AddReference(bg_relative)
+    print(f"[INFO] Background reference: {bg_relative}")
     bg_xform = UsdGeom.Xformable(bg_prim)
     bg_xform.ClearXformOpOrder()
     bg_xform.AddTranslateOp().Set(Gf.Vec3d(*scene_pos))
@@ -302,19 +358,31 @@ def compose_scene(
 
     # Add objects at original positions
     assets_path = f"{assets_base}/{config['assets_subpath']}"
+
+    # Determine parent path for objects (burger uses /World/Burger, others use /World)
+    parent_prim_name = config.get("parent_prim")
+    if parent_prim_name:
+        objects_parent = f"/World/{parent_prim_name}"
+        # Create parent Xform
+        UsdGeom.Xform.Define(stage, objects_parent)
+        print(f"[INFO] Created parent group: {objects_parent}")
+    else:
+        objects_parent = "/World"
+
     for name, pose in layout.items():
         usd_path = get_object_usd_path(task_type, name, assets_path)
         if not Path(usd_path).exists():
             print(f"[WARN] {usd_path} not found, skipping")
             continue
 
-        prim = stage.DefinePrim(f"/World/{name}")
-        prim.GetReferences().AddReference(usd_path)
+        prim = stage.DefinePrim(f"{objects_parent}/{name}")
+        usd_relative = to_relative(usd_path)
+        prim.GetReferences().AddReference(usd_relative)
         xform = UsdGeom.Xformable(prim)
         xform.ClearXformOpOrder()
         xform.AddTranslateOp().Set(Gf.Vec3d(*pose["pos"]))
         xform.AddOrientOp().Set(Gf.Quatf(*pose["rot"]))
-        print(f"[OK] Added {name}")
+        print(f"[OK] Added {name} -> {usd_relative}")
 
     stage.Save()
     print(f"[OK] Saved: {output_usd}")
@@ -342,18 +410,26 @@ if __name__ == "__main__":
         metavar=("W", "X", "Y", "Z"),
         help="Target robot quaternion",
     )
-    parser.add_argument("--include-table", action="store_true", help="Include table in output")
+    parser.add_argument("--include-platform", action="store_true", help="Include working platform in output")
     parser.add_argument(
         "--dual-arm",
         action="store_true",
-        help="Use dual-arm configuration (toys/cloth only, uses left_arm as reference)",
+        help="Use dual-arm configuration (uses left_arm as reference)",
+    )
+    # Camera arguments
+    parser.add_argument("--camera-eye", type=float, nargs=3, metavar=("X", "Y", "Z"), help="Camera eye position")
+    parser.add_argument(
+        "--camera-euler", type=float, nargs=3, metavar=("R", "P", "Y"), help="Camera rotation (degrees)"
     )
 
     args = parser.parse_args()
 
-    # Set LEISAAC_ASSETS_ROOT to the provided assets base path
-    import os
+    # Handle camera computation
+    if args.camera_eye and args.camera_euler:
+        compute_lookat(args.camera_eye, args.camera_euler)
+        exit(0)
 
+    # Set LEISAAC_ASSETS_ROOT to the provided assets base path
     os.environ["LEISAAC_ASSETS_ROOT"] = args.assets_base
     print(f"[INFO] Set LEISAAC_ASSETS_ROOT={args.assets_base}")
 
@@ -374,7 +450,7 @@ if __name__ == "__main__":
         assets_base=args.assets_base,
         target_pos=args.target_pos,
         target_quat=args.target_quat,
-        include_table=args.include_table,
+        include_platform=args.include_platform,
         use_dual_arm=args.dual_arm,
     )
 

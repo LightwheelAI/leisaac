@@ -1,4 +1,4 @@
-from pxr import Usd, UsdGeom, UsdPhysics
+from pxr import PhysxSchema, Usd, UsdGeom, UsdPhysics
 
 
 def get_all_prims(stage, prim=None, prims_list=None):
@@ -17,6 +17,8 @@ def classify_prim(prim):
         return "Articulation"
     elif prim.HasAPI(UsdPhysics.RigidBodyAPI):
         return "RigidBody"
+    elif prim.HasAPI(PhysxSchema.PhysxDeformableBodyAPI):
+        return "DeformableBody"
     else:
         return "Normal"
 
@@ -27,6 +29,10 @@ def is_articulation_root(prim):
 
 def is_rigidbody(prim):
     return prim.HasAPI(UsdPhysics.RigidBodyAPI)
+
+
+def is_deformable(prim):
+    return prim.HasAPI(PhysxSchema.PhysxDeformableBodyAPI)
 
 
 def get_all_joints(stage):
@@ -105,8 +111,12 @@ def get_all_joints_without_fixed(articulation_prim):
 
 import isaacsim.core.utils.prims as prim_utils
 from isaaclab.assets.articulation import ArticulationCfg
+from isaaclab.assets.deformable_object import DeformableObjectCfg
 from isaaclab.assets.rigid_object import RigidObjectCfg
-from isaaclab.sim.spawners.spawner_cfg import RigidObjectSpawnerCfg
+from isaaclab.sim.spawners.spawner_cfg import (
+    DeformableObjectSpawnerCfg,
+    RigidObjectSpawnerCfg,
+)
 from isaaclab.sim.utils import clone
 
 
@@ -182,3 +192,29 @@ def parse_usd_and_create_subassets(usd_path, env_cfg, specific_name_list=None, e
                 ),
             )
             setattr(env_cfg.scene, name, rigidcfg)
+
+    for prim in prims:
+        if is_deformable(prim) and match_specific_name(
+            prim.GetPath().pathString, specific_name_list, exclude_name_list
+        ):
+            if prim in articulation_sub_prims:
+                continue
+            pos, rot = get_prim_pos_rot(prim)
+            orin_prim_path = prim.GetPath().pathString
+            name = orin_prim_path.split("/")[-1]
+            if name not in create_attr_record:
+                create_attr_record[name] = 0
+            else:
+                create_attr_record[name] += 1
+                name = f"{name}_{create_attr_record[name]}"
+            sub_prim_path = orin_prim_path[orin_prim_path.find("/", 1) + 1 :]
+            prim_path = f"{{ENV_REGEX_NS}}/Scene/{sub_prim_path}"
+            defcfg = DeformableObjectCfg(
+                prim_path=prim_path,
+                spawn=DeformableObjectSpawnerCfg(func=spawn_from_prim_path),
+                init_state=DeformableObjectCfg.InitialStateCfg(
+                    pos=pos,
+                    rot=rot,
+                ),
+            )
+            setattr(env_cfg.scene, name, defcfg)

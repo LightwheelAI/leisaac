@@ -122,3 +122,51 @@ def disable_rigid_body_gravity(
                 prim_path,
                 sim_utils.RigidBodyPropertiesCfg(disable_gravity=True),
             )
+
+
+def reset_mixed_objects_uniform(
+    env: ManagerBasedRLEnv,
+    env_ids: torch.Tensor,
+    pose_range: dict[str, tuple[float, float]],
+    velocity_range: dict[str, tuple[float, float]],
+    rigid_asset_cfg: list[SceneEntityCfg],
+    deformable_asset_cfg: list[SceneEntityCfg],
+):
+    """Reset mixed rigid and deformable objects together with the same randomization offset.
+
+    This allows rigid and deformable objects to be randomized as a group,
+    sharing the same random offset across all objects.
+    """
+    # Sample common noise (pose)
+    range_list = [pose_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z", "roll", "pitch", "yaw"]]
+    ranges = torch.tensor(range_list, device=env.device)
+    rand_samples_pose = math_utils.sample_uniform(ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=env.device)
+
+    # Sample common noise (velocity)
+    range_list_vel = [velocity_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z", "roll", "pitch", "yaw"]]
+    ranges_vel = torch.tensor(range_list_vel, device=env.device)
+    rand_samples_vel = math_utils.sample_uniform(
+        ranges_vel[:, 0], ranges_vel[:, 1], (len(env_ids), 6), device=env.device
+    )
+
+    # 1. Handle Rigid Objects
+    for cfg in rigid_asset_cfg:
+        asset = env.scene[cfg.name]
+        root_states = asset.data.default_root_state[env_ids].clone()
+        positions = root_states[:, 0:3] + env.scene.env_origins[env_ids] + rand_samples_pose[:, 0:3]
+        orientations_delta = math_utils.quat_from_euler_xyz(
+            rand_samples_pose[:, 3], rand_samples_pose[:, 4], rand_samples_pose[:, 5]
+        )
+        orientations = math_utils.quat_mul(root_states[:, 3:7], orientations_delta)
+        velocities = root_states[:, 7:13] + rand_samples_vel
+        asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
+        asset.write_root_velocity_to_sim(velocities, env_ids=env_ids)
+
+    # 2. Handle Deformable Objects
+    for cfg in deformable_asset_cfg:
+        asset = env.scene[cfg.name]
+        nodal_state = asset.data.default_nodal_state_w[env_ids].clone()
+
+        nodal_state[..., :3] += rand_samples_pose[:, 0:3].unsqueeze(1)
+        nodal_state[..., 3:] += rand_samples_vel[:, 0:3].unsqueeze(1)
+        asset.write_nodal_state_to_sim(nodal_state, env_ids=env_ids)
