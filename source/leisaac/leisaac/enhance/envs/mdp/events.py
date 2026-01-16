@@ -170,3 +170,81 @@ def reset_mixed_objects_uniform(
         nodal_state[..., :3] += rand_samples_pose[:, 0:3].unsqueeze(1)
         nodal_state[..., 3:] += rand_samples_vel[:, 0:3].unsqueeze(1)
         asset.write_nodal_state_to_sim(nodal_state, env_ids=env_ids)
+
+
+def randomize_cuttable_object_uniform(
+    env: ManagerBasedRLEnv,
+    env_ids: torch.Tensor,
+    attr_name: str,
+    pose_range: dict[str, tuple[float, float]],
+):
+    """Randomize a cuttable object's pose by moving it via USD transform.
+
+    This works for cuttable objects that are stored as env attributes (e.g., env.cuttable_sausage).
+    The object is moved using USD Xform operations after being reset/respawned.
+
+    Args:
+        env: The environment instance.
+        env_ids: Environment IDs to apply randomization.
+        attr_name: The attribute name of the CuttableObject on the env.
+        pose_range: Dict with keys x, y, z, roll, pitch, yaw and (min, max) tuple values.
+    """
+    import omni
+    from pxr import Gf, UsdGeom
+
+    cuttable_object = getattr(env, attr_name, None)
+    if cuttable_object is None:
+        return
+
+    # Sample random offset
+    range_list = [pose_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z", "roll", "pitch", "yaw"]]
+    ranges = torch.tensor(range_list, device=env.device)
+    rand_samples = math_utils.sample_uniform(ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=env.device)
+
+    stage = omni.usd.get_context().get_stage()
+
+    for i, env_id in enumerate(env_ids):
+        if env_id >= len(cuttable_object.cuttable_objects):
+            continue
+
+        single_obj = cuttable_object.cuttable_objects[env_id]
+        prim = stage.GetPrimAtPath(single_obj._prim_path)
+        if not prim.IsValid():
+            continue
+
+        xformable = UsdGeom.Xformable(prim)
+
+        # Get current transform
+        current_transform = xformable.ComputeLocalToWorldTransform(0)
+        current_pos = current_transform.ExtractTranslation()
+        current_rot = current_transform.ExtractRotationQuat()
+
+        # Apply position offset
+        offset = rand_samples[i].cpu().numpy()
+        new_pos = Gf.Vec3d(
+            current_pos[0] + offset[0],
+            current_pos[1] + offset[1],
+            current_pos[2] + offset[2],
+        )
+
+        # Apply rotation offset
+        from scipy.spatial.transform import Rotation as R
+
+        current_quat_wxyz = [current_rot.GetReal(), *current_rot.GetImaginary()]
+        r_current = R.from_quat(
+            [current_quat_wxyz[1], current_quat_wxyz[2], current_quat_wxyz[3], current_quat_wxyz[0]]
+        )
+        r_offset = R.from_euler("xyz", [offset[3], offset[4], offset[5]])
+        r_new = r_current * r_offset
+        new_quat_xyzw = r_new.as_quat()
+        new_quat = Gf.Quatd(new_quat_xyzw[3], Gf.Vec3d(new_quat_xyzw[0], new_quat_xyzw[1], new_quat_xyzw[2]))
+
+        # Build transform matrix and apply
+        transform_matrix = Gf.Matrix4d()
+        transform_matrix.SetTranslate(new_pos)
+        transform_matrix.SetRotateOnly(new_quat)
+
+        # Clear and set new transform using a single transform op
+        xformable.ClearXformOpOrder()
+        xform_op = xformable.AddTransformOp()
+        xform_op.Set(transform_matrix)

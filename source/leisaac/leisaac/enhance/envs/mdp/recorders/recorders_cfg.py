@@ -27,6 +27,13 @@ class InitialStateWithParticleObjectsRecorderCfg(RecorderTermCfg):
 
 
 @configclass
+class InitialStateWithCuttableObjectsRecorderCfg(RecorderTermCfg):
+    """Configuration for the initial state with cuttable objects recorder term."""
+
+    class_type: type[RecorderTerm] = recorders.InitialStateWithCuttableObjectsRecorder
+
+
+@configclass
 class DirectEnvActionStateRecorderManagerCfg(ActionStateRecorderManagerCfg):
     """Recorder configuration for recording actions and states in direct environment."""
 
@@ -39,3 +46,10 @@ class DirectEnvActionStateWithParticleObjectsRecorderManagerCfg(DirectEnvActionS
     """Recorder configuration for recording actions and states with particle objects in direct environment."""
 
     record_initial_state = InitialStateWithParticleObjectsRecorderCfg()
+
+
+@configclass
+class DirectEnvActionStateWithCuttableObjectsRecorderManagerCfg(DirectEnvActionStateRecorderManagerCfg):
+    """Recorder configuration for recording actions and states with cuttable objects in direct environment."""
+
+    record_initial_state = InitialStateWithCuttableObjectsRecorderCfg()

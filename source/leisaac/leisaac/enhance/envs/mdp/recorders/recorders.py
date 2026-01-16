@@ -22,7 +22,6 @@ class InitialStateWithParticleObjectsRecorder(RecorderTerm):
 
     def record_post_reset(self, env_ids: Sequence[int] | None):
         def extract_env_ids_values(value):
-            nonlocal env_ids
             if isinstance(value, dict):
                 return {k: extract_env_ids_values(v) for k, v in value.items()}
             return value[env_ids]
@@ -34,5 +33,27 @@ class InitialStateWithParticleObjectsRecorder(RecorderTerm):
             asset_state["root_pose"] = particle_object.root_pose_w
             asset_state["root_pose"][:, :3] -= self._env.scene.env_origins
             state["particle_object"][asset_name] = asset_state
+
+        return "initial_state", extract_env_ids_values(state)
+
+
+class InitialStateWithCuttableObjectsRecorder(RecorderTerm):
+    """Records initial state including cuttable objects (sausage, etc.)."""
+
+    def record_post_reset(self, env_ids: Sequence[int] | None):
+        def extract_env_ids_values(value):
+            if isinstance(value, dict):
+                return {k: extract_env_ids_values(v) for k, v in value.items()}
+            return value[env_ids]
+
+        state = self._env.scene.get_state(is_relative=True)
+        state["cuttable_object"] = {}
+        for attr_name in dir(self._env):
+            if attr_name.startswith("cuttable_"):
+                cuttable_object = getattr(self._env, attr_name, None)
+                if cuttable_object is not None and hasattr(cuttable_object, "root_pose_w"):
+                    asset_state = {"root_pose": cuttable_object.root_pose_w.clone()}
+                    asset_state["root_pose"][:, :3] -= self._env.scene.env_origins
+                    state["cuttable_object"][attr_name] = asset_state
 
         return "initial_state", extract_env_ids_values(state)

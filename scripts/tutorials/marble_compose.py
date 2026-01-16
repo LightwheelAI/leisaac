@@ -12,7 +12,6 @@ import os
 from pathlib import Path
 
 import numpy as np
-from scipy.spatial.transform import Rotation as R
 
 # Configuration
 
@@ -34,7 +33,7 @@ TASK_TO_ENV = {
         "dual": "LeIsaac-SO101-AssembleHamburger-BiArm-v0",
     },
     "sausage": {
-        "dual": "LeIsaac-SO101-SausageCut-BiArm-v0",
+        "dual": "LeIsaac-SO101-SausageCut-BiArm-Direct-v0",
     },
 }
 
@@ -155,18 +154,6 @@ def compute_scene_transform(orig_pos, orig_quat, target_pos, target_quat):
     M_target = pose_to_matrix(target_pos, target_quat)
     T_inv = M_orig @ np.linalg.inv(M_target)
     return matrix_to_pose(T_inv)
-
-
-def compute_lookat(eye, euler_deg, distance=2.0):
-    """Compute lookat point from eye position and euler angles"""
-    eye = np.array(eye)
-    rot = R.from_euler("xyz", euler_deg, degrees=True)
-    rot_matrix = rot.as_matrix()
-    forward = rot_matrix @ np.array([0, 0, -1])
-    lookat = eye + forward * distance
-
-    print(f"  self.viewer.eye = ({eye[0]:.5f}, {eye[1]:.5f}, {eye[2]:.5f})")
-    print(f"  self.viewer.lookat = ({lookat[0]:.5f}, {lookat[1]:.5f}, {lookat[2]:.5f})")
 
 
 # USD Utilities
@@ -416,18 +403,8 @@ if __name__ == "__main__":
         action="store_true",
         help="Use dual-arm configuration (uses left_arm as reference)",
     )
-    # Camera arguments
-    parser.add_argument("--camera-eye", type=float, nargs=3, metavar=("X", "Y", "Z"), help="Camera eye position")
-    parser.add_argument(
-        "--camera-euler", type=float, nargs=3, metavar=("R", "P", "Y"), help="Camera rotation (degrees)"
-    )
 
     args = parser.parse_args()
-
-    # Handle camera computation
-    if args.camera_eye and args.camera_euler:
-        compute_lookat(args.camera_eye, args.camera_euler)
-        exit(0)
 
     # Set LEISAAC_ASSETS_ROOT to the provided assets base path
     os.environ["LEISAAC_ASSETS_ROOT"] = args.assets_base

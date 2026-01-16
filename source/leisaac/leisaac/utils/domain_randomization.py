@@ -92,3 +92,23 @@ def randomize_mixed_objects_uniform(
             "deformable_asset_cfg": [SceneEntityCfg(name) for name in deformable_names],
         },
     )
+
+
+def randomize_cuttable_object_uniform(
+    attr_name: str,
+    pose_range: dict[str, tuple[float, float]],
+) -> EventTerm:
+    """Randomize a cuttable object's pose.
+
+    Args:
+        attr_name: The attribute name of the CuttableObject on the env (e.g., "cuttable_sausage").
+        pose_range: Dict with keys x, y, z, roll, pitch, yaw and (min, max) tuple values.
+    """
+    return EventTerm(
+        func=enhance_mdp.randomize_cuttable_object_uniform,
+        mode="reset",
+        params={
+            "attr_name": attr_name,
+            "pose_range": pose_range,
+        },
+    )

@@ -58,16 +58,18 @@ class AssembleHamburgerBiArmEnvCfg(BiArmTaskEnvCfg):
 
     terminations: TerminationsCfg = TerminationsCfg()
 
+    task_description: str = "Pick the beef patties and place it on the plate"
+
     # Simulation configuration
-    render_cfg: sim_utils.RenderCfg = sim_utils.RenderCfg(rendering_mode="quality", antialiasing_mode="Off")
-    sim: SimulationCfg = SimulationCfg(dt=1 / 120, render_interval=1, render=render_cfg, use_fabric=True)
+    render_cfg: sim_utils.RenderCfg = sim_utils.RenderCfg(rendering_mode="quality", antialiasing_mode="FXAA")
+    sim: SimulationCfg = SimulationCfg(dt=1 / 60, render_interval=1, render=render_cfg, use_fabric=True)
 
     def __post_init__(self) -> None:
         super().__post_init__()
 
         # Aligned with leisaac kitchen reference system
-        self.viewer.eye = (2.5, -5.0, 1.6)
-        self.viewer.lookat = (3.7, -6.15, 0.84)
+        self.viewer.eye = (2.4, -5.577, 1.52)
+        self.viewer.lookat = (4.03, -6.41, 0.72)
 
         # Robot positions - Aligned for burger kitchen
         self.scene.left_arm.init_state.pos = (3.4, -5.8, 0.78)
@@ -76,8 +78,14 @@ class AssembleHamburgerBiArmEnvCfg(BiArmTaskEnvCfg):
         self.scene.right_arm.init_state.pos = (3.4, -6.4, 0.78)
         self.scene.right_arm.init_state.rot = (0.707, 0.0, 0.0, 0.707)
 
-        self.decimation = 2
+        self.decimation = 1
         self.dynamic_reset_gripper_effort_limit = False
+
+        # Add lighting
+        self.scene.light = AssetBaseCfg(
+            prim_path="{ENV_REGEX_NS}/Light",
+            spawn=sim_utils.DomeLightCfg(intensity=1000.0, color=(0.75, 0.75, 0.75)),
+        )
 
         # Automatically parse and add burger components to the scene
         parse_usd_and_create_subassets(KITCHEN_WITH_HAMBURGER_USD_PATH, self)

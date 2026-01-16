@@ -31,6 +31,14 @@ def is_rigidbody(prim):
     return prim.HasAPI(UsdPhysics.RigidBodyAPI)
 
 
+def is_kinematic_rigidbody(prim):
+    if not prim.HasAPI(UsdPhysics.RigidBodyAPI):
+        return False
+    rigid_body_api = UsdPhysics.RigidBodyAPI(prim)
+    kinematic_attr = rigid_body_api.GetKinematicEnabledAttr()
+    return kinematic_attr and kinematic_attr.Get()
+
+
 def is_deformable(prim):
     return prim.HasAPI(PhysxSchema.PhysxDeformableBodyAPI)
 
@@ -172,6 +180,9 @@ def parse_usd_and_create_subassets(usd_path, env_cfg, specific_name_list=None, e
     for prim in prims:
         if is_rigidbody(prim) and match_specific_name(prim.GetPath().pathString, specific_name_list, exclude_name_list):
             if prim in articulation_sub_prims:
+                continue
+            # Skip kinematic rigid bodies (e.g., collision meshes for Gaussian scenes)
+            if is_kinematic_rigidbody(prim):
                 continue
             pos, rot = get_prim_pos_rot(prim)
             orin_prim_path = prim.GetPath().pathString

@@ -31,3 +31,6 @@ KITCHEN_WITH_SAUSAGE_CFG = AssetBaseCfg(
         usd_path=KITCHEN_WITH_SAUSAGE_USD_PATH,
     )
 )
+
+# Sausage object USD path
+SAUSAGE_USD_PATH = str(SCENES_ROOT / "kitchen_with_sausage" / "objects" / "Sausage001" / "Sausage001.usd")
