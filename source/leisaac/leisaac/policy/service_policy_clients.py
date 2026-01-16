@@ -87,7 +87,7 @@ class Gr00tServicePolicyClient(ZMQServicePolicy):
 class Gr00t16ServicePolicyClient(ZMQServicePolicy):
     """
     Service policy client for GR00T N1.6: https://github.com/NVIDIA/Isaac-GR00T
-    Target commit: https://github.com/EverNorif/Isaac-GR00T/commit/e8e625f4f21898c506a1d8f7d20a289c97a52acf
+    Target commit: https://github.com/NVIDIA/Isaac-GR00T/commit/e8e625f4f21898c506a1d8f7d20a289c97a52acf
     """
 
     def __init__(
