@@ -97,7 +97,7 @@ python scripts/evaluation/policy_inference.py \
 - `--eval_rounts`: Number of evaluation rounds. 0 means don't add time out termination, policy will run until success or manual reset (default: `0`)
 
 - `--policy_type`: Type of policy to use (default: `gr00tn1.5`).
-    - now we support `gr00tn1.5`, `lerobot-<model_type>`
+    - now we support `gr00tn1.5`, `gr00tn1.6`, `lerobot-<model_type>`
 
 - `--policy_host`: Host address of the policy server (default: `localhost`).
 

@@ -28,7 +28,7 @@ parser.add_argument(
     "--policy_type",
     type=str,
     default="gr00tn1.5",
-    help="Type of policy to use. support gr00tn1.5, lerobot-<model_type>, openpi",
+    help="Type of policy to use. support gr00tn1.5, gr00tn1.6, lerobot-<model_type>, openpi",
 )
 parser.add_argument("--policy_host", type=str, default="localhost", help="Host of the policy server.")
 parser.add_argument("--policy_port", type=int, default=5555, help="Port of the policy server.")
@@ -123,7 +123,7 @@ class Controller:
 
 def preprocess_obs_dict(obs_dict: dict, model_type: str, language_instruction: str):
     """Preprocess the observation dictionary to the format expected by the policy."""
-    if model_type in ["gr00tn1.5", "lerobot", "openpi"]:
+    if model_type in ["gr00tn1.5", "gr00tn1.6", "lerobot", "openpi"]:
         obs_dict["task_description"] = language_instruction
         return obs_dict
     else:
@@ -167,6 +167,23 @@ def main():
             camera_keys=[key for key, sensor in env.scene.sensors.items() if isinstance(sensor, Camera)],
             modality_keys=modality_keys,
         )
+    elif args_cli.policy_type == "gr00tn1.6":
+        from isaaclab.sensors import Camera
+        from leisaac.policy import Gr00t16ServicePolicyClient
+
+        if task_type == "so101leader":
+            modality_keys = ["single_arm", "gripper"]
+        else:
+            raise ValueError(f"Task type {task_type} not supported when using GR00T N1.5 policy yet.")
+
+        policy = Gr00t16ServicePolicyClient(
+            host=args_cli.policy_host,
+            port=args_cli.policy_port,
+            timeout_ms=args_cli.policy_timeout_ms,
+            camera_keys=[key for key, sensor in env.scene.sensors.items() if isinstance(sensor, Camera)],
+            modality_keys=modality_keys,
+        )
+
     elif "lerobot" in args_cli.policy_type:
         from isaaclab.sensors import Camera
         from leisaac.policy import LeRobotServicePolicyClient

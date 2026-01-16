@@ -84,6 +84,102 @@ class Gr00tServicePolicyClient(ZMQServicePolicy):
         return torch.from_numpy(concat_action[:, None, :])
 
 
+class Gr00t16ServicePolicyClient(ZMQServicePolicy):
+    """
+    Service policy client for GR00T N1.6: https://github.com/NVIDIA/Isaac-GR00T
+    Target commit: https://github.com/NVIDIA/Isaac-GR00T/commit/e8e625f4f21898c506a1d8f7d20a289c97a52acf
+    """
+
+    def __init__(
+        self,
+        host: str = "localhost",
+        port: int = 5555,
+        timeout_ms: int = 5000,
+        camera_keys: list[str] = ["front", "wrist"],
+        modality_keys: list[str] = ["single_arm", "gripper"],
+    ):
+        """
+        Args:
+            host: Host of the policy server.
+            port: Port of the policy server.
+            camera_keys: Keys of the cameras.
+            timeout_ms: Timeout of the policy server.
+            modality_keys: Keys of the modality.
+        """
+        super().__init__(host=host, port=port, timeout_ms=timeout_ms, ping_endpoint="ping")
+        self.camera_keys = camera_keys
+        self.modality_keys = modality_keys
+
+    def get_action(self, observation_dict: dict) -> torch.Tensor:
+        # Build the 'video' dictionary: {camera_name: (B, T, H, W, 3), dtype=uint8}
+        video = {
+            camera_key: np.expand_dims(observation_dict[camera_key].cpu().numpy().astype(np.uint8), axis=0)
+            for camera_key in self.camera_keys
+        }
+
+        # Build the 'state' dictionary (single_arm, gripper)
+        state = {}
+        if "single_arm" in self.modality_keys:
+            joint_pos = convert_leisaac_action_to_lerobot(observation_dict["joint_pos"])
+            # Add a new axis at the front (batch dim)
+            joint_pos = np.expand_dims(joint_pos, axis=0)
+            # Ensure joint_pos shape is (B, T, 6), we need (B, T, D) for each stream
+            # e.g., single_arm: first 5 dims, gripper: last dim
+            state["single_arm"] = joint_pos[..., 0:5].astype(np.float32)
+            state["gripper"] = joint_pos[..., 5:6].astype(np.float32)
+        # TODO: add bi-arm support
+
+        # Build the 'language' dictionary
+        language = {
+            "annotation.human.task_description": [[observation_dict["task_description"]]],
+        }
+
+        # Compose the final observation dictionary as required
+        obs_dict = {
+            "video": video,
+            "state": state,
+            "language": language,
+        }
+
+        """
+            Example of obs_dict for single arm task:
+            obs_dict = {
+                "video": {
+                    "front": np.zeros((1, 1, 480, 640, 3), dtype=np.uint8),
+                    "wrist": np.zeros((1, 1, 480, 640, 3), dtype=np.uint8),
+                },
+                "state": {
+                    "single_arm": np.zeros((1, 1, 5)),
+                    "gripper": np.zeros((1, 1, 1)),
+                },
+                "language": {
+                    "task": [["pick and place"]],
+                }
+            }
+        """
+        obs_dict = {"observation": obs_dict}
+        # get the action chunk via the policy server
+        action_chunk = self.call_endpoint("get_action", obs_dict)
+
+        """
+            Example of action_chunk for single arm task:
+            action_chunk = [{
+                "single_arm": np.zeros((1, 16, 5)),
+                "gripper": np.zeros((1, 16, 1)),
+            }]
+        """
+        action_chunk = action_chunk[0]
+        concat_action = np.concatenate(
+            [action_chunk["single_arm"], action_chunk["gripper"]],
+            axis=-1,
+        )
+        # squeeze the first dimension
+        concat_action = concat_action.squeeze(0)
+        concat_action = convert_lerobot_action_to_leisaac(concat_action)
+
+        return torch.from_numpy(concat_action[:, None, :])
+
+
 class LeRobotServicePolicyClient(Policy):
     """
     Service policy client for Lerobot: https://github.com/huggingface/lerobot
