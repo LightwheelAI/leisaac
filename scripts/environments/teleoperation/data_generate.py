@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Minimal Lula integration for data_generate:
-- Replace Differential IK with Lula (LulaKinematicsSolver + ArticulationKinematicsSolver)
-- Output joint target tensor (num_envs, n_joints) and call env.step(actions)
-- Minimal checks, suitable for debug runs. Adjust LULA paths as needed.
-"""
-
 import multiprocessing
 if multiprocessing.get_start_method() != "spawn":
     multiprocessing.set_start_method("spawn", force=True)
@@ -139,7 +131,6 @@ def get_expert_action_pose_based(env, step_count, target, flag):
     def apply_triangle_offset(pos_tensor, flag, radius=0.1):
         """
         给位置张量的 x, y 轴增加等边三角形偏移量。
-        
         Args:
             pos_tensor: (num_envs, 3) 的 target_pos_w 张量
             flag: 当前是第几个橙子 (1, 2, 3)
