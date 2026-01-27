@@ -50,17 +50,15 @@ class SO101Leader(Device):
         # connect
         self.connect()
 
-    def __str__(self) -> str:
-        """Returns: A string containing the information of so101 leader."""
-        msg = "SO101-Leader device for SE(3) control.\n"
-        msg += "\t----------------------------------------------\n"
-        msg += "\tMove SO101-Leader to control SO101-Follower\n"
-        msg += (
-            "\tIf SO101-Follower can't synchronize with SO101-Leader, please add --recalibrate and rerun to recalibrate"
-            " SO101-Leader.\n"
-        )
-        msg += "\t----------------------------------------------\n"
-        return msg
+    def _add_device_control_description(self):
+        self._display_controls_table.add_row(["so101-leader", "move so101-leader to control so101-follower"])
+        self._display_controls_table.add_row([
+            "[TIPS]",
+            (
+                "If SO101-Follower can't synchronize with SO101-Leader, please add --recalibrate and rerun to"
+                " recalibrate SO101-Leader"
+            ),
+        ])
 
     def get_device_state(self):
         return self._bus.sync_read("Present_Position")

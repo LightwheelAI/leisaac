@@ -50,6 +50,8 @@ class CleanupTrashEnvCfg(LeKiwiTaskEnvCfg):
 
     terminations: TerminationsCfg = TerminationsCfg()
 
+    task_description: str = "Pick up tissue trash from the floor and throw it into the trash bin."
+
     def __post_init__(self) -> None:
         super().__post_init__()
 

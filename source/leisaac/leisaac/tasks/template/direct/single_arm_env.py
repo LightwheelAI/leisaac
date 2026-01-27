@@ -4,12 +4,16 @@ from typing import Any
 import torch
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
+from isaaclab.utils.datasets.episode_data import EpisodeData
 from leisaac.devices.action_process import preprocess_device_action
+from leisaac.enhance.datasets.lerobot_dataset_handler import LeRobotDatasetCfg
 from leisaac.enhance.envs import RecorderEnhanceDirectRLEnv as DirectRLEnv
 from leisaac.enhance.envs import RecorderEnhanceDirectRLEnvCfg as DirectRLEnvCfg
 from leisaac.enhance.envs.mdp.recorders.recorders_cfg import (
     DirectEnvActionStateRecorderManagerCfg as RecordTerm,
 )
+from leisaac.utils.constant import SINGLE_ARM_JOINT_NAMES
+from leisaac.utils.robot_utils import convert_leisaac_action_to_lerobot
 
 from .. import mdp
 from ..single_arm_env_cfg import SingleArmEventCfg, SingleArmTaskSceneCfg
@@ -47,6 +51,13 @@ class SingleArmTaskDirectEnvCfg(DirectRLEnvCfg):
     dynamic_reset_gripper_effort_limit: bool = True
     """Whether to dynamically reset the gripper effort limit."""
 
+    robot_name: str = "so101_follower"
+    """Robot name for lerobot dataset export."""
+    default_feature_joint_names: list[str] = MISSING
+    """Default feature joint names for lerobot dataset export."""
+    task_description: str = MISSING
+    """Task description for lerobot dataset export."""
+
     def __post_init__(self) -> None:
         super().__post_init__()
 
@@ -68,14 +79,35 @@ class SingleArmTaskDirectEnvCfg(DirectRLEnvCfg):
 
         self.scene.ee_frame.visualizer_cfg.markers["frame"].scale = (0.05, 0.05, 0.05)
 
+        self.default_feature_joint_names = [f"{joint_name}.pos" for joint_name in SINGLE_ARM_JOINT_NAMES]
+
     def use_teleop_device(self, teleop_device) -> None:
         self.task_type = teleop_device
-        # self.actions = init_action_cfg(self.actions, device=teleop_device)
         if teleop_device in ["keyboard", "gamepad"]:
             self.scene.robot.spawn.rigid_props.disable_gravity = True
 
     def preprocess_device_action(self, action: dict[str, Any], teleop_device) -> torch.Tensor:
         return preprocess_device_action(action, teleop_device)
+
+    def build_lerobot_frame(self, episode_data: EpisodeData, dataset_cfg: LeRobotDatasetCfg) -> dict:
+        obs_data = episode_data._data["obs"]
+        action = obs_data["actions"][-1]
+        if dataset_cfg.action_align:
+            processed_action = convert_leisaac_action_to_lerobot(action.unsqueeze(0)).squeeze(0)
+        else:
+            processed_action = action.cpu().numpy()
+        frame = {
+            "action": processed_action,
+            "observation.state": convert_leisaac_action_to_lerobot(obs_data["joint_pos"][-1].unsqueeze(0)).squeeze(0),
+            "task": self.task_description,
+        }
+        for frame_key in dataset_cfg.features.keys():
+            if not frame_key.startswith("observation.images"):
+                continue
+            camera_key = frame_key.split(".")[-1]
+            frame[frame_key] = obs_data[camera_key][-1].cpu().numpy()
+
+        return frame
 
 
 class SingleArmTaskDirectEnv(DirectRLEnv):

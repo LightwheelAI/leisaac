@@ -114,6 +114,8 @@ class LiftCubeEnvCfg(SingleArmTaskEnvCfg):
 
     terminations: TerminationsCfg = TerminationsCfg()
 
+    task_description: str = "Lift the red cube up."
+
     def __post_init__(self) -> None:
         super().__post_init__()
 

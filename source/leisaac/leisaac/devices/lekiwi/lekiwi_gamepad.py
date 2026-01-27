@@ -39,17 +39,16 @@ class LeKiwiGamepad(SO101Gamepad):
         self._vel_command = np.zeros(3)
         self._joint_names = self.env.scene["robot"].data.joint_names
 
-    def __str__(self) -> str:
-        """Returns: A string containing the information of gamepad controller."""
-        msg = "Gamepad Controller for LeKiwi Control).\n"
-        msg += f"\tGamepad name: {self._gamepad.name}\n"
-        msg += "\t----------------------------------------------\n"
-        msg += "\tForward / Backward:                hats-UP / hats-DOWN\n"
-        msg += "\tLeft / Right:                      hats-LEFT / hats-RIGHT\n"
-        msg += "\tRotate (Theta) Left / Right:       buttons-X / buttons-B\n"
-        msg += "\tSpeed Level up / down:             buttons-Y / buttons-A\n"
-        msg += "\t----------------------------------------------\n"
-        return msg
+    def _add_device_control_description(self):
+        super()._add_device_control_description()
+        self._display_controls_table.add_row(["hats-UP", "forward"])
+        self._display_controls_table.add_row(["hats-DOWN", "backward"])
+        self._display_controls_table.add_row(["hats-LEFT", "left"])
+        self._display_controls_table.add_row(["hats-RIGHT", "right"])
+        self._display_controls_table.add_row(["buttons-X", "rotate_left"])
+        self._display_controls_table.add_row(["buttons-B", "rotate_right"])
+        self._display_controls_table.add_row(["buttons-Y", "speed_up"])
+        self._display_controls_table.add_row(["buttons-A", "speed_down"])
 
     def get_device_state(self):
         arm_action = super().get_device_state()

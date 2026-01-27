@@ -119,13 +119,35 @@ def joint_pos_target(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEnti
     return asset.data.joint_pos_target[:, asset_cfg.joint_ids]
 
 
-def user_based_velocity_command(
+def user_based_velocity_action(
     env: ManagerBasedEnv,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     wheel_joint_names: list[str] = ["base_x", "base_y", "base_theta"],
 ) -> torch.Tensor:
     """
-    Return the user based velocity command of the asset, used for the LeKiwi robot.
+    Return the user based velocity action of the asset, used for the LeKiwi robot.
+    """
+    asset: Articulation = env.scene[asset_cfg.name]
+    rotate_joint_name = wheel_joint_names[2]
+    base_theta = asset.data.joint_pos[:, asset.joint_names.index(rotate_joint_name)]
+    wheel_vel_action = torch.stack(
+        [
+            asset.data.joint_vel_target[:, asset.joint_names.index(wheel_joint_names[0])],  # base_x
+            asset.data.joint_vel_target[:, asset.joint_names.index(wheel_joint_names[1])],  # base_y
+            asset.data.joint_vel_target[:, asset.joint_names.index(wheel_joint_names[2])],  # base_theta
+        ],
+        dim=-1,
+    )
+    return convert_lekiwi_wheel_action_env2robot(wheel_vel_action, base_theta)
+
+
+def user_based_velocity_state(
+    env: ManagerBasedEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    wheel_joint_names: list[str] = ["base_x", "base_y", "base_theta"],
+) -> torch.Tensor:
+    """
+    Return the user based velocity state of the asset, used for the LeKiwi robot.
     """
     asset: Articulation = env.scene[asset_cfg.name]
     rotate_joint_name = wheel_joint_names[2]

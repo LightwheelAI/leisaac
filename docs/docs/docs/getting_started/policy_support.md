@@ -4,15 +4,54 @@
 
 Collected teleoperation data is stored in HDF5 format in the specified directory. We provide a script to convert HDF5 data to the LeRobot Dataset format. Only successful episode will be converted.
 
-:::info
-This script depends on the LeRobot runtime environment. We recommend using a separate Conda environment for LeRobot—see the official [LeRobot repo](https://github.com/huggingface/lerobot?tab=readme-ov-file#installation) for installation instructions.
-:::
-
-You can modify the parameters in the script and run the following command. (This script is a conversion example we provide; please modify the parameters according to your specific needs before using it.)
+Before running the conversion script, you must first install the LeRobot-related dependencies:
 
 ```bash
-python scripts/convert/isaaclab2lerobot.py
+pip install lerobot==0.3.3
+pip install numpy==1.26.0
 ```
+
+You can then run the following command to perform the data conversion. This script converts the HDF5 dataset into the LeRobot Dataset v2 format.
+
+```bash
+python scripts/convert/isaaclab2lerobot.py \
+    --task_name=LeIsaac-SO101-PickOrange-v0 \
+    --repo_id=EverNorif/so101_test_orange_pick \
+    --hdf5_root=./datasets \
+    --hdf5_files=dataset.hdf5
+```
+
+<details>
+<summary><strong>Parameter descriptions for isaaclab2lerobot.py</strong></summary><p></p>
+
+- `--task_name`: Name of the task, e.g., `LeIsaac-SO101-PickOrange-v0`.
+
+- `--task_type`: Specify task type. If your dataset is recorded with keyboard/gamepad, you should set it to 'keyboard'/'gamepad', otherwise not to set it and keep default value None.
+
+- `--repo_id`: Specify the LeRobot Dataset repo-id, e.g., `EverNorif/so101_test_orange_pick`
+
+- `--fps`: Specify the fps of LeRobot Dataset.
+
+- `--hdf5_root`: HDF5 root directory.
+
+- `--hdf5_files`:HDF5 files (comma-separated). If not provided, uses dataset.hdf5 in hdf5_root
+
+- `--task_description`: Task description. If not provided, will use the description defined in the task.
+
+- `--push_to_hub`: Whether to push dataset to huggingface hub.
+
+</details>
+
+:::tip
+We also provide the `isaaclab2lerobotv3.py` script to convert HDF5 datasets into the LeRobot Dataset v3 format. It requires the following versions of the LeRobot-related dependencies:
+
+```bash
+pip install lerobot==0.4.2
+pip install numpy==1.26.0
+```
+
+The available arguments of `isaaclab2lerobotv3.py` are identical to those of `isaaclab2lerobot.py`.
+:::
 
 ## 2. Policy Training
 
@@ -58,7 +97,7 @@ python scripts/evaluation/policy_inference.py \
 - `--eval_rounts`: Number of evaluation rounds. 0 means don't add time out termination, policy will run until success or manual reset (default: `0`)
 
 - `--policy_type`: Type of policy to use (default: `gr00tn1.5`).
-    - now we support `gr00tn1.5`, `lerobot-<model_type>`
+    - now we support `gr00tn1.5`, `gr00tn1.6`, `lerobot-<model_type>`
 
 - `--policy_host`: Host address of the policy server (default: `localhost`).
 

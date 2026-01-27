@@ -75,6 +75,12 @@ const sidebars = {
           link: { type: 'doc', id: 'docs/tutorials/marble_tutorial' },
           items: [],
         },
+        {
+          type: 'category',
+          label: 'LeIsaac × Cosmos',
+          link: { type: 'doc', id: 'docs/tutorials/cosmos_tutorial' },
+          items: [],
+        },
       ],
     },
     {
@@ -103,6 +109,12 @@ const sidebars = {
           type: 'category',
           label: 'EnvHub Support',
           link: { type: 'doc', id: 'docs/features/envhub_support' },
+          items: [],
+        },
+        {
+          type: 'category',
+          label: 'LeRobot Recorder',
+          link: { type: 'doc', id: 'docs/features/lerobot_recorder' },
           items: [],
         },
       ],

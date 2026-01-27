@@ -15,6 +15,8 @@ class CleanToyTableBiArmEnvCfg(BiArmTaskDirectEnvCfg):
 
     scene: CleanToyTableBiArmSceneCfg = CleanToyTableBiArmSceneCfg(env_spacing=8.0)
 
+    task_description: str = "Pick two letter e objects into the box, and reset the arm to rest state."
+
     def __post_init__(self) -> None:
         super().__post_init__()
 
