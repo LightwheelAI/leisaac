@@ -50,9 +50,9 @@ def task_done(
         done = torch.logical_and(done, orange_y > plate_y + y_range[0])
         done = torch.logical_and(done, orange_height < plate_height + height_range[1])
         done = torch.logical_and(done, orange_height > plate_height + height_range[0])
-
+    """
     joint_pos = env.scene["robot"].data.joint_pos
     joint_names = env.scene["robot"].data.joint_names
     done = torch.logical_and(done, is_so101_at_rest_pose(joint_pos, joint_names))
-
+    """
     return done

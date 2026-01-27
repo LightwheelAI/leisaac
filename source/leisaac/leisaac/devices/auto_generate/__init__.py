@@ -1,0 +1,1 @@
+from .so101_auto_generate import SO101Autogenerate

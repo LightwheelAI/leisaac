@@ -5,7 +5,7 @@ def dynamic_reset_gripper_effort_limit_sim(env, teleop_device):
     need_to_set = []
     if teleop_device == "bi-so101leader":
         need_to_set = [env.scene.articulations["left_arm"], env.scene.articulations["right_arm"]]
-    elif teleop_device in ["so101leader", "keyboard"]:
+    elif teleop_device in ["so101leader", "keyboard", "auto_generate"]:
         need_to_set = [env.scene["robot"]]
     for arm in need_to_set:
         write_gripper_effort_limit_sim(env, arm)
