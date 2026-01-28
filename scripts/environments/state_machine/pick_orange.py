@@ -34,13 +34,13 @@ app_launcher_args = vars(args_cli)
 app_launcher = AppLauncher(app_launcher_args)
 simulation_app = app_launcher.app
 
-from leisaac.enhance.managers import StreamingRecorderManager, EnhanceDatasetExportMode
-from leisaac.tasks.pick_orange.mdp import task_done
 from isaaclab.managers import DatasetExportMode, TerminationTermCfg
 from isaaclab.envs import DirectRLEnv, ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
-
 from isaaclab.utils.math import quat_apply, quat_from_euler_xyz, quat_inv, quat_mul
+from leisaac.enhance.managers import StreamingRecorderManager, EnhanceDatasetExportMode
+from leisaac.tasks.pick_orange.mdp import task_done
+from leisaac.utils.env_utils import dynamic_reset_gripper_effort_limit_sim
 
 import torch
 import gymnasium as gym
@@ -271,7 +271,6 @@ def main() -> None:
             from leisaac.enhance.managers.lerobot_recorder_manager import (
                 LeRobotRecorderManager,
             )
-
             dataset_cfg = LeRobotDatasetCfg(
                 repo_id=args_cli.lerobot_dataset_repo_id,
                 fps=args_cli.lerobot_dataset_fps,
@@ -302,31 +301,8 @@ def main() -> None:
     
     while simulation_app.is_running() and not simulation_app.is_exiting():
         # 放在 while simulation_app.is_running(): 的顶部，紧跟 env.scene.update(dt) 之后或 actions 之前
-        if args_cli.record and not start_record_state:
-            print("Auto: enabling recorder / start recording state.")
-            start_record_state = True
-            # Best-effort: call recorder start/enable APIs if available
-            try:
-                rm = getattr(env, "recorder_manager", None)
-                if rm is not None:
-                    # try common start-like method names across versions
-                    for meth in ("start", "start_recording", "begin_record", "enable", "start_capture"):
-                        if hasattr(rm, meth) and callable(getattr(rm, meth)):
-                            print(f"Calling recorder_manager.{meth}()")
-                            getattr(rm, meth)()
-                            break
-                    # also try to ensure flush_steps/compression are set
-                    try:
-                        if hasattr(rm, "flush_steps"):
-                            rm.flush_steps = getattr(rm, "flush_steps", 100)
-                        if hasattr(rm, "compression"):
-                            rm.compression = getattr(rm, "compression", "lzf")
-                    except Exception:
-                        pass
-                else:
-                    print("Warning: env.recorder_manager is None — recorder not created.")
-            except Exception as e:
-                print("Failed to start recorder_manager automatically:", e)
+        if env.cfg.dynamic_reset_gripper_effort_limit:
+            dynamic_reset_gripper_effort_limit_sim(env, args_cli.teleop_device)
         actions = get_expert_action_pose_based(env, step_count, target=f"Orange00{orange_now}", orange_now=orange_now)
 
         step_count += 1
