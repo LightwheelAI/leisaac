@@ -16,4 +16,6 @@ class RecorderEnhanceDirectRLEnvCfg(DirectRLEnvCfg):
     manual_terminate: bool = False
     """Whether enable manual terminate in this env. Set it to True when teleoperating."""
     return_success_status: bool = False
-    """When manual_terminate is True, _get_dones() will return this value as done"""
+    """When manual_terminate or auto_terminate is True, _get_dones() will return this value as done"""
+    auto_terminate: bool = False
+    """Whether enable auto terminate in this env. Set it to True when using state machine."""

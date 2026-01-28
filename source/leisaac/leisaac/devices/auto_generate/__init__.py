@@ -1,1 +1,1 @@
-from .so101_auto_generate import SO101Autogenerate
+from .so101_state_machine import SO101Statemachine

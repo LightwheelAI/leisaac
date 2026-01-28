@@ -4,13 +4,10 @@ if multiprocessing.get_start_method() != "spawn":
 
 import argparse
 import os
-import cv2
 import time
-import numpy as np
 import torch
 from isaaclab.app import AppLauncher
 import gymnasium as gym
-
 import omni.kit.app
 
 # ---- CLI ----
@@ -38,8 +35,8 @@ def load_extensions():
     ext_mgr.set_extension_enabled_immediate("omni.isaac.motion_generation", True)
     ext_mgr.set_extension_enabled_immediate("omni.isaac.core", True)
 
-# 在 AppLauncher / SimulationApp 之后
 load_extensions()
+
 from leisaac.enhance.managers import StreamingRecorderManager, EnhanceDatasetExportMode
 from leisaac.tasks.pick_orange.mdp import task_done
 from isaaclab.managers import DatasetExportMode, TerminationTermCfg
@@ -98,7 +95,6 @@ def auto_fix_collision_issues():
             if current_val != "convexDecomposition":
                 approx_attr.Set("convexDecomposition")
 
-# ---- minimal pose-based expert (fallback) ----
 from isaaclab.utils.math import quat_inv, quat_apply
 
 def is_grasp_phase_by_step(step_count):
@@ -199,11 +195,7 @@ def main():
     # prepare
     task_name = getattr(args_cli, "task", None)
     env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs)
-    env_cfg.use_teleop_device("auto_generate")
-    # -----------------------
-    # dataset / recorder setup (same as manual teleop)
-    # -----------------------
-    # get directory and file name from cli
+    env_cfg.use_teleop_device("so101_state_machine")
     output_dir = os.path.dirname(args_cli.dataset_file)
     output_file_name = os.path.splitext(os.path.basename(args_cli.dataset_file))[0]
     if not os.path.exists(output_dir):
@@ -245,6 +237,7 @@ def main():
     # (optional) fix USD collisions
     auto_fix_collision_issues()
     resume_recorded_demo_count = 0
+    
     if args_cli.record:
         try:
             del env.recorder_manager
