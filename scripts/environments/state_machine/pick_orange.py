@@ -1,3 +1,6 @@
+"""Script to generate data using state machine with leisaac manipulation environments."""
+
+"""Launch Isaac Sim Simulator first."""
 import multiprocessing
 if multiprocessing.get_start_method() != "spawn":
     multiprocessing.set_start_method("spawn", force=True)
@@ -10,8 +13,8 @@ from isaaclab.app import AppLauncher
 import gymnasium as gym
 import omni.kit.app
 
-# ---- CLI ----
-parser = argparse.ArgumentParser(description="leisaac data generation - Lula minimal")
+# add argparse arguments
+parser = argparse.ArgumentParser(description="leisaac data generation script for pick_orange task.")
 parser.add_argument("--num_envs", type=int, default=1)
 parser.add_argument("--task", type=str, default=None)
 parser.add_argument("--seed", type=int, default=None)
@@ -302,119 +305,8 @@ def main():
             print("Warning: robot_art helper methods for stiffness/damping not available. If you need to set them, check robot_art API or the asset YAML.")
 
     # rate limiter
-    rate_limiter = None
-    if args_cli.step_hz:
-        rate_limiter = type("R", (), {"hz": args_cli.step_hz, "sleep": lambda self, e: time.sleep(1.0/self.hz)})()
+    rate_limiter = RateLimiter(args_cli.step_hz)
     step_count = 0
-
-    prev_gripper_target = torch.full((env.num_envs, 1), 1.0, device=env.device)
-
-    
-
-    max_gripper_delta_normal = 0.04
-    max_gripper_delta_during_grasp = 0.01
-
-    # simple step-based fallback
-
-    # auto detector: distance + relative speed + gripper-target
-    def is_grasp_phase_auto(env_local, orange_name: str, prev_gripper_t: torch.Tensor,
-                            dist_thresh: float = 0.06, rel_vel_thresh: float = 0.08, gripper_close_threshold: float = 0.7):
-        """
-        Return (is_grasp: bool, info: dict).
-        - device-safe: newly created tensors follow the device of scene tensors (cuda or cpu).
-        - prev_gripper_t should be a tensor on the env device (if not, we'll move it).
-        """
-        info = {}
-        try:
-            orange = env_local.scene[orange_name]
-            orange_pos = None
-            device = None
-
-            # obtain orange pos and device
-            if hasattr(orange.data, "root_pos_w"):
-                orange_pos = orange.data.root_pos_w  # (num_envs,3) tensor
-                device = orange_pos.device
-
-            # fallback device: try env_local.device or cpu
-            if device is None:
-                device = getattr(env_local, "device", torch.device("cpu"))
-
-            # robot and ee
-            robot_local = env_local.scene["robot"]
-            try:
-                ee_idx = robot_local.data.body_names.index("gripper")
-            except Exception:
-                ee_idx = 0
-
-            # ee pos tensor (ensure on same device)
-            ee_pos = robot_local.data.body_state_w[:, ee_idx, :3]  # (num_envs,3)
-            if ee_pos is not None:
-                device = ee_pos.device
-
-            # if orange_pos missing -> cannot detect
-            if orange_pos is None:
-                return False, {"error": "orange pos not available"}
-
-            # horizontal / full distance (tensors on same device)
-            horiz_dist = torch.norm((orange_pos - ee_pos)[:, :2], dim=-1)  # (num_envs,)
-            full_dist = torch.norm((orange_pos - ee_pos), dim=-1)
-            info['horiz_dist'] = horiz_dist.detach().cpu().numpy().tolist()
-            info['full_dist'] = full_dist.detach().cpu().numpy().tolist()
-
-            # read linear velocities if available; default zeros on correct device
-            obj_speed = torch.zeros((orange_pos.shape[0],), device=device)
-            ee_speed = torch.zeros((orange_pos.shape[0],), device=device)
-            if hasattr(orange.data, "root_linvel_w"):
-                try:
-                    obj_v = orange.data.root_linvel_w  # (num_envs,3)
-                    obj_speed = torch.norm(obj_v, dim=-1).to(device)
-                except Exception:
-                    pass
-            if hasattr(robot_local.data, "body_linvel_w"):
-                try:
-                    v_ee = robot_local.data.body_linvel_w[:, ee_idx, :]  # (num_envs,3)
-                    ee_speed = torch.norm(v_ee, dim=-1).to(device)
-                except Exception:
-                    pass
-            rel_speed = torch.minimum(obj_speed, ee_speed)
-            info['obj_speed'] = obj_speed.detach().cpu().numpy().tolist() if obj_speed.numel() else None
-            info['ee_speed'] = ee_speed.detach().cpu().numpy().tolist() if ee_speed.numel() else None
-            info['rel_speed'] = rel_speed.detach().cpu().numpy().tolist()
-
-            # gripper target: ensure prev_gripper_t is on same device
-            try:
-                if not isinstance(prev_gripper_t, torch.Tensor):
-                    # try to coerce
-                    prev_gripper_t = torch.as_tensor(prev_gripper_t, device=device)
-                else:
-                    prev_gripper_t = prev_gripper_t.to(device)
-                gripper_target = prev_gripper_t.view(-1).detach().cpu().numpy().tolist()
-            except Exception:
-                gripper_target = None
-            info['gripper_target'] = gripper_target
-
-            # Decide masks (create boolean tensors on same device)
-            near_mask = (horiz_dist <= torch.as_tensor(dist_thresh, device=device))
-            slow_mask = (rel_speed <= torch.as_tensor(rel_vel_thresh, device=device))
-
-            if gripper_target is not None:
-                # gripper_target is a python list; build a boolean tensor on device
-                try:
-                    gripper_mask = torch.tensor([gt < gripper_close_threshold for gt in gripper_target], dtype=torch.bool, device=device)
-                except Exception:
-                    gripper_mask = torch.zeros_like(near_mask, dtype=torch.bool, device=device)
-            else:
-                gripper_mask = torch.zeros_like(near_mask, dtype=torch.bool, device=device)
-
-            is_grasp_tensor = near_mask & slow_mask & gripper_mask
-            # convert to python bool for single-env; if multi-env return list
-            is_grasp_list = is_grasp_tensor.detach().cpu().numpy().tolist()
-            is_grasp_any = any(is_grasp_list)
-            return is_grasp_any, info
-
-        except Exception as e:
-            return False, {"error": str(e)}
-
     flag = 1  # which orange to pick
     start_record_state = False
     # main loop (NO pos/quaternion smoothing; gripper still clamped)
@@ -450,44 +342,6 @@ def main():
             except Exception as e:
                 print("Failed to start recorder_manager automatically:", e)
         actions = get_expert_action_pose_based(env, step_count, target=f"Orange00{flag}", flag=flag)
-        # 强制把 prev_gripper_target 设为你刚才计算出的 desired（从 actions 取）
-        # 这会让平滑阶段认为上次目标就是现在的目标，从而直接生效
-        prev_gripper_target = actions[:, -1].clone().unsqueeze(-1)
-
-        # ensure dtype/device
-        actions = actions.to(device=env.device, dtype=torch.float32)
-
-        # Decide grasp phase (auto or fallback)
-        is_grasp_auto, grasp_info = is_grasp_phase_auto(env, f"Orange00{flag}", prev_gripper_target,
-                                                       dist_thresh=0.06, rel_vel_thresh=0.08, gripper_close_threshold=0.7)
-        if not is_grasp_auto:
-            is_grasp = is_grasp_phase_by_step(step_count)
-        else:
-            is_grasp = is_grasp_auto
-
-        # --- GRIPPER: clamp per-frame to avoid instant violent close ---
-        desired_gripper = actions[:, -1].clone().unsqueeze(-1)  # (num_envs,1)
-        cur_gripper = prev_gripper_target  # previous target
-        # use different delta in grasp vs normal
-        if isinstance(is_grasp, bool):
-            if is_grasp:
-                use_gripper_delta = torch.full((env.num_envs,), max_gripper_delta_during_grasp, device=env.device, dtype=torch.float32)
-            else:
-                use_gripper_delta = torch.full((env.num_envs,), max_gripper_delta_normal, device=env.device, dtype=torch.float32)
-        else:
-            # per-env list-like
-            use_gripper_delta = torch.tensor([max_gripper_delta_during_grasp if g else max_gripper_delta_normal for g in (is_grasp if hasattr(is_grasp, "__len__") else [is_grasp])], device=env.device, dtype=torch.float32)
-            if use_gripper_delta.numel() != env.num_envs:
-                use_gripper_delta = torch.full((env.num_envs,), max_gripper_delta_normal, device=env.device, dtype=torch.float32)
-
-        delta_gr = torch.clamp(desired_gripper - cur_gripper, -use_gripper_delta.unsqueeze(-1), use_gripper_delta.unsqueeze(-1))
-        smooth_gripper = cur_gripper + delta_gr
-        actions[:, -1] = smooth_gripper.squeeze(-1)
-        prev_gripper_target = smooth_gripper.clone()
-
-        # --- POSITION / QUATERNION: NO SMOOTHING, directly send ---
-        # action layout expected: [pos_x,pos_y,pos_z, quat_x,quat_y,quat_z,quat_w, gripper]
-        smoothed_actions = actions.to(device=env.device, dtype=torch.float32)
 
         step_count += 1
         
@@ -556,13 +410,16 @@ def main():
             # --- 更新 step_count/flag 控制逻辑（和你原来逻辑一致） ---
             flag += 1
         else:
-            env.step(smoothed_actions)
+            env.step(actions)
             pass
+        if rate_limiter:
+            rate_limiter.sleep(env)
         
     env.close()
     simulation_app.close()
 
 
 if __name__ == "__main__":
+    # run the main function
     main()
 
