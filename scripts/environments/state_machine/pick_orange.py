@@ -325,9 +325,12 @@ def main() -> None:
                 success = bool(success_tensor.all().item())
                 print("任务成功状态:", success)
             except Exception as e:
-                print("task_done failed:", e)
+                print("Task failed due to:", e)
                 success = False
-
+            if start_record_state:
+                if args_cli.record:
+                    print("Stop Recording!!!")
+                start_record_state = False
             # ✅ 只有成功时，才“告诉 recorder 这一轮要存”
             if args_cli.record and success:
                 print("✅ 任务成功，标记本次演示为 SUCCESS")
@@ -372,14 +375,18 @@ def main() -> None:
             # --- 更新 step_count/orange_now 控制逻辑（和你原来逻辑一致） ---
             orange_now += 1
         else:
+            if not start_record_state:
+                if args_cli.record:
+                    print("Start Recording!!!")
+                start_record_state = True
             env.step(actions)
-            pass
         if rate_limiter:
             rate_limiter.sleep(env)
-        
+            
+    if args_cli.record and hasattr(env.recorder_manager, "finalize"):
+        env.recorder_manager.finalize()    
     env.close()
     simulation_app.close()
-
 
 if __name__ == "__main__":
     # run the main function
