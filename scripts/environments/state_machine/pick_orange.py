@@ -29,24 +29,41 @@ app_launcher_args = vars(args_cli)
 app_launcher = AppLauncher(app_launcher_args)
 simulation_app = app_launcher.app
 
-def load_extensions():
-    app = omni.kit.app.get_app()
-    ext_mgr = app.get_extension_manager()
-    ext_mgr.set_extension_enabled_immediate("omni.isaac.motion_generation", True)
-    ext_mgr.set_extension_enabled_immediate("omni.isaac.core", True)
-
-load_extensions()
-
 from leisaac.enhance.managers import StreamingRecorderManager, EnhanceDatasetExportMode
 from leisaac.tasks.pick_orange.mdp import task_done
 from isaaclab.managers import DatasetExportMode, TerminationTermCfg
 from isaaclab.envs import DirectRLEnv, ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
 
-import omni.usd
-from pxr import Usd, UsdGeom, UsdPhysics
+class RateLimiter:
+    """Convenience class for enforcing rates in loops."""
 
-def manual_terminate(env: ManagerBasedRLEnv | DirectRLEnv, success: bool):
+    def __init__(self, hz):
+        """
+        Args:
+            hz (int): frequency to enforce
+        """
+        self.hz = hz
+        self.last_time = time.time()
+        self.sleep_duration = 1.0 / hz
+        self.render_period = min(0.0166, self.sleep_duration)
+
+    def sleep(self, env):
+        """Attempt to sleep at the specified rate in hz."""
+        next_wakeup_time = self.last_time + self.sleep_duration
+        while time.time() < next_wakeup_time:
+            time.sleep(self.render_period)
+            env.sim.render()
+
+        self.last_time = self.last_time + self.sleep_duration
+
+        # detect time jumping forwards (e.g. loop is too slow)
+        if self.last_time < time.time():
+            while self.last_time < time.time():
+                self.last_time += self.sleep_duration
+
+
+def auto_terminate(env: ManagerBasedRLEnv | DirectRLEnv, success: bool):
     """
     Programmatically mark the current episode as success or failure.
 
@@ -77,23 +94,6 @@ def manual_terminate(env: ManagerBasedRLEnv | DirectRLEnv, success: bool):
         # fallback for some Direct envs
         env.cfg.return_success_status = success
     return False
-# ---- minimal helpers ----
-def auto_fix_collision_issues():
-    stage = omni.usd.get_context().get_stage()
-    if not stage:
-        return
-    for prim in stage.Traverse():
-        name = prim.GetName()
-        if "handle" in name or "drawer" in name or "board" in name:
-            if not prim.IsA(UsdGeom.Mesh):
-                continue
-            collision_api = UsdPhysics.MeshCollisionAPI(prim)
-            if not collision_api:
-                collision_api = UsdPhysics.MeshCollisionAPI.Apply(prim)
-            approx_attr = collision_api.GetApproximationAttr()
-            current_val = approx_attr.Get()
-            if current_val != "convexDecomposition":
-                approx_attr.Set("convexDecomposition")
 
 from isaaclab.utils.math import quat_inv, quat_apply
 
@@ -234,8 +234,6 @@ def main():
     # create env
     env: ManagerBasedRLEnv | DirectRLEnv = gym.make(task_name, cfg=env_cfg).unwrapped
 
-    # (optional) fix USD collisions
-    auto_fix_collision_issues()
     resume_recorded_demo_count = 0
     
     if args_cli.record:
@@ -517,12 +515,12 @@ def main():
             # ✅ 只有成功时，才“告诉 recorder 这一轮要存”
             if args_cli.record and success:
                 print("✅ 任务成功，标记本次演示为 SUCCESS")
-                manual_terminate(env, True)
+                auto_terminate(env, True)
                 print("SUCCESS!!!!!!!")
                 current_recorded_demo_count += 1
             else:
                 print("❌ 任务失败，标记本次演示为 FAILURE")
-                manual_terminate(env, False)
+                auto_terminate(env, False)
                 
             if (
                 args_cli.record
