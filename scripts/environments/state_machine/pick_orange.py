@@ -2,16 +2,15 @@
 
 """Launch Isaac Sim Simulator first."""
 import multiprocessing
+
 if multiprocessing.get_start_method() != "spawn":
     multiprocessing.set_start_method("spawn", force=True)
-
 import argparse
+
 import os
 import time
-import torch
+
 from isaaclab.app import AppLauncher
-import gymnasium as gym
-import omni.kit.app
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="leisaac data generation script for pick_orange task.")
@@ -37,6 +36,11 @@ from leisaac.tasks.pick_orange.mdp import task_done
 from isaaclab.managers import DatasetExportMode, TerminationTermCfg
 from isaaclab.envs import DirectRLEnv, ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
+
+from isaaclab.utils.math import quat_apply, quat_from_euler_xyz, quat_inv, quat_mul
+
+import torch
+import gymnasium as gym
 
 class RateLimiter:
     """Convenience class for enforcing rates in loops."""
@@ -98,10 +102,6 @@ def auto_terminate(env: ManagerBasedRLEnv | DirectRLEnv, success: bool):
         env.cfg.return_success_status = success
     return False
 
-from isaaclab.utils.math import quat_apply
-
-def is_grasp_phase_by_step(step_count):
-    return None
 def get_expert_action_pose_based(env, step_count, target, flag):
     device = env.device
     num_envs = env.num_envs
@@ -113,7 +113,6 @@ def get_expert_action_pose_based(env, step_count, target, flag):
     target_pos_w = orange_pos_w.clone()
     
     import math
-    from isaaclab.utils.math import quat_from_euler_xyz, quat_mul, quat_inv
     pitch = math.radians(0)
 
     target_quat_w = quat_from_euler_xyz(
@@ -191,10 +190,9 @@ def get_expert_action_pose_based(env, step_count, target, flag):
     actions = torch.cat([target_pos_local, target_quat, gripper_cmd], dim=-1)
     return actions
 
-        
-def main():
+MAX_STEPS = 420
 
-    MAX_STEPS = 420
+def main() -> None:
     # prepare
     task_name = getattr(args_cli, "task", None)
     env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs)
