@@ -95,7 +95,7 @@ def auto_terminate(env: ManagerBasedRLEnv | DirectRLEnv, success: bool):
         env.cfg.return_success_status = success
     return False
 
-from isaaclab.utils.math import quat_inv, quat_apply
+from isaaclab.utils.math import quat_apply
 
 def is_grasp_phase_by_step(step_count):
     return None
