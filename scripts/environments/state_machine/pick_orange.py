@@ -23,6 +23,9 @@ parser.add_argument("--dataset_file", type=str, default="./datasets/dataset.hdf5
 parser.add_argument("--resume", action="store_true")
 parser.add_argument("--num_demos", type=int, default=1)
 parser.add_argument("--quality", action="store_true")
+parser.add_argument("--use_lerobot_recorder", action="store_true", help="whether to use lerobot recorder.")
+parser.add_argument("--lerobot_dataset_repo_id", type=str, default=None, help="Lerobot Dataset repository ID.")
+parser.add_argument("--lerobot_dataset_fps", type=int, default=30, help="Lerobot Dataset frames per second.")
 
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
@@ -102,7 +105,7 @@ def auto_terminate(env: ManagerBasedRLEnv | DirectRLEnv, success: bool):
         env.cfg.return_success_status = success
     return False
 
-def get_expert_action_pose_based(env, step_count, target, flag):
+def get_expert_action_pose_based(env, step_count, target, orange_now):
     device = env.device
     num_envs = env.num_envs
     orange_pos_w = env.scene[target].data.root_pos_w.clone()
@@ -125,16 +128,16 @@ def get_expert_action_pose_based(env, step_count, target, flag):
         quat_inv(robot_base_quat_w),
         target_quat_w
     )
-    def apply_triangle_offset(pos_tensor, flag, radius=0.1):
+    def apply_triangle_offset(pos_tensor, orange_now, radius=0.1):
         """
         给位置张量的 x, y 轴增加等边三角形偏移量。
         Args:
             pos_tensor: (num_envs, 3) 的 target_pos_w 张量
-            flag: 当前是第几个橙子 (1, 2, 3)
+            orange_now: 当前是第几个橙子 (1, 2, 3)
             radius: 距离中心的半径 (默认 0.2米)
         """
 
-        idx = (flag - 1) % 3 
+        idx = (orange_now - 1) % 3 
         angle = idx * (2 * math.pi / 3)
         
         offset_x = radius * math.cos(angle)
@@ -169,17 +172,17 @@ def get_expert_action_pose_based(env, step_count, target, flag):
     elif step_count < 350:
         target_pos_w = plate_pos_w.clone()
         target_pos_w[:,2] += GRIPPER + 0.1
-        apply_triangle_offset(target_pos_w, flag)
+        apply_triangle_offset(target_pos_w, orange_now)
         gripper_cmd[:] = -1.0
     elif step_count < 380:
         target_pos_w = plate_pos_w.clone()
         target_pos_w[:,2] += GRIPPER + 0.1
-        apply_triangle_offset(target_pos_w, flag)
+        apply_triangle_offset(target_pos_w, orange_now)
         gripper_cmd[:] = 1.0
     elif step_count < 420:
         target_pos_w = plate_pos_w.clone()
         target_pos_w[:,2] += 0.2
-        apply_triangle_offset(target_pos_w, flag)
+        apply_triangle_offset(target_pos_w, orange_now)
         gripper_cmd[:] = 1.0
     else:
         gripper_cmd[:] = 1.0
@@ -193,26 +196,57 @@ def get_expert_action_pose_based(env, step_count, target, flag):
 MAX_STEPS = 420
 
 def main() -> None:
-    # prepare
-    task_name = getattr(args_cli, "task", None)
-    env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs)
-    env_cfg.use_teleop_device("so101_state_machine")
+    """
+    Run a pick-orange state machine in an Isaac Lab manipulation environment.
+
+    Creates the environment, initializes the pick-and-place state machine for
+    picking an orange, and runs the main simulation loop until the application
+    is closed.
+
+    Returns:
+        None
+    """
     output_dir = os.path.dirname(args_cli.dataset_file)
     output_file_name = os.path.splitext(os.path.basename(args_cli.dataset_file))[0]
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs)
+    env_cfg.use_teleop_device("so101_state_machine")
+    task_name = args_cli.task   
+    is_direct_env = "Direct" in task_name
+    
+    # timeout and terminate preprocess
+    if is_direct_env:
+        env_cfg.never_time_out = True
+        env_cfg.manual_terminate = True
+    else:
+        # modify configuration
+        if hasattr(env_cfg.terminations, "time_out"):
+            env_cfg.terminations.time_out = None
+        if hasattr(env_cfg.terminations, "success"):
+            env_cfg.terminations.success = None
+            
+    # recorder preprocess & manual success terminate preprocess
     if args_cli.record:
-        if args_cli.resume:
-            env_cfg.recorders.dataset_export_mode = EnhanceDatasetExportMode.EXPORT_ALL_RESUME
-            assert os.path.exists(args_cli.dataset_file)
+        if args_cli.use_lerobot_recorder:
+            if args_cli.resume:
+                env_cfg.recorders.dataset_export_mode = EnhanceDatasetExportMode.EXPORT_SUCCEEDED_ONLY_RESUME
+            else:
+                env_cfg.recorders.dataset_export_mode = DatasetExportMode.EXPORT_SUCCEEDED_ONLY
         else:
-            env_cfg.recorders.dataset_export_mode = DatasetExportMode.EXPORT_ALL
-            assert not os.path.exists(args_cli.dataset_file)
+            if args_cli.resume:
+                env_cfg.recorders.dataset_export_mode = EnhanceDatasetExportMode.EXPORT_ALL_RESUME
+                assert os.path.exists(
+                    args_cli.dataset_file
+                ), "the dataset file does not exist, please don't use '--resume' if you want to record a new dataset"
+            else:
+                env_cfg.recorders.dataset_export_mode = DatasetExportMode.EXPORT_ALL
+                assert not os.path.exists(
+                    args_cli.dataset_file
+                ), "the dataset file already exists, please use '--resume' to resume recording"
         env_cfg.recorders.dataset_export_dir_path = output_dir
         env_cfg.recorders.dataset_filename = output_file_name
-
-        is_direct_env = "Direct" in task_name
         if is_direct_env:
             env_cfg.return_success_status = False
         else:
@@ -223,96 +257,50 @@ def main() -> None:
             )
     else:
         env_cfg.recorders = None
-
-
-    env_cfg.seed = args_cli.seed if args_cli.seed is not None else int(time.time())
-    task_name = args_cli.task
-
-    if args_cli.quality:
-        env_cfg.sim.render.antialiasing_mode = "FXAA"
-        env_cfg.sim.render.rendering_mode = "quality"
-
+        
     # create env
+    env_cfg.seed = args_cli.seed if args_cli.seed is not None else int(time.time())
     env: ManagerBasedRLEnv | DirectRLEnv = gym.make(task_name, cfg=env_cfg).unwrapped
-
-    resume_recorded_demo_count = 0
     
     if args_cli.record:
-        try:
-            del env.recorder_manager
-        except Exception:
-            pass
-        print("Setting up recorder_manager for recording.")
-        env.recorder_manager = StreamingRecorderManager(env_cfg.recorders, env)
-        env.recorder_manager.flush_steps = 100
-        env.recorder_manager.compression = "lzf"
-        if args_cli.resume:
-            resume_recorded_demo_count = env.recorder_manager._dataset_file_handler.get_num_episodes()
-            print(f"Resume recording from existing dataset file with {resume_recorded_demo_count} demonstrations.")
-        current_recorded_demo_count = resume_recorded_demo_count
+        del env.recorder_manager
+        if args_cli.use_lerobot_recorder:
+            from leisaac.enhance.datasets.lerobot_dataset_handler import (
+                LeRobotDatasetCfg,
+            )
+            from leisaac.enhance.managers.lerobot_recorder_manager import (
+                LeRobotRecorderManager,
+            )
 
+            dataset_cfg = LeRobotDatasetCfg(
+                repo_id=args_cli.lerobot_dataset_repo_id,
+                fps=args_cli.lerobot_dataset_fps,
+            )
+            env.recorder_manager = LeRobotRecorderManager(env_cfg.recorders, dataset_cfg, env)
+        else:
+            env.recorder_manager = StreamingRecorderManager(env_cfg.recorders, env)
+            env.recorder_manager.flush_steps = 100
+            env.recorder_manager.compression = "lzf"
+            
+    # rate limiter        
+    rate_limiter = RateLimiter(args_cli.step_hz)
+    
     # init / reset
     if hasattr(env, "initialize"):
         env.initialize()
     env.reset()
-    # Print debug values right after reset to verify randomization actually applied to physics
-    try:
-        target_name = f"Orange00{flag}"
-        print("=== Post-reset diagnostics ===")
-        print("physics_dt:", getattr(env, "physics_dt", None))
-        if target_name in env.scene:
-            phys_pos = env.scene[target_name].data.root_pos_w.clone()
-            print(f"{target_name} physics root_pos_w:", phys_pos[0].cpu().numpy() if phys_pos.ndim>1 else phys_pos.cpu().numpy())
-        else:
-            print(f"{target_name} not found in scene after reset")
-        # also print robot base to ensure base pose consistent
-        if "robot" in env.scene:
-            rb = env.scene["robot"].data.root_pos_w.clone()
-            print("robot root_pos_w:", rb[0].cpu().numpy() if rb.ndim>1 else rb.cpu().numpy())
-        print("===============================")
-    except Exception as e:
-        print("Post-reset diagnostic failed:", e)
-    # try to write lower stiffness / higher damping to sim (best-effort)
-    try:
-        # get joint names / count for printing
-        robot_prim = env.scene["robot"]
-        joint_names = robot_prim.data.joint_names if hasattr(robot_prim, "data") and hasattr(robot_prim.data, "joint_names") else None
-    except Exception:
-        joint_names = None
-
-    if joint_names is not None:
-        print("Detected joints:", joint_names)
-        # example starting values - tune these per-joint as needed
-        n_joints = len(joint_names)
-        # conservative starting point (you can further reduce stiffness)
-        start_stiffness = [1000.0] * n_joints
-        start_damping = [30.0] * n_joints
-    else:
-        start_stiffness = None
-        start_damping = None
-
-    # attempt to write gains into simulation (API differs across versions; best-effort)
-    if start_stiffness is not None:
-        try:
-            # preferred helper if available
-            robot_art.write_joint_stiffness_to_sim(start_stiffness)
-            robot_art.write_joint_damping_to_sim(start_damping)
-            print("Wrote joint stiffness/damping via robot_art helper.")
-        except Exception:
-            # fallback: print warning - user may need to set gains in asset or use other API
-            print("Warning: robot_art helper methods for stiffness/damping not available. If you need to set them, check robot_art API or the asset YAML.")
-
-    # rate limiter
-    rate_limiter = RateLimiter(args_cli.step_hz)
+    
+    resume_recorded_demo_count = 0
+    if args_cli.record and args_cli.resume:
+        resume_recorded_demo_count = env.recorder_manager._dataset_file_handler.get_num_episodes()
+        print(f"Resume recording from existing dataset file with {resume_recorded_demo_count} demonstrations.")
+    current_recorded_demo_count = resume_recorded_demo_count
+    
     step_count = 0
-    flag = 1  # which orange to pick
+    orange_now = 1  # which orange to pick
     start_record_state = False
-    # main loop (NO pos/quaternion smoothing; gripper still clamped)
-    while simulation_app.is_running():
-        # choose Lula-based actions (supports num_envs>1)
-        dt = env.physics_dt
-        env.scene.update(dt)
-        
+    
+    while simulation_app.is_running() and not simulation_app.is_exiting():
         # 放在 while simulation_app.is_running(): 的顶部，紧跟 env.scene.update(dt) 之后或 actions 之前
         if args_cli.record and not start_record_state:
             print("Auto: enabling recorder / start recording state.")
@@ -339,12 +327,12 @@ def main() -> None:
                     print("Warning: env.recorder_manager is None — recorder not created.")
             except Exception as e:
                 print("Failed to start recorder_manager automatically:", e)
-        actions = get_expert_action_pose_based(env, step_count, target=f"Orange00{flag}", flag=flag)
+        actions = get_expert_action_pose_based(env, step_count, target=f"Orange00{orange_now}", orange_now=orange_now)
 
         step_count += 1
         
         from isaaclab.managers import SceneEntityCfg
-        if step_count >= MAX_STEPS and flag >= 3:
+        if step_count >= MAX_STEPS and orange_now >= 3:
             # --- 判断本次 episode 是否被认为成功（使用 env 的 task_done） ---
             try:
                 print(f"完成一轮（{step_count} 步）, 检查任务成功状态...")
@@ -394,19 +382,19 @@ def main() -> None:
             
             # --- bookkeeping: 更新 recorder 导出的计数并判断是否达到 --num_demos ---
             env.reset()
-            flag = 1
+            orange_now = 1
             step_count = 0    
             if args_cli.record and args_cli.num_demos > 0 and current_recorded_demo_count >= args_cli.num_demos:
                 print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
                 break
-        elif step_count >= MAX_STEPS and flag < 3:
+        elif step_count >= MAX_STEPS and orange_now < 3:
             step_count = 0
 
             # --- 不论成功与否，都重置环境（你的要求） ---
-            print(f"完成一轮（{step_count} 步）, 重置环境，准备下一个橙子 (flag {flag} -> {flag+1})")
+            print(f"完成一轮（{step_count} 步）, 重置环境，准备下一个橙子 (orange_now {orange_now} -> {orange_now+1})")
 
-            # --- 更新 step_count/flag 控制逻辑（和你原来逻辑一致） ---
-            flag += 1
+            # --- 更新 step_count/orange_now 控制逻辑（和你原来逻辑一致） ---
+            orange_now += 1
         else:
             env.step(actions)
             pass
