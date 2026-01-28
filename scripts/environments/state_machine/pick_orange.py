@@ -44,6 +44,7 @@ from leisaac.tasks.pick_orange.mdp import task_done
 from leisaac.utils.env_utils import dynamic_reset_gripper_effort_limit_sim
 
 import torch
+import math
 import gymnasium as gym
 
 class RateLimiter:
@@ -106,6 +107,39 @@ def auto_terminate(env: ManagerBasedRLEnv | DirectRLEnv, success: bool):
         env.cfg.return_success_status = success
     return False
 
+def apply_triangle_offset(pos_tensor, orange_now, radius=0.1):
+    """
+    Apply an equilateral triangle offset on the x-y plane.
+
+    The offset places objects evenly around a circle, forming the vertices
+    of an equilateral triangle. This is used to arrange multiple oranges
+    on the plate without overlap.
+
+    Args:
+        pos_tensor (torch.Tensor):
+            Position tensor of shape (num_envs, 3) in world coordinates.
+        orange_now (int):
+            Index of the current orange (1, 2, or 3).
+        radius (float, optional):
+            Distance from the center of the plate to each triangle vertex.
+            Defaults to 0.1 meters.
+
+    Returns:
+        torch.Tensor:
+            The input position tensor with the triangle offset applied.
+    """
+
+    idx = (orange_now - 1) % 3
+    angle = idx * (2 * math.pi / 3)
+
+    offset_x = radius * math.cos(angle)
+    offset_y = radius * math.sin(angle)
+
+    pos_tensor[:, 0] += offset_x
+    pos_tensor[:, 1] += offset_y
+
+    return pos_tensor
+
 def state_machine(env, step_count, target, orange_now):
     """
     Finite state machine for a pick-and-place task with a robot gripper.
@@ -145,9 +179,6 @@ def state_machine(env, step_count, target, orange_now):
     robot_base_pos_w = env.scene["robot"].data.root_pos_w.clone()
     robot_base_quat_w = env.scene["robot"].data.root_quat_w.clone()
 
-    target_pos_w = orange_pos_w.clone()
-
-    import math
     pitch = math.radians(0)
 
     target_quat_w = quat_from_euler_xyz(
@@ -160,71 +191,52 @@ def state_machine(env, step_count, target, orange_now):
         quat_inv(robot_base_quat_w),
         target_quat_w
     )
-
-    def apply_triangle_offset(pos_tensor, orange_now, radius=0.1):
-        """
-        Apply an equilateral triangle offset on the x-y plane.
-
-        The offset places objects evenly around a circle, forming the vertices
-        of an equilateral triangle. This is used to arrange multiple oranges
-        on the plate without overlap.
-
-        Args:
-            pos_tensor (torch.Tensor):
-                Position tensor of shape (num_envs, 3) in world coordinates.
-            orange_now (int):
-                Index of the current orange (1, 2, or 3).
-            radius (float, optional):
-                Distance from the center of the plate to each triangle vertex.
-                Defaults to 0.1 meters.
-
-        Returns:
-            torch.Tensor:
-                The input position tensor with the triangle offset applied.
-        """
-
-        idx = (orange_now - 1) % 3
-        angle = idx * (2 * math.pi / 3)
-
-        offset_x = radius * math.cos(angle)
-        offset_y = radius * math.sin(angle)
-
-        pos_tensor[:, 0] += offset_x
-        pos_tensor[:, 1] += offset_y
-
-        return pos_tensor
-
     GRIPPER = 0.1
-    target_pos_w[:, 0] -= 0.03
-
+    
     gripper_cmd = torch.full((num_envs, 1), 1.0, device=device)
 
+    #move above orange
     if step_count < 120:
+        target_pos_w = orange_pos_w.clone()
+        target_pos_w[:, 0] -= 0.03
         gripper_cmd[:] = 1.0
         target_pos_w[:, 2] += 0.1 + GRIPPER
+    #lower to orange
     elif step_count < 150:
+        target_pos_w = orange_pos_w.clone()
+        target_pos_w[:, 0] -= 0.03
         gripper_cmd[:] = 1.0
         target_pos_w[:, 2] += GRIPPER
+    #close gripper
     elif step_count < 180:
+        target_pos_w = orange_pos_w.clone()
+        target_pos_w[:, 0] -= 0.03
         gripper_cmd[:] = -1.0
         target_pos_w[:, 2] += GRIPPER
+    #lift orange
     elif step_count < 220:
+        target_pos_w = orange_pos_w.clone()
+        target_pos_w[:, 0] -= 0.03
         gripper_cmd[:] = -1.0
         target_pos_w[:, 2] += 0.25
+    #move above plate
     elif step_count < 320:
         gripper_cmd[:] = -1.0
         target_pos_w = plate_pos_w.clone()
         target_pos_w[:, 2] += 0.25
+    #lower to plate
     elif step_count < 350:
         target_pos_w = plate_pos_w.clone()
         target_pos_w[:, 2] += GRIPPER + 0.1
         apply_triangle_offset(target_pos_w, orange_now)
         gripper_cmd[:] = -1.0
+    # release orange
     elif step_count < 380:
         target_pos_w = plate_pos_w.clone()
         target_pos_w[:, 2] += GRIPPER + 0.1
         apply_triangle_offset(target_pos_w, orange_now)
         gripper_cmd[:] = 1.0
+    # lift gripper
     elif step_count < 420:
         target_pos_w = plate_pos_w.clone()
         target_pos_w[:, 2] += 0.2
@@ -263,10 +275,11 @@ def main() -> None:
     # Temporarily use so101_state_machine as the teleoperation device
     device = "so101_state_machine"
     env_cfg.use_teleop_device(device)
+    env_cfg.seed = args_cli.seed if args_cli.seed is not None else int(time.time())
     task_name = args_cli.task
-    is_direct_env = "Direct" in task_name
-
+    
     # Timeout and termination preprocessing
+    is_direct_env = "Direct" in task_name
     if is_direct_env:
         env_cfg.never_time_out = True
         env_cfg.auto_terminate = True
@@ -309,9 +322,8 @@ def main() -> None:
         env_cfg.recorders = None
 
     # Create environment
-    env_cfg.seed = args_cli.seed if args_cli.seed is not None else int(time.time())
     env: ManagerBasedRLEnv | DirectRLEnv = gym.make(task_name, cfg=env_cfg).unwrapped
-
+        
     if args_cli.record:
         del env.recorder_manager
         if args_cli.use_lerobot_recorder:
@@ -341,11 +353,11 @@ def main() -> None:
         resume_recorded_demo_count = env.recorder_manager._dataset_file_handler.get_num_episodes()
         print(f"Resuming recording from existing dataset with {resume_recorded_demo_count} demonstrations.")
     current_recorded_demo_count = resume_recorded_demo_count
-
+    
     step_count = 0
     orange_now = 1  # Index of the current orange to pick
     start_record_state = False
-
+    
     while simulation_app.is_running() and not simulation_app.is_exiting():
         # Place this at the top of the loop, right after env.scene.update(dt)
         # or before computing actions
@@ -353,8 +365,6 @@ def main() -> None:
             dynamic_reset_gripper_effort_limit_sim(env, device)
 
         actions = state_machine(env, step_count, target=f"Orange00{orange_now}", orange_now=orange_now)
-        step_count += 1
-
         if step_count >= MAX_STEPS and orange_now >= 3:
             # --- Check whether the current episode is considered successful ---
             try:
@@ -435,7 +445,7 @@ def main() -> None:
                     print("Start recording.")
                 start_record_state = True
             env.step(actions)
-
+            step_count += 1
         if rate_limiter:
             rate_limiter.sleep(env)
 
