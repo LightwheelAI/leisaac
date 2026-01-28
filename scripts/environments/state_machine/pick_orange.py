@@ -38,6 +38,7 @@ from isaaclab.managers import DatasetExportMode, TerminationTermCfg
 from isaaclab.envs import DirectRLEnv, ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab.utils.math import quat_apply, quat_from_euler_xyz, quat_inv, quat_mul
+from isaaclab.managers import SceneEntityCfg
 from leisaac.enhance.managers import StreamingRecorderManager, EnhanceDatasetExportMode
 from leisaac.tasks.pick_orange.mdp import task_done
 from leisaac.utils.env_utils import dynamic_reset_gripper_effort_limit_sim
@@ -307,7 +308,6 @@ def main() -> None:
 
         step_count += 1
         
-        from isaaclab.managers import SceneEntityCfg
         if step_count >= MAX_STEPS and orange_now >= 3:
             # --- 判断本次 episode 是否被认为成功（使用 env 的 task_done） ---
             try:
