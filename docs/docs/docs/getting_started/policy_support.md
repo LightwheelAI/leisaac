@@ -67,7 +67,11 @@ We also provide interfaces for running policy inference in simulation. First, yo
 pip install -e "source/leisaac[gr00t]"
 ```
 
-Then, you need to launch the GR00T N1.5 inference server. You can refer to the [GR00T evaluation documentation](https://github.com/NVIDIA/Isaac-GR00T?tab=readme-ov-file#4-evaluation) for detailed instructions.
+Then, you need to launch the GR00T N1.5 inference server. You can refer to the [GR00T evaluation documentation](https://github.com/NVIDIA/Isaac-GR00T/tree/4af2b622892f7dcb5aae5a3fb70bcb02dc217b96?tab=readme-ov-file#4-evaluation) for detailed instructions.
+
+:::tip
+The latest GR00T repository now points to N1.6. Please refer to the corresponding commit above for information about N1.5. You can also find more detailed commit information in [available policy inference](/resources/available_policy).
+:::
 
 After that, you can start inference with the following script:
 
