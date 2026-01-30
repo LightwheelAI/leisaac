@@ -176,7 +176,7 @@ class BiArmTaskDirectEnv(DirectRLEnv):
         return 0.0
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
-        if self.cfg.manual_terminate and self.cfg.return_success_status:
+        if (self.cfg.manual_terminate or self.cfg.auto_terminate) and self.cfg.return_success_status:
             done = torch.ones(self.num_envs, dtype=torch.bool, device=self.device)
         else:
             done = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
