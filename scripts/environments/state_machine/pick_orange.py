@@ -263,17 +263,10 @@ def main() -> None:
         if sm.is_episode_done:
             # --- Check whether the current episode is considered successful ---
             try:
-                # IK cannot reliably converge to the correct joint configuration: the same
-                # EE position can be reached by many different joint solutions (IK is not
-                # unique). Directly teleport joints to rest pose before the success check,
-                # reusing _rest_joint_pos computed during FK calibration at startup.
                 _robot.write_joint_state_to_sim(
                     position=_rest_joint_pos,
                     velocity=torch.zeros_like(_rest_joint_pos),
                 )
-                # Do NOT call env.sim.step() here: that would run physics with stale
-                # actuator targets from the last env.step(), undoing the teleport.
-                # Just refresh the scene data cache so task_done() reads the new positions.
                 env.scene.update(dt=env.physics_dt)
 
                 print("Completed one cycle. Checking task success status...")
@@ -340,9 +333,6 @@ def main() -> None:
                     print("Start recording.")
                 start_record_state = True
             actions = sm.get_action(env)
-            # During the last orange's return home phase (orange 3, step 680-979): linearly
-            # interpolate joint positions from the configuration at step 680 to rest pose at
-            # step 979.
             if sm.orange_now == 3 and sm.step_count >= 680:
                 if sm.step_count == 680:
                     _home_start_pos = _robot.data.joint_pos.clone()
@@ -378,5 +368,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    # run the main function
     main()

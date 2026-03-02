@@ -8,7 +8,7 @@ from leisaac.assets.robots.lerobot import SO101_FOLLOWER_USD_JOINT_LIMLITS
 
 def init_action_cfg(action_cfg, device):
     """SO101 Follower action configuration: arm_action and gripper_action"""
-    if device in ["so101leader", "lekiwi-leader"]:
+    if device in ["so101_joint_pos", "so101leader", "lekiwi-leader"]:
         action_cfg.arm_action = mdp.JointPositionActionCfg(
             asset_name="robot",
             joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
@@ -76,22 +76,12 @@ def init_action_cfg(action_cfg, device):
             joint_names=["gripper"],
             scale=1.0,
         )
-    elif device in ["so101_state_machine"]:
+    elif device in ["so101_state_machine"]:  # IK-based: action = EE pose (7D) + binary gripper, not raw joint angles
         action_cfg.arm_action = mdp.DifferentialInverseKinematicsActionCfg(
             asset_name="robot",
-            joint_names=[
-                "shoulder_pan",
-                "shoulder_lift",
-                "elbow_flex",
-                "wrist_flex",
-                "wrist_roll",
-            ],
+            joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
             body_name="gripper",
-            controller=mdp.DifferentialIKControllerCfg(
-                command_type="pose",
-                ik_method="dls",
-                ik_params={"lambda_val": 0.04},
-            ),
+            controller=mdp.DifferentialIKControllerCfg(command_type="pose", ik_method="dls", ik_params={"lambda_val": 0.04}),
         )
         action_cfg.gripper_action = mdp.BinaryJointPositionActionCfg(
             asset_name="robot",
@@ -99,30 +89,31 @@ def init_action_cfg(action_cfg, device):
             open_command_expr={"gripper": 1.0},
             close_command_expr={"gripper": 0.4},
         )
-    elif device in ["bi_so101_state_machine"]:
-        # Bi-arm IK state machine: left arm + right arm, each with absolute-pose IK + binary gripper.
-        # Action tensor layout: [left_ik(7), left_gripper(1), right_ik(7), right_gripper(1)] = 16D
-        _ik_cfg = lambda asset: mdp.DifferentialInverseKinematicsActionCfg(
-            asset_name=asset,
+    elif device in ["bi_so101_state_machine"]:  # IK-based: action = EE pose (7D) + binary gripper, not raw joint angles
+        action_cfg.left_arm_action = mdp.DifferentialInverseKinematicsActionCfg(
+            asset_name="left_arm",
             joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
             body_name="gripper",
-            controller=mdp.DifferentialIKControllerCfg(
-                command_type="pose",
-                ik_method="dls",
-                ik_params={"lambda_val": 0.04},
-            ),
+            controller=mdp.DifferentialIKControllerCfg(command_type="pose", ik_method="dls", ik_params={"lambda_val": 0.04}),
         )
-        _grip_cfg = lambda asset: mdp.BinaryJointPositionActionCfg(
-            asset_name=asset,
+        action_cfg.left_gripper_action = mdp.BinaryJointPositionActionCfg(
+            asset_name="left_arm",
             joint_names=["gripper"],
             open_command_expr={"gripper": 1.0},
             close_command_expr={"gripper": 0.01},
         )
-        action_cfg.left_arm_action = _ik_cfg("left_arm")
-        action_cfg.left_gripper_action = _grip_cfg("left_arm")
-        action_cfg.right_arm_action = _ik_cfg("right_arm")
-        action_cfg.right_gripper_action = _grip_cfg("right_arm")
-
+        action_cfg.right_arm_action = mdp.DifferentialInverseKinematicsActionCfg(
+            asset_name="right_arm",
+            joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
+            body_name="gripper",
+            controller=mdp.DifferentialIKControllerCfg(command_type="pose", ik_method="dls", ik_params={"lambda_val": 0.04}),
+        )
+        action_cfg.right_gripper_action = mdp.BinaryJointPositionActionCfg(
+            asset_name="right_arm",
+            joint_names=["gripper"],
+            open_command_expr={"gripper": 1.0},
+            close_command_expr={"gripper": 0.01},
+        )
     """LeKiwi action configuration"""
     if device in ["lekiwi-leader", "lekiwi-keyboard", "lekiwi-gamepad"]:
         action_cfg.wheel_action = mdp.JointVelocityActionCfg(
