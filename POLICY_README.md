@@ -1,24 +1,34 @@
-# State Machine: Recording & Replay Guide
+# Autonomous Policy Guide: State Machine & RL Training
 
 ## Overview
 
-The state machine module provides automated data collection for manipulation tasks without human teleoperation. It runs a scripted policy, records demonstrations to HDF5 datasets, and supports replaying those demonstrations.
+This document covers two approaches to running the robot without human teleoperation:
+
+| Approach | How it works | Primary use |
+|---|---|---|
+| **State Machine** | Scripted IK-based policy; action = EE pose (7D) + binary gripper | Data collection for imitation learning |
+| **RL Training** | Learned policy via PPO; action = raw joint angles (6D continuous) | End-to-end reinforcement learning |
 
 ```
 scripts/environments/state_machine/
 ├── pick_orange.py      # Runner script: recording (PickOrange task)
-├── fold_cloth.py       # Runner script: recording (FoldCloth task)
 └── replay.py           # Replay script for state-machine demonstrations
+
+scripts/rl/
+└── train_pick_orange.py    # PPO training script (PickOrange task)
 
 source/leisaac/leisaac/state_machine/
 ├── base.py             # StateMachineBase abstract class
-├── pick_orange.py      # PickOrangeStateMachine
-└── fold_cloth.py       # FoldClothStateMachine
+└── pick_orange.py      # PickOrangeStateMachine
+
+source/leisaac/leisaac/rl/
+├── __init__.py
+└── rsl_rl_wrapper.py   # IsaacLab → rsl_rl VecEnv bridge wrapper
 ```
 
 ---
 
-## Recording
+## State Machine
 
 ### Quick Start
 
@@ -126,6 +136,77 @@ For `so101_state_machine`, **only `action` mode is valid**. The IK action manage
 
 ---
 
+## RL Training
+
+### Quick Start
+
+```bash
+# Short smoke-test (4 envs, 2 iterations)
+python scripts/rl/train_pick_orange.py \
+    --num_envs 4 --num_iters 2 --headless
+
+# Full training run
+python scripts/rl/train_pick_orange.py \
+    --num_envs 64 --num_iters 1000 --headless \
+    --log_dir ./logs/pick_orange_rl
+```
+
+### How It Works
+
+```
+train_pick_orange.py
+  └── gym.make("LeIsaac-SO101-PickOrange-RL-v0", cfg=env_cfg)
+       └── env_cfg.use_teleop_device("so101_joint_pos")  # direct joint pos, no IK
+  └── IsaaclabRslRlVecEnvWrapper(env)     # bridge to rsl_rl VecEnv API
+  └── OnPolicyRunner(wrapped_env, TRAIN_CFG, log_dir, device)
+  └── runner.learn(num_learning_iterations)
+```
+
+The wrapper bridges IsaacLab's `ManagerBasedRLEnv` to the TensorDict-based `rsl_rl` VecEnv interface:
+- `get_observations()` → `TensorDict({"policy": obs_tensor})`
+- `step(actions)` → `(TensorDict, rew, dones, extras)` with `extras["time_outs"]`
+
+### Action & Observation Format
+
+**Action space — `so101_joint_pos` (6D continuous):**
+
+| Device | Dims | Layout |
+|---|---|---|
+| `so101_joint_pos` | 6D | `[shoulder_pan, shoulder_lift, elbow_flex, wrist_flex, wrist_roll, gripper]` — raw joint angles (rad) |
+
+> Unlike the state machine, the RL policy outputs joint angles directly with no IK in the loop.
+
+**Observation space — PickOrange RL (28D, flat vector):**
+
+| Term | Dims | Description |
+|---|---|---|
+| `joint_pos` | 6 | Current joint positions (rad) |
+| `joint_vel` | 6 | Current joint velocities (rad/s) |
+| `ee_frame_state` | 7 | EE position (3) + quaternion (4) in robot base frame |
+| `oranges_pos_relative_to_ee` | 9 | 3 oranges × 3D position relative to EE |
+| **Total** | **28** | Concatenated flat vector (`concatenate_terms=True`) |
+
+### Reward Design
+
+| Term | Weight | Description |
+|---|---|---|
+| `ee_to_nearest_orange` | 0.5 | Shaped: `exp(-2·dist)` to nearest ungrasped orange |
+| `orange_grasped` × 3 | 1.0 each | Per-orange: +1 every step while orange is held |
+| `orange_placed` × 3 | 2.0 each | Per-orange: +1 every step while orange is on plate |
+| `task_complete_bonus` | 10.0 | Sparse: +1 when all 3 oranges are on the plate |
+
+### Key Differences from State Machine
+
+| | State Machine | RL |
+|---|---|---|
+| Action space | 8D (EE pose + binary grip) | 6D (raw joint angles) |
+| Control | IK → joint angles | Direct joint position |
+| Gripper | Binary (open/close signal) | Continuous joint angle |
+| Device type | `so101_state_machine` | `so101_joint_pos` |
+| Cameras | Required for recording | Not used (proprioceptive only) |
+
+---
+
 ## Technical Details
 
 ### 1. Gravity Disable (Two Steps Required)
@@ -147,7 +228,7 @@ for _prim in _stage.Traverse():
 
 Both steps must be present. The same pattern applies to bi-arm tasks (`"Robot"` matches both `Left_Robot` and `Right_Robot`).
 
-### 2. Joint Damping
+### 2. Joint Damping (State Machine only)
 
 The IK controller requires higher damping than the robot's default (0.6 N·m·s/rad) for stable, smooth trajectories. Damping is set to **10.0 N·m·s/rad** every step via:
 
@@ -158,6 +239,8 @@ robot.write_joint_damping_to_sim(damping=10.0)
 ```
 
 This must also be applied during **replay** to match recording conditions. The state-machine replay script (`scripts/environments/state_machine/replay.py`) calls `apply_damping(env, task_type)` before every `env.step()`.
+
+> RL training does not require this — direct joint position control is inherently stable without extra damping.
 
 ### 3. Episode Numbering
 
@@ -176,10 +259,11 @@ The IsaacLab recorder saves an initial-state-only episode (`num_samples=0`) on t
 | File | Purpose |
 |---|---|
 | `scripts/environments/state_machine/pick_orange.py` | Recording runner for PickOrange |
-| `scripts/environments/state_machine/fold_cloth.py` | Recording runner for FoldCloth |
 | `scripts/environments/state_machine/replay.py` | State-machine replay (with damping) |
+| `scripts/rl/train_pick_orange.py` | PPO RL training for PickOrange |
 | `source/leisaac/leisaac/state_machine/base.py` | `StateMachineBase` abstract class |
 | `source/leisaac/leisaac/state_machine/pick_orange.py` | `PickOrangeStateMachine` |
-| `source/leisaac/leisaac/state_machine/fold_cloth.py` | `FoldClothStateMachine` |
+| `source/leisaac/leisaac/rl/rsl_rl_wrapper.py` | IsaacLab → rsl_rl VecEnv wrapper |
+| `source/leisaac/leisaac/tasks/pick_orange/pick_orange_rl_env_cfg.py` | RL env config (obs, rewards, action) |
 | `replay.sh` | Shell wrapper for replay.py |
 | `run_task.sh` | Shell wrapper for pick_orange recording |
