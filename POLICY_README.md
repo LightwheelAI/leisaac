@@ -111,8 +111,8 @@ When replaying, use `--select_episodes K` to load `demo_K`:
 ### Quick Start
 
 ```bash
-# replay.sh wrapper (default: demo_3 of dataset_test.hdf5)
-bash replay.sh
+# replay_pick_orange.sh wrapper (default: demo_3 of dataset_test.hdf5)
+bash replay_pick_orange.sh
 
 # explicit call
 python scripts/environments/state_machine/replay.py \
@@ -265,5 +265,5 @@ The IsaacLab recorder saves an initial-state-only episode (`num_samples=0`) on t
 | `source/leisaac/leisaac/state_machine/pick_orange.py` | `PickOrangeStateMachine` |
 | `source/leisaac/leisaac/rl/rsl_rl_wrapper.py` | IsaacLab → rsl_rl VecEnv wrapper |
 | `source/leisaac/leisaac/tasks/pick_orange/pick_orange_rl_env_cfg.py` | RL env config (obs, rewards, action) |
-| `replay.sh` | Shell wrapper for replay.py |
-| `run_task.sh` | Shell wrapper for pick_orange recording |
+| `replay_pick_orange.sh` | Shell wrapper for replay.py |
+| `record_pick_orange.sh` | Shell wrapper for pick_orange recording |
