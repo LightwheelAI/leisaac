@@ -61,30 +61,3 @@ def put_orange_to_plate(
     placed = torch.logical_and(placed, gripper_open)
 
     return placed
-
-
-def oranges_pos_relative_to_ee(
-    env: ManagerBasedRLEnv | DirectRLEnv,
-    ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
-    oranges_cfg: list[SceneEntityCfg] | None = None,
-) -> torch.Tensor:
-    """Return positions of all oranges relative to the end-effector, flattened.
-
-    Returns:
-        Tensor of shape ``(num_envs, 3 * num_oranges)`` in world frame offsets.
-    """
-    if oranges_cfg is None:
-        oranges_cfg = [
-            SceneEntityCfg("Orange001"),
-            SceneEntityCfg("Orange002"),
-            SceneEntityCfg("Orange003"),
-        ]
-    ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
-    ee_pos = ee_frame.data.target_pos_w[:, 1, :]  # (num_envs, 3)
-
-    rel_positions = []
-    for orange_cfg in oranges_cfg:
-        orange: RigidObject = env.scene[orange_cfg.name]
-        rel_positions.append(orange.data.root_pos_w - ee_pos)  # (num_envs, 3)
-
-    return torch.cat(rel_positions, dim=-1)  # (num_envs, 9)

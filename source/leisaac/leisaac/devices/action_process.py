@@ -8,7 +8,7 @@ from leisaac.assets.robots.lerobot import SO101_FOLLOWER_USD_JOINT_LIMLITS
 
 def init_action_cfg(action_cfg, device):
     """SO101 Follower action configuration: arm_action and gripper_action"""
-    if device in ["so101_joint_pos", "so101leader", "lekiwi-leader"]:
+    if device in ["so101leader", "lekiwi-leader"]:
         action_cfg.arm_action = mdp.JointPositionActionCfg(
             asset_name="robot",
             joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
