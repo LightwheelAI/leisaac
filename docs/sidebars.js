@@ -47,12 +47,6 @@ const sidebars = {
         },
         {
           type: 'category',
-          label: 'State Machine Data Generation',
-          link: { type: 'doc', id: 'docs/getting_started/state_machine' },
-          items: [],
-        },
-        {
-          type: 'category',
           label: 'Policy Training & Inference',
           link: { type: 'doc', id: 'docs/getting_started/policy_support' },
           items: [],
@@ -121,6 +115,12 @@ const sidebars = {
           type: 'category',
           label: 'LeRobot Recorder',
           link: { type: 'doc', id: 'docs/features/lerobot_recorder' },
+          items: [],
+        },
+        {
+          type: 'category',
+          label: 'State Machine Data Generation',
+          link: { type: 'doc', id: 'docs/features/state_machine' },
           items: [],
         },
       ],

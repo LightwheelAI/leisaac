@@ -61,7 +61,7 @@ python scripts/datagen/state_machine/replay.py \
     --task LeIsaac-SO101-PickOrange-v0 \
     --dataset_file ./datasets/pick_orange.hdf5 \
     --task_type so101_state_machine \
-    --select_episodes 1 \
+    --select_episodes 0 \
     --device cuda \
     --enable_cameras \
     --replay_mode action
@@ -89,14 +89,6 @@ python scripts/datagen/state_machine/replay.py \
 - `--step_hz`: Environment stepping rate in Hz (default: `60`).
 
 </details>
-
-::::tip
-NOTE:
-
-`demo_0` is always empty (an artifact of the initial `env.reset()`). The first real demonstration is `demo_1`. Use `--select_episodes 1` to replay the first recorded demonstration.
-
-For `so101_state_machine`, only `--replay_mode action` is valid. The IK action manager expects an 8D pose target; passing raw joint positions would cause a dimension mismatch.
-::::
 
 ## Adding a New Task
 

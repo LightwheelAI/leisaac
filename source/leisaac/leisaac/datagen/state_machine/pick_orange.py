@@ -94,9 +94,6 @@ class PickOrangeStateMachine(StateMachineBase):
         env.scene.update(dt=env.physics_dt)
         self._rest_ee_pos_world = robot.data.body_pos_w[:, -1, :].clone()
 
-        # Return scene to default initial state before the recording loop.
-        env.reset()
-
     def check_success(self, env) -> bool:
         """Return True if all oranges are on the plate and the arm is at rest."""
         robot = env.scene["robot"]

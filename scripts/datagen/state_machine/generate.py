@@ -3,9 +3,9 @@
 Selects the appropriate state machine based on --task and runs the recording loop.
 
 Usage:
-    python scripts/datagen/state_machine/generate.py \\
-        --task LeIsaac-SO101-PickOrange-v0 \\
-        --num_envs 1 --device cuda --enable_cameras \\
+    python scripts/datagen/state_machine/generate.py \
+        --task LeIsaac-SO101-PickOrange-v0 \
+        --num_envs 1 --device cuda --enable_cameras \
         --record --dataset_file ./datasets/pick_orange.hdf5 --num_demos 50
 """
 
@@ -199,11 +199,11 @@ def main():
 
     if hasattr(env, "initialize"):
         env.initialize()
-    env.reset()
 
     # one-time state machine setup (e.g. FK calibration)
     sm = SMClass()
     sm.setup(env)
+    env.reset()
     sm.reset()
 
     resume_recorded_demo_count = 0
@@ -271,6 +271,7 @@ def main():
 
                     env.reset()
                     sm.reset()
+                    auto_terminate(env, False)
 
                     if args_cli.record and args_cli.num_demos > 0 and current_recorded_demo_count >= args_cli.num_demos:
                         print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
