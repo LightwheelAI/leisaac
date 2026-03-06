@@ -9,7 +9,6 @@ Usage:
         --record --dataset_file ./datasets/pick_orange.hdf5 --num_demos 50
 """
 
-"""Launch Isaac Sim Simulator first."""
 import multiprocessing
 
 if multiprocessing.get_start_method() != "spawn":
@@ -21,7 +20,6 @@ import time
 
 from isaaclab.app import AppLauncher
 
-# add argparse arguments
 parser = argparse.ArgumentParser(description="State machine data generation for LeIsaac tasks.")
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, required=True, help="Name of the task.")
@@ -40,14 +38,10 @@ parser.add_argument("--use_lerobot_recorder", action="store_true", help="Whether
 parser.add_argument("--lerobot_dataset_repo_id", type=str, default=None, help="Lerobot Dataset repository ID.")
 parser.add_argument("--lerobot_dataset_fps", type=int, default=30, help="Lerobot Dataset frames per second.")
 
-# append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
-# parse the arguments
 args_cli = parser.parse_args()
 
 app_launcher_args = vars(args_cli)
-
-# launch omniverse app
 app_launcher = AppLauncher(app_launcher_args)
 simulation_app = app_launcher.app
 
@@ -63,9 +57,7 @@ from leisaac.utils.env_utils import dynamic_reset_gripper_effort_limit_sim
 
 import leisaac.tasks  # noqa: F401
 
-# ---------------------------------------------------------------------------
-# Task registry: maps gym task id → (StateMachineClass, device_type)
-# ---------------------------------------------------------------------------
+# Maps gym task id → (StateMachineClass, device_type)
 TASK_REGISTRY = {
     "LeIsaac-SO101-PickOrange-v0": (PickOrangeStateMachine, "so101_state_machine"),
 }
@@ -75,10 +67,6 @@ class RateLimiter:
     """Convenience class for enforcing rates in loops."""
 
     def __init__(self, hz):
-        """
-        Args:
-            hz (int): frequency to enforce
-        """
         self.hz = hz
         self.last_time = time.time()
         self.sleep_duration = 1.0 / hz
@@ -126,10 +114,8 @@ def main():
         )
     SMClass, device = TASK_REGISTRY[task_name]
 
-    # get directory path and file name (without extension) from cli arguments
     output_dir = os.path.dirname(args_cli.dataset_file)
     output_file_name = os.path.splitext(os.path.basename(args_cli.dataset_file))[0]
-    # create directory if it does not exist
     if output_dir and not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -137,19 +123,16 @@ def main():
     env_cfg.use_teleop_device(device)
     env_cfg.seed = args_cli.seed if args_cli.seed is not None else int(time.time())
 
-    # timeout and terminate preprocess
     is_direct_env = "Direct" in task_name
     if is_direct_env:
         env_cfg.never_time_out = True
         env_cfg.auto_terminate = True
     else:
-        # modify configuration
         if hasattr(env_cfg.terminations, "time_out"):
             env_cfg.terminations.time_out = None
         if hasattr(env_cfg.terminations, "success"):
             env_cfg.terminations.success = None
 
-    # recorder preprocess & manual success terminate preprocess
     if args_cli.record:
         if args_cli.use_lerobot_recorder:
             if args_cli.resume:
@@ -180,7 +163,6 @@ def main():
     else:
         env_cfg.recorders = None
 
-    # create environment
     env: ManagerBasedRLEnv | DirectRLEnv = gym.make(task_name, cfg=env_cfg).unwrapped
 
     # disable gravity for every robot link prim
@@ -192,7 +174,6 @@ def main():
         if "Robot" in str(_prim.GetPath()) and _prim.HasAPI(UsdPhysics.RigidBodyAPI):
             PhysxSchema.PhysxRigidBodyAPI.Apply(_prim).CreateDisableGravityAttr(True)
 
-    # replace the original recorder manager with the streaming recorder manager or lerobot recorder manager
     if args_cli.record:
         del env.recorder_manager
         if args_cli.use_lerobot_recorder:
@@ -215,7 +196,6 @@ def main():
 
     rate_limiter = RateLimiter(args_cli.step_hz)
 
-    # reset environment
     if hasattr(env, "initialize"):
         env.initialize()
     env.reset()
@@ -234,7 +214,6 @@ def main():
     start_record_state = False
 
     while simulation_app.is_running() and not simulation_app.is_exiting():
-        # run everything in inference mode
         with torch.inference_mode():
             if env.cfg.dynamic_reset_gripper_effort_limit:
                 dynamic_reset_gripper_effort_limit_sim(env, device)
@@ -257,7 +236,6 @@ def main():
                 else:
                     auto_terminate(env, False)
 
-                # print out the current demo count if it has changed
                 if (
                     args_cli.record
                     and env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
@@ -297,14 +275,11 @@ def main():
             if rate_limiter:
                 rate_limiter.sleep(env)
 
-    # finalize the recorder manager
     if args_cli.record and hasattr(env.recorder_manager, "finalize"):
         env.recorder_manager.finalize()
-    # close the simulator
     env.close()
     simulation_app.close()
 
 
 if __name__ == "__main__":
-    # run the main function
     main()
