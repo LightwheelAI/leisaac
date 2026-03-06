@@ -196,6 +196,7 @@ class SingleArmTaskEnvCfg(ManagerBasedRLEnvCfg):
         self.actions = init_action_cfg(self.actions, device=teleop_device)
         if teleop_device in ["keyboard", "gamepad", "so101_state_machine"]:
             self.scene.robot.spawn.rigid_props.disable_gravity = True
+
     def preprocess_device_action(self, action: dict[str, Any], teleop_device) -> torch.Tensor:
         return preprocess_device_action(action, teleop_device)
 

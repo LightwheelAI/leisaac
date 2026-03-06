@@ -81,7 +81,9 @@ def init_action_cfg(action_cfg, device):
             asset_name="robot",
             joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
             body_name="gripper",
-            controller=mdp.DifferentialIKControllerCfg(command_type="pose", ik_method="dls", ik_params={"lambda_val": 0.04}),
+            controller=mdp.DifferentialIKControllerCfg(
+                command_type="pose", ik_method="dls", ik_params={"lambda_val": 0.04}
+            ),
         )
         action_cfg.gripper_action = mdp.BinaryJointPositionActionCfg(
             asset_name="robot",
@@ -94,7 +96,9 @@ def init_action_cfg(action_cfg, device):
             asset_name="left_arm",
             joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
             body_name="gripper",
-            controller=mdp.DifferentialIKControllerCfg(command_type="pose", ik_method="dls", ik_params={"lambda_val": 0.04}),
+            controller=mdp.DifferentialIKControllerCfg(
+                command_type="pose", ik_method="dls", ik_params={"lambda_val": 0.04}
+            ),
         )
         action_cfg.left_gripper_action = mdp.BinaryJointPositionActionCfg(
             asset_name="left_arm",
@@ -106,7 +110,9 @@ def init_action_cfg(action_cfg, device):
             asset_name="right_arm",
             joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
             body_name="gripper",
-            controller=mdp.DifferentialIKControllerCfg(command_type="pose", ik_method="dls", ik_params={"lambda_val": 0.04}),
+            controller=mdp.DifferentialIKControllerCfg(
+                command_type="pose", ik_method="dls", ik_params={"lambda_val": 0.04}
+            ),
         )
         action_cfg.right_gripper_action = mdp.BinaryJointPositionActionCfg(
             asset_name="right_arm",
