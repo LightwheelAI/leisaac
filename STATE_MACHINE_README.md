@@ -5,13 +5,13 @@
 The state machine module provides automated data collection for manipulation tasks without human teleoperation. It runs a scripted policy, records demonstrations to HDF5 datasets, and supports replaying those demonstrations.
 
 ```
-scripts/environments/state_machine/
-├── pick_orange.py      # Runner script: recording (PickOrange task)
-└── replay.py           # Replay script for state-machine demonstrations
+scripts/datagen/state_machine/
+├── generate.py     # Unified runner script: select task via --task argument
+└── replay.py       # Replay script for state-machine demonstrations
 
-source/leisaac/leisaac/state_machine/
-├── base.py             # StateMachineBase abstract class
-└── pick_orange.py      # PickOrangeStateMachine
+source/leisaac/leisaac/datagen/state_machine/
+├── base.py         # StateMachineBase abstract class
+└── pick_orange.py  # PickOrangeStateMachine
 ```
 
 ---
@@ -22,7 +22,7 @@ source/leisaac/leisaac/state_machine/
 
 ```bash
 # Single-arm pick-orange (3 oranges → plate)
-python scripts/environments/state_machine/pick_orange.py \
+python scripts/datagen/state_machine/generate.py \
     --task LeIsaac-SO101-PickOrange-v0 \
     --num_envs 1 \
     --device cuda \
@@ -37,19 +37,29 @@ python scripts/environments/state_machine/pick_orange.py \
 ### How It Works
 
 ```
-Runner script
-  └── gym.make(task, cfg=env_cfg)           # create env
-       └── env_cfg.use_teleop_device(       # configure IK action manager
-               "so101_state_machine")
-  └── sm = PickOrangeStateMachine(...)
+generate.py
+  └── TASK_REGISTRY[task] → (SMClass, device)   # select SM from registry
+  └── gym.make(task, cfg=env_cfg)                # create env
+       └── env_cfg.use_teleop_device(device)     # configure IK action manager
+  └── sm = SMClass()
+  └── sm.setup(env)                              # FK calibration, etc.
   └── Main loop:
-       actions = sm.get_action(env)         # state machine computes 8D IK action
-       env.step(actions)                    # steps sim + recorder captures data
-       sm.advance()                         # advance state machine
+       sm.pre_step(env)                          # e.g. home-blend joint write
+       actions = sm.get_action(env)              # state machine computes 8D IK action
+       env.step(actions)                         # steps sim + recorder captures data
+       sm.advance()                              # advance state machine (incl. fast-forward)
 ```
 
-The runner calls `env.step(actions)` directly with the state machine's output tensor.
-`preprocess_device_action()` is **not** called (that is only used in the teleoperation pipeline).
+### Adding a New Task
+
+1. Implement a `StateMachineBase` subclass in `source/leisaac/leisaac/datagen/state_machine/`.
+2. Register it in `TASK_REGISTRY` inside `generate.py`:
+   ```python
+   TASK_REGISTRY = {
+       "LeIsaac-SO101-PickOrange-v0": (PickOrangeStateMachine, "so101_state_machine"),
+       "LeIsaac-MY-NewTask-v0":       (MyNewStateMachine,      "so101_state_machine"),
+   }
+   ```
 
 ### Action Format
 
@@ -99,11 +109,7 @@ When replaying, use `--select_episodes K` to load `demo_K`:
 ### Quick Start
 
 ```bash
-# replay_pick_orange.sh wrapper (default: demo_3 of dataset_test.hdf5)
-bash replay_pick_orange.sh
-
-# explicit call
-python scripts/environments/state_machine/replay.py \
+python scripts/datagen/state_machine/replay.py \
     --task LeIsaac-SO101-PickOrange-v0 \
     --dataset_file ./datasets/pick_orange.hdf5 \
     --task_type so101_state_machine \
@@ -126,7 +132,21 @@ For `so101_state_machine`, **only `action` mode is valid**. The IK action manage
 
 ## Technical Details
 
-### 1. Gravity Disable (Two Steps Required)
+### 1. StateMachineBase Interface
+
+Each state machine must implement:
+
+| Method | Description |
+|---|---|
+| `setup(env)` | One-time calibration after env creation (e.g. FK rest-pose computation) |
+| `check_success(env) → bool` | Episode-end success evaluation |
+| `pre_step(env)` | Optional per-step hook before `get_action` (default: no-op) |
+| `get_action(env) → Tensor` | Compute IK action for current step |
+| `advance()` | Increment step counter; handles state transitions and fast-forward |
+| `reset()` | Reset to initial state for a new episode |
+| `is_episode_done` | Property: True when all phases complete |
+
+### 2. Gravity Disable (Two Steps Required)
 
 IsaacLab's `disable_gravity` flag in `ArticulationCfg.spawn.rigid_props` only writes to the articulation root prim. Individual link prims each carry their own `PhysicsRigidBodyAPI` with gravity still enabled.
 
@@ -145,19 +165,17 @@ for _prim in _stage.Traverse():
 
 Both steps must be present. The same pattern applies to bi-arm tasks (`"Robot"` matches both `Left_Robot` and `Right_Robot`).
 
-### 2. Joint Damping
+### 3. Joint Damping
 
-The IK controller requires higher damping than the robot's default (0.6 N·m·s/rad) for stable, smooth trajectories. Damping is set to **10.0 N·m·s/rad** every step via:
+The IK controller requires higher damping than the robot's default (0.6 N·m·s/rad) for stable, smooth trajectories. Damping is set to **10.0 N·m·s/rad** inside `get_action()`:
 
 ```python
-# In PickOrangeStateMachine.get_action():
-robot = env.scene["robot"]
 robot.write_joint_damping_to_sim(damping=10.0)
 ```
 
-This must also be applied during **replay** to match recording conditions. The state-machine replay script (`scripts/environments/state_machine/replay.py`) calls `apply_damping(env, task_type)` before every `env.step()`.
+This must also be applied during **replay** to match recording conditions. The replay script calls `apply_damping(env, task_type)` before every `env.step()`.
 
-### 3. Episode Numbering
+### 4. Episode Numbering
 
 The IsaacLab recorder saves an initial-state-only episode (`num_samples=0`) on the very first `env.reset()` call (before any steps). This becomes `demo_0`.
 
@@ -173,9 +191,7 @@ The IsaacLab recorder saves an initial-state-only episode (`num_samples=0`) on t
 
 | File | Purpose |
 |---|---|
-| `scripts/environments/state_machine/pick_orange.py` | Recording runner for PickOrange |
-| `scripts/environments/state_machine/replay.py` | State-machine replay (with damping) |
-| `source/leisaac/leisaac/state_machine/base.py` | `StateMachineBase` abstract class |
-| `source/leisaac/leisaac/state_machine/pick_orange.py` | `PickOrangeStateMachine` |
-| `replay_pick_orange.sh` | Shell wrapper for replay.py |
-| `record_pick_orange.sh` | Shell wrapper for pick_orange recording |
+| `scripts/datagen/state_machine/generate.py` | Unified recording runner (task selected via `--task`) |
+| `scripts/datagen/state_machine/replay.py` | State-machine replay (with damping) |
+| `source/leisaac/leisaac/datagen/state_machine/base.py` | `StateMachineBase` abstract class |
+| `source/leisaac/leisaac/datagen/state_machine/pick_orange.py` | `PickOrangeStateMachine` |
