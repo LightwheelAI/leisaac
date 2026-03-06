@@ -47,16 +47,14 @@ app_launcher = AppLauncher(app_launcher_args)
 simulation_app = app_launcher.app
 
 import gymnasium as gym
+import leisaac.tasks  # noqa: F401
 import torch
 from isaaclab.envs import DirectRLEnv, ManagerBasedRLEnv
 from isaaclab.managers import DatasetExportMode, TerminationTermCfg
 from isaaclab_tasks.utils import parse_env_cfg
-
-from leisaac.enhance.managers import EnhanceDatasetExportMode, StreamingRecorderManager
 from leisaac.datagen.state_machine import PickOrangeStateMachine
+from leisaac.enhance.managers import EnhanceDatasetExportMode, StreamingRecorderManager
 from leisaac.utils.env_utils import dynamic_reset_gripper_effort_limit_sim
-
-import leisaac.tasks  # noqa: F401
 
 # Maps gym task id → (StateMachineClass, device_type)
 TASK_REGISTRY = {
@@ -105,26 +103,8 @@ def auto_terminate(env: ManagerBasedRLEnv | DirectRLEnv, success: bool):
         env.cfg.return_success_status = success
 
 
-def main():
-    """Run a state machine in a LeIsaac manipulation environment."""
-    task_name = args_cli.task
-    if task_name not in TASK_REGISTRY:
-        raise ValueError(
-            f"Task '{task_name}' is not registered in TASK_REGISTRY.\n"
-            f"Available tasks: {list(TASK_REGISTRY.keys())}"
-        )
-    SMClass, device = TASK_REGISTRY[task_name]
-
-    output_dir = os.path.dirname(args_cli.dataset_file)
-    output_file_name = os.path.splitext(os.path.basename(args_cli.dataset_file))[0]
-    if output_dir and not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    env_cfg = parse_env_cfg(task_name, device=args_cli.device, num_envs=args_cli.num_envs)
-    env_cfg.use_teleop_device(device)
-    env_cfg.seed = args_cli.seed if args_cli.seed is not None else int(time.time())
-
-    is_direct_env = "Direct" in task_name
+def _configure_env_cfg(env_cfg, args_cli, is_direct_env, output_dir, output_file_name):
+    """Configure termination and recorder settings on env_cfg."""
     if is_direct_env:
         env_cfg.never_time_out = True
         env_cfg.auto_terminate = True
@@ -164,6 +144,98 @@ def main():
     else:
         env_cfg.recorders = None
 
+
+def _replace_recorder_manager(env, env_cfg, args_cli):
+    """Replace the default recorder manager with streaming or lerobot recorder."""
+    del env.recorder_manager
+    if args_cli.use_lerobot_recorder:
+        from leisaac.enhance.datasets.lerobot_dataset_handler import LeRobotDatasetCfg
+        from leisaac.enhance.managers.lerobot_recorder_manager import (
+            LeRobotRecorderManager,
+        )
+
+        dataset_cfg = LeRobotDatasetCfg(
+            repo_id=args_cli.lerobot_dataset_repo_id,
+            fps=args_cli.lerobot_dataset_fps,
+        )
+        env.recorder_manager = LeRobotRecorderManager(env_cfg.recorders, dataset_cfg, env)
+    else:
+        env.recorder_manager = StreamingRecorderManager(env_cfg.recorders, env)
+        env.recorder_manager.flush_steps = 100
+        env.recorder_manager.compression = "lzf"
+
+
+def _on_episode_done(env, sm, args_cli, resume_recorded_demo_count, current_recorded_demo_count, start_record_state):
+    """Handle end-of-episode logic. Returns (current_recorded_demo_count, start_record_state, should_break)."""
+    try:
+        success = sm.check_success(env)
+    except Exception as e:
+        print("Success check failed:", e)
+        success = False
+
+    print("Episode success!" if success else "Episode failed!")
+
+    if start_record_state:
+        if args_cli.record:
+            print("Stop Recording!!!")
+        start_record_state = False
+
+    if args_cli.record and success:
+        auto_terminate(env, True)
+        current_recorded_demo_count += 1
+    else:
+        auto_terminate(env, False)
+
+    if (
+        args_cli.record
+        and env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
+        > current_recorded_demo_count
+    ):
+        current_recorded_demo_count = (
+            env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
+        )
+        print(f"Recorded {current_recorded_demo_count} successful demonstrations.")
+
+    if (
+        args_cli.record
+        and args_cli.num_demos > 0
+        and env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count >= args_cli.num_demos
+    ):
+        print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
+        return current_recorded_demo_count, start_record_state, True
+
+    env.reset()
+    sm.reset()
+    auto_terminate(env, False)
+
+    if args_cli.record and args_cli.num_demos > 0 and current_recorded_demo_count >= args_cli.num_demos:
+        print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
+        return current_recorded_demo_count, start_record_state, True
+
+    return current_recorded_demo_count, start_record_state, False
+
+
+def main():
+    """Run a state machine in a LeIsaac manipulation environment."""
+    task_name = args_cli.task
+    if task_name not in TASK_REGISTRY:
+        raise ValueError(
+            f"Task '{task_name}' is not registered in TASK_REGISTRY.\nAvailable tasks: {list(TASK_REGISTRY.keys())}"
+        )
+    SMClass, device = TASK_REGISTRY[task_name]
+
+    output_dir = os.path.dirname(args_cli.dataset_file)
+    output_file_name = os.path.splitext(os.path.basename(args_cli.dataset_file))[0]
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    env_cfg = parse_env_cfg(task_name, device=args_cli.device, num_envs=args_cli.num_envs)
+    env_cfg.use_teleop_device(device)
+    env_cfg.seed = args_cli.seed if args_cli.seed is not None else int(time.time())
+
+    is_direct_env = "Direct" in task_name
+    _configure_env_cfg(env_cfg, args_cli, is_direct_env, output_dir, output_file_name)
+
     env: ManagerBasedRLEnv | DirectRLEnv = gym.make(task_name, cfg=env_cfg).unwrapped
 
     # disable gravity for every robot link prim
@@ -176,24 +248,7 @@ def main():
             PhysxSchema.PhysxRigidBodyAPI.Apply(_prim).CreateDisableGravityAttr(True)
 
     if args_cli.record:
-        del env.recorder_manager
-        if args_cli.use_lerobot_recorder:
-            from leisaac.enhance.datasets.lerobot_dataset_handler import (
-                LeRobotDatasetCfg,
-            )
-            from leisaac.enhance.managers.lerobot_recorder_manager import (
-                LeRobotRecorderManager,
-            )
-
-            dataset_cfg = LeRobotDatasetCfg(
-                repo_id=args_cli.lerobot_dataset_repo_id,
-                fps=args_cli.lerobot_dataset_fps,
-            )
-            env.recorder_manager = LeRobotRecorderManager(env_cfg.recorders, dataset_cfg, env)
-        else:
-            env.recorder_manager = StreamingRecorderManager(env_cfg.recorders, env)
-            env.recorder_manager.flush_steps = 100
-            env.recorder_manager.compression = "lzf"
+        _replace_recorder_manager(env, env_cfg, args_cli)
 
     rate_limiter = RateLimiter(args_cli.step_hz)
 
@@ -213,7 +268,6 @@ def main():
     current_recorded_demo_count = resume_recorded_demo_count
 
     start_record_state = False
-
     interrupted = False
 
     def signal_handler(signum, frame):
@@ -231,50 +285,10 @@ def main():
                     dynamic_reset_gripper_effort_limit_sim(env, device)
 
                 if sm.is_episode_done:
-                    try:
-                        success = sm.check_success(env)
-                    except Exception as e:
-                        print("Success check failed:", e)
-                        success = False
-
-                    print("Episode success!" if success else "Episode failed!")
-
-                    if start_record_state:
-                        if args_cli.record:
-                            print("Stop Recording!!!")
-                        start_record_state = False
-
-                    if args_cli.record and success:
-                        auto_terminate(env, True)
-                        current_recorded_demo_count += 1
-                    else:
-                        auto_terminate(env, False)
-
-                    if (
-                        args_cli.record
-                        and env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
-                        > current_recorded_demo_count
-                    ):
-                        current_recorded_demo_count = (
-                            env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
-                        )
-                        print(f"Recorded {current_recorded_demo_count} successful demonstrations.")
-
-                    if (
-                        args_cli.record
-                        and args_cli.num_demos > 0
-                        and env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
-                        >= args_cli.num_demos
-                    ):
-                        print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
-                        break
-
-                    env.reset()
-                    sm.reset()
-                    auto_terminate(env, False)
-
-                    if args_cli.record and args_cli.num_demos > 0 and current_recorded_demo_count >= args_cli.num_demos:
-                        print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
+                    current_recorded_demo_count, start_record_state, should_break = _on_episode_done(
+                        env, sm, args_cli, resume_recorded_demo_count, current_recorded_demo_count, start_record_state
+                    )
+                    if should_break:
                         break
                 else:
                     if not start_record_state:

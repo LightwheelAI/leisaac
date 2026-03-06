@@ -5,9 +5,9 @@ import math
 import torch
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils.math import quat_apply, quat_from_euler_xyz, quat_inv, quat_mul
+from leisaac.tasks.pick_orange.mdp import task_done
 
 from .base import StateMachineBase
-from leisaac.tasks.pick_orange.mdp import task_done
 
 # ---------------------------------------------------------------------------
 # Module-level helpers
@@ -122,11 +122,7 @@ class PickOrangeStateMachine(StateMachineBase):
         Writes blended joint positions directly to the sim so the arm smoothly
         returns home while IK still receives the rest-pose EE target.
         """
-        if (
-            self._orange_now == self._num_oranges
-            and self._step_count >= 680
-            and self._rest_joint_pos is not None
-        ):
+        if self._orange_now == self._num_oranges and self._step_count >= 680 and self._rest_joint_pos is not None:
             robot = env.scene["robot"]
             if self._step_count == 680:
                 self._home_start_pos = robot.data.joint_pos.clone()
