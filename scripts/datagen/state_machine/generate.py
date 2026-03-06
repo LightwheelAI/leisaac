@@ -16,6 +16,7 @@ if multiprocessing.get_start_method() != "spawn":
 
 import argparse
 import os
+import signal
 import time
 
 from isaaclab.app import AppLauncher
@@ -213,72 +214,95 @@ def main():
 
     start_record_state = False
 
-    while simulation_app.is_running() and not simulation_app.is_exiting():
-        with torch.inference_mode():
-            if env.cfg.dynamic_reset_gripper_effort_limit:
-                dynamic_reset_gripper_effort_limit_sim(env, device)
+    interrupted = False
 
-            if sm.is_episode_done:
-                try:
-                    success = sm.check_success(env)
-                except Exception as e:
-                    print("Success check failed:", e)
-                    success = False
+    def signal_handler(signum, frame):
+        """Handle SIGINT (Ctrl+C) signal."""
+        nonlocal interrupted
+        interrupted = True
+        print("\n[INFO] KeyboardInterrupt (Ctrl+C) detected. Cleaning up resources...")
 
-                if start_record_state:
-                    if args_cli.record:
-                        print("Stop Recording!!!")
-                    start_record_state = False
+    original_sigint_handler = signal.signal(signal.SIGINT, signal_handler)
 
-                if args_cli.record and success:
-                    auto_terminate(env, True)
-                    current_recorded_demo_count += 1
+    try:
+        while simulation_app.is_running() and not simulation_app.is_exiting() and not interrupted:
+            with torch.inference_mode():
+                if env.cfg.dynamic_reset_gripper_effort_limit:
+                    dynamic_reset_gripper_effort_limit_sim(env, device)
+
+                if sm.is_episode_done:
+                    try:
+                        success = sm.check_success(env)
+                    except Exception as e:
+                        print("Success check failed:", e)
+                        success = False
+
+                    print("Episode success!" if success else "Episode failed!")
+
+                    if start_record_state:
+                        if args_cli.record:
+                            print("Stop Recording!!!")
+                        start_record_state = False
+
+                    if args_cli.record and success:
+                        auto_terminate(env, True)
+                        current_recorded_demo_count += 1
+                    else:
+                        auto_terminate(env, False)
+
+                    if (
+                        args_cli.record
+                        and env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
+                        > current_recorded_demo_count
+                    ):
+                        current_recorded_demo_count = (
+                            env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
+                        )
+                        print(f"Recorded {current_recorded_demo_count} successful demonstrations.")
+
+                    if (
+                        args_cli.record
+                        and args_cli.num_demos > 0
+                        and env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
+                        >= args_cli.num_demos
+                    ):
+                        print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
+                        break
+
+                    env.reset()
+                    sm.reset()
+
+                    if args_cli.record and args_cli.num_demos > 0 and current_recorded_demo_count >= args_cli.num_demos:
+                        print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
+                        break
                 else:
-                    auto_terminate(env, False)
+                    if not start_record_state:
+                        if args_cli.record:
+                            print("Start Recording!!!")
+                        start_record_state = True
 
-                if (
-                    args_cli.record
-                    and env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
-                    > current_recorded_demo_count
-                ):
-                    current_recorded_demo_count = (
-                        env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
-                    )
-                    print(f"Recorded {current_recorded_demo_count} successful demonstrations.")
+                    sm.pre_step(env)
+                    actions = sm.get_action(env)
+                    env.step(actions)
+                    sm.advance()
 
-                if (
-                    args_cli.record
-                    and args_cli.num_demos > 0
-                    and env.recorder_manager.exported_successful_episode_count + resume_recorded_demo_count
-                    >= args_cli.num_demos
-                ):
-                    print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
-                    break
+                if rate_limiter:
+                    rate_limiter.sleep(env)
 
-                env.reset()
-                sm.reset()
+            if interrupted:
+                break
+    except Exception as e:
+        import traceback
 
-                if args_cli.record and args_cli.num_demos > 0 and current_recorded_demo_count >= args_cli.num_demos:
-                    print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
-                    break
-            else:
-                if not start_record_state:
-                    if args_cli.record:
-                        print("Start Recording!!!")
-                    start_record_state = True
-
-                sm.pre_step(env)
-                actions = sm.get_action(env)
-                env.step(actions)
-                sm.advance()
-
-            if rate_limiter:
-                rate_limiter.sleep(env)
-
-    if args_cli.record and hasattr(env.recorder_manager, "finalize"):
-        env.recorder_manager.finalize()
-    env.close()
-    simulation_app.close()
+        print(f"\n[ERROR] An error occurred: {e}\n")
+        traceback.print_exc()
+        print("[INFO] Cleaning up resources...")
+    finally:
+        signal.signal(signal.SIGINT, original_sigint_handler)
+        if args_cli.record and hasattr(env.recorder_manager, "finalize"):
+            env.recorder_manager.finalize()
+        env.close()
+        simulation_app.close()
 
 
 if __name__ == "__main__":

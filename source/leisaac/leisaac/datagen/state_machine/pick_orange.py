@@ -93,7 +93,6 @@ class PickOrangeStateMachine(StateMachineBase):
         env.sim.step(render=False)
         env.scene.update(dt=env.physics_dt)
         self._rest_ee_pos_world = robot.data.body_pos_w[:, -1, :].clone()
-        print(f"[Calibration] Rest pose EE (world): {self._rest_ee_pos_world[0].cpu().numpy()}")
 
         # Return scene to default initial state before the recording loop.
         env.reset()

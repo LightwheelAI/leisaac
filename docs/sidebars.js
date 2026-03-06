@@ -47,6 +47,12 @@ const sidebars = {
         },
         {
           type: 'category',
+          label: 'State Machine Data Generation',
+          link: { type: 'doc', id: 'docs/getting_started/state_machine' },
+          items: [],
+        },
+        {
+          type: 'category',
           label: 'Policy Training & Inference',
           link: { type: 'doc', id: 'docs/getting_started/policy_support' },
           items: [],
