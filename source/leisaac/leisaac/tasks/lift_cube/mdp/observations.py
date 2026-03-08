@@ -25,3 +25,15 @@ def object_grasped(
     grasped = torch.logical_and(pos_diff < diff_threshold, robot.data.joint_pos[:, -1] < grasp_threshold)
 
     return grasped
+
+
+def cube_pos_relative_to_ee(
+    env: ManagerBasedRLEnv,
+    cube_cfg: SceneEntityCfg = SceneEntityCfg("cube"),
+    ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
+) -> torch.Tensor:
+    """Returns cube position relative to the EE jaw. (num_envs, 3)"""
+    ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
+    ee_pos = ee_frame.data.target_pos_w[:, 1, :]  # jaw position
+    cube: RigidObject = env.scene[cube_cfg.name]
+    return cube.data.root_pos_w - ee_pos

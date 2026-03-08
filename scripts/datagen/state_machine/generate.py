@@ -58,7 +58,7 @@ from leisaac.utils.env_utils import dynamic_reset_gripper_effort_limit_sim
 
 # Maps gym task id → (StateMachineClass, device_type)
 TASK_REGISTRY = {
-    "LeIsaac-SO101-PickOrange-v0": (PickOrangeStateMachine, "so101_state_machine"),
+    "LeIsaac-SO101-PickOrange-v0": (PickOrangeStateMachine, "ik_so101leader"),
 }
 
 
