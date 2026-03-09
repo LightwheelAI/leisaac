@@ -35,8 +35,8 @@ parser.add_argument(
     type=str,
     default=None,
     help=(
-        "State machine device type used during recording, e.g. 'so101ik' or "
-        "'bi-so101ik'. If not set, inferred from the task name."
+        "State machine device type used during recording, e.g. 'ik_so101leader' or "
+        "'bi_ik_so101leader'. If not set, inferred from the task name."
     ),
 )
 
@@ -83,7 +83,7 @@ def get_next_action(episode_data: EpisodeData, return_state: bool = False, task_
         next_state = episode_data.get_next_state()
         if next_state is None:
             return None
-        if task_type == "bi-so101ik":
+        if task_type == "bi_ik_so101leader":
             left_joint_pos = next_state["articulation"]["left_arm"]["joint_position"]
             right_joint_pos = next_state["articulation"]["right_arm"]["joint_position"]
             return torch.cat([left_joint_pos, right_joint_pos], dim=0)
@@ -95,9 +95,9 @@ def get_next_action(episode_data: EpisodeData, return_state: bool = False, task_
 
 def apply_damping(env, task_type: str):
     """Apply joint damping each step to match state-machine recording behavior."""
-    if task_type == "so101ik":
+    if task_type == "ik_so101leader":
         env.scene["robot"].write_joint_damping_to_sim(damping=10.0)
-    elif task_type == "bi-so101ik":
+    elif task_type == "bi_ik_so101leader":
         env.scene["left_arm"].write_joint_damping_to_sim(damping=10.0)
         env.scene["right_arm"].write_joint_damping_to_sim(damping=10.0)
 

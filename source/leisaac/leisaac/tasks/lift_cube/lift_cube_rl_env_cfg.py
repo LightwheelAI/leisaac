@@ -44,29 +44,29 @@ class LiftCubeRLObservationsCfg:
 class LiftCubeRLRewardsCfg:
     """Reward terms for lift-cube RL training."""
 
+    # Success: large one-time bonus when cube reaches target height (episode ends immediately after)
+    cube_success = RewTerm(
+        func=mdp.cube_success_bonus,
+        weight=100.0,
+        params={"cube_cfg": _CUBE_CFG, "robot_cfg": _ROBOT_CFG, "height_threshold": 0.20},
+    )
     # Stage 1: guide EE toward cube
     ee_to_cube = RewTerm(
         func=mdp.ee_to_cube_reward,
         weight=0.5,
-        params={"cube_cfg": _CUBE_CFG},
+        params={"cube_cfg": _CUBE_CFG, "ee_frame_cfg": SceneEntityCfg("ee_frame")},
     )
-    # Stage 2: reward grasping
-    cube_grasped = RewTerm(
-        func=mdp.cube_grasped_reward,
-        weight=1.0,
-        params={"cube_cfg": _CUBE_CFG},
+    # Stage 2: large flat reward for stably holding cube off ground
+    cube_stable_hold = RewTerm(
+        func=mdp.cube_stable_hold_reward,
+        weight=5.0,
+        params={"cube_cfg": _CUBE_CFG, "robot_cfg": _ROBOT_CFG, "ee_frame_cfg": SceneEntityCfg("ee_frame")},
     )
     # Stage 3: shaped height reward (encourages lifting once grasped)
     cube_height = RewTerm(
         func=mdp.cube_height_reward,
-        weight=2.0,
-        params={"cube_cfg": _CUBE_CFG, "robot_cfg": _ROBOT_CFG},
-    )
-    # Stage 4: sparse bonus for reaching goal height
-    cube_lift_bonus = RewTerm(
-        func=mdp.cube_lift_bonus,
-        weight=1.0,
-        params={"cube_cfg": _CUBE_CFG, "robot_cfg": _ROBOT_CFG, "height_threshold": 0.20},
+        weight=5.0,
+        params={"cube_cfg": _CUBE_CFG, "robot_cfg": _ROBOT_CFG, "ee_frame_cfg": SceneEntityCfg("ee_frame")},
     )
 
 
@@ -86,7 +86,7 @@ class LiftCubeRLEnvCfg(LiftCubeEnvCfg):
     """RL-specific configuration for the lift-cube environment.
 
     Observations: 22D flat vector.
-    Action space: 8D (so101ik: 7D EE pose + 1D binary gripper).
+    Action space: 7D (rl_so101leader: 6D delta EE pose + 1D binary gripper).
     Cameras disabled for faster training.
     """
 
@@ -97,9 +97,19 @@ class LiftCubeRLEnvCfg(LiftCubeEnvCfg):
     def __post_init__(self) -> None:
         super().__post_init__()
 
-        self.use_teleop_device("so101ik")
+        self.use_teleop_device("rl_so101leader")
 
         # Disable camera for faster RL training
         self.scene.front = None
+
+        # Remove camera randomization events that reference the disabled front camera
+        for attr_name in list(vars(self.events).keys()):
+            term = getattr(self.events, attr_name, None)
+            if (
+                hasattr(term, "params")
+                and isinstance(term.params.get("asset_cfg"), SceneEntityCfg)
+                and term.params["asset_cfg"].name == "front"
+            ):
+                delattr(self.events, attr_name)
 
         self.episode_length_s = 15.0

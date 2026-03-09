@@ -26,21 +26,62 @@ from rsl_rl.runners import OnPolicyRunner
 
 TASK_NAME = "LeIsaac-SO101-LiftCube-RL-v0"
 
+# Train config for new rsl_rl API (actor/critic/algorithm top-level keys)
+TRAIN_CFG = {
+    "actor": {
+        "class_name": "MLPModel",
+        "hidden_dims": [256, 128, 64],
+        "activation": "elu",
+        "obs_normalization": True,
+        "distribution_cfg": {
+            "class_name": "GaussianDistribution",
+            "init_std": 1.0,
+        },
+    },
+    "critic": {
+        "class_name": "MLPModel",
+        "hidden_dims": [256, 128, 64],
+        "activation": "elu",
+        "obs_normalization": True,
+    },
+    "algorithm": {
+        "class_name": "PPO",
+        "value_loss_coef": 1.0,
+        "use_clipped_value_loss": True,
+        "clip_param": 0.2,
+        "entropy_coef": 0.005,
+        "num_learning_epochs": 5,
+        "num_mini_batches": 4,
+        "learning_rate": 3.0e-4,
+        "schedule": "adaptive",
+        "gamma": 0.99,
+        "lam": 0.95,
+        "desired_kl": 0.01,
+        "max_grad_norm": 1.0,
+    },
+    # obs_groups maps actor/critic to the "policy" observation group from the env
+    "obs_groups": {"actor": ["policy"], "critic": ["policy"]},
+    "num_steps_per_env": 24,
+    "save_interval": 50,
+    "experiment_name": "lift_cube_rl",
+    "seed": 42,
+}
+
 
 def main():
-    from leisaac.tasks.lift_cube.agents.rsl_rl_ppo_cfg import LiftCubeRLPPORunnerCfg
     from leisaac.tasks.lift_cube.lift_cube_rl_env_cfg import LiftCubeRLEnvCfg
 
     env_cfg = LiftCubeRLEnvCfg()
-    agent_cfg = LiftCubeRLPPORunnerCfg()
 
     # Override from CLI
     env_cfg.scene.num_envs = args_cli.num_envs
-    agent_cfg.seed = args_cli.seed
-    agent_cfg.max_iterations = args_cli.max_iterations
     env_cfg.seed = args_cli.seed
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
-    agent_cfg.device = env_cfg.sim.device
+
+    train_cfg = dict(TRAIN_CFG)
+    train_cfg["seed"] = args_cli.seed
+
+    device = env_cfg.sim.device
 
     # Set up logging directory
     log_dir = os.path.join(args_cli.log_dir, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
@@ -52,18 +93,17 @@ def main():
     env = gym.make(TASK_NAME, cfg=env_cfg)
 
     # Wrap for RSL-RL
-    env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
+    env = RslRlVecEnvWrapper(env)
 
     # Create PPO runner
-    runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
+    runner = OnPolicyRunner(env, train_cfg, log_dir=log_dir, device=device)
 
-    # Dump configs
+    # Dump env config
     os.makedirs(os.path.join(log_dir, "params"), exist_ok=True)
     dump_yaml(os.path.join(log_dir, "params", "env.yaml"), env_cfg)
-    dump_yaml(os.path.join(log_dir, "params", "agent.yaml"), agent_cfg)
 
     # Train
-    runner.learn(num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=True)
+    runner.learn(num_learning_iterations=args_cli.max_iterations, init_at_random_ep_len=True)
 
     env.close()
 

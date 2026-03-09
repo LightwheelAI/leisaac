@@ -122,7 +122,7 @@ class PickOrangeRLEnvCfg(PickOrangeEnvCfg):
     """RL-specific configuration for the pick orange environment.
 
     Overrides observations with a flat 35D vector, adds reward terms,
-    disables cameras, and configures so101ik action space.
+    disables cameras, and configures ik_so101leader action space.
     """
 
     observations: PickOrangeRLObservationsCfg = PickOrangeRLObservationsCfg()
@@ -133,11 +133,21 @@ class PickOrangeRLEnvCfg(PickOrangeEnvCfg):
         super().__post_init__()
 
         # Use IK-based action space (same as state machine)
-        self.use_teleop_device("so101ik")
+        self.use_teleop_device("ik_so101leader")
 
         # Disable cameras to speed up RL training
         self.scene.wrist = None
         self.scene.front = None
+
+        # Remove camera randomization events that reference disabled cameras
+        for attr_name in list(vars(self.events).keys()):
+            term = getattr(self.events, attr_name, None)
+            if (
+                hasattr(term, "params")
+                and isinstance(term.params.get("asset_cfg"), SceneEntityCfg)
+                and term.params["asset_cfg"].name in ("wrist", "front")
+            ):
+                delattr(self.events, attr_name)
 
         # Longer episodes for RL
         self.episode_length_s = 30.0
