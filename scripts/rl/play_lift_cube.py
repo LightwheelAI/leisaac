@@ -1,32 +1,30 @@
-"""Script to train lift-cube RL agent with RSL-RL (PPO)."""
+"""Script to play lift-cube RL agent with a trained checkpoint."""
 
 import argparse
 
 from isaaclab.app import AppLauncher
 
-parser = argparse.ArgumentParser(description="Train lift-cube RL agent with RSL-RL.")
-parser.add_argument("--num_envs", type=int, default=64, help="Number of parallel environments.")
-parser.add_argument("--max_iterations", type=int, default=1500, help="Number of PPO iterations.")
-parser.add_argument("--log_dir", type=str, default="logs/rl/lift_cube", help="Logging directory.")
+parser = argparse.ArgumentParser(description="Play lift-cube RL agent.")
+parser.add_argument("--checkpoint", type=str, required=True, help="Path to model checkpoint (.pt).")
+parser.add_argument("--num_envs", type=int, default=4, help="Number of parallel environments.")
 parser.add_argument("--seed", type=int, default=42, help="Random seed.")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 
+# Force rendering on
+args_cli.headless = False
+
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
-import os
-from datetime import datetime
-
 import gymnasium as gym
-import leisaac.tasks  # noqa: F401 — registers all leisaac gym envs
-from isaaclab.utils.io import dump_yaml
+import leisaac.tasks  # noqa: F401
+import torch
 from isaaclab_rl.rsl_rl import RslRlVecEnvWrapper
 from rsl_rl.runners import OnPolicyRunner
 
 TASK_NAME = "LeIsaac-SO101-LiftCube-RL-v0"
 
-# Train config for new rsl_rl API (actor/critic/algorithm top-level keys)
 TRAIN_CFG = {
     "actor": {
         "class_name": "MLPModel",
@@ -35,7 +33,7 @@ TRAIN_CFG = {
         "obs_normalization": True,
         "distribution_cfg": {
             "class_name": "GaussianDistribution",
-            "init_std": 0.3,
+            "init_std": 0.5,
         },
     },
     "critic": {
@@ -49,17 +47,16 @@ TRAIN_CFG = {
         "value_loss_coef": 1.0,
         "use_clipped_value_loss": True,
         "clip_param": 0.1,
-        "entropy_coef": 0.0,
+        "entropy_coef": 0.001,
         "num_learning_epochs": 5,
         "num_mini_batches": 4,
         "learning_rate": 3.0e-4,
         "schedule": "fixed",
-        "gamma": 0.95,
+        "gamma": 0.99,
         "lam": 0.95,
         "desired_kl": 0.01,
         "max_grad_norm": 0.5,
     },
-    # obs_groups maps actor/critic to the "policy" observation group from the env
     "obs_groups": {"actor": ["policy"], "critic": ["policy"]},
     "num_steps_per_env": 48,
     "save_interval": 50,
@@ -72,38 +69,30 @@ def main():
     from leisaac.tasks.lift_cube.lift_cube_rl_env_cfg import LiftCubeRLEnvCfg
 
     env_cfg = LiftCubeRLEnvCfg()
-
-    # Override from CLI
     env_cfg.scene.num_envs = args_cli.num_envs
     env_cfg.seed = args_cli.seed
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
 
-    train_cfg = dict(TRAIN_CFG)
-    train_cfg["seed"] = args_cli.seed
-
     device = env_cfg.sim.device
 
-    # Set up logging directory
-    log_dir = os.path.join(args_cli.log_dir, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-    log_dir = os.path.abspath(log_dir)
-    print(f"[INFO] Logging to: {log_dir}")
-    env_cfg.log_dir = log_dir
-
-    # Create environment
     env = gym.make(TASK_NAME, cfg=env_cfg)
-
-    # Wrap for RSL-RL
     env = RslRlVecEnvWrapper(env)
 
-    # Create PPO runner
-    runner = OnPolicyRunner(env, train_cfg, log_dir=log_dir, device=device)
+    # Load checkpoint
+    runner = OnPolicyRunner(env, TRAIN_CFG, log_dir=None, device=device)
+    runner.load(args_cli.checkpoint)
+    print(f"[INFO] Loaded checkpoint: {args_cli.checkpoint}")
 
-    # Dump env config
-    os.makedirs(os.path.join(log_dir, "params"), exist_ok=True)
-    dump_yaml(os.path.join(log_dir, "params", "env.yaml"), env_cfg)
+    policy = runner.get_inference_policy(device=device)
 
-    # Train
-    runner.learn(num_learning_iterations=args_cli.max_iterations, init_at_random_ep_len=True)
+    # Run inference loop
+    obs = env.get_observations()
+    step = 0
+    while simulation_app.is_running():
+        with torch.no_grad():
+            actions = policy(obs)
+        obs, _, _, _ = env.step(actions)
+        step += 1
 
     env.close()
 
