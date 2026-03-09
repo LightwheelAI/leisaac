@@ -8,31 +8,40 @@ from isaaclab.utils import configclass
 from . import mdp
 from .pick_orange_env_cfg import PickOrangeEnvCfg
 
+_ORANGE_CFGS = [SceneEntityCfg("Orange001"), SceneEntityCfg("Orange002"), SceneEntityCfg("Orange003")]
+_PLATE_CFG = SceneEntityCfg("Plate")
+
 
 @configclass
 class PickOrangeRLObservationsCfg:
-    """Flat vector observations for RL (28D total, concatenate_terms=True)."""
+    """Flat vector observations for RL (37D total, concatenate_terms=True).
+
+    joint_pos(6) + joint_vel(6) + ee_frame_state(7) +
+    oranges_rel_ee(9) + plate_rel_ee(3) + task_status(3) + gripper_state(1) = 35D
+    """
 
     @configclass
     class PolicyCfg(ObsGroup):
-        """Policy observations: joint_pos(6) + joint_vel(6) + ee_frame_state(7) + oranges_rel_ee(9) = 28D."""
-
         joint_pos = ObsTerm(func=mdp.joint_pos)
         joint_vel = ObsTerm(func=mdp.joint_vel)
         ee_frame_state = ObsTerm(
             func=mdp.ee_frame_state,
             params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "robot_cfg": SceneEntityCfg("robot")},
         )
+        # Position of each orange relative to EE (9D): tells policy where to reach
         oranges_pos_relative_to_ee = ObsTerm(
             func=mdp.oranges_pos_relative_to_ee,
-            params={
-                "orange_cfgs": [
-                    SceneEntityCfg("Orange001"),
-                    SceneEntityCfg("Orange002"),
-                    SceneEntityCfg("Orange003"),
-                ],
-                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
-            },
+            params={"orange_cfgs": _ORANGE_CFGS, "ee_frame_cfg": SceneEntityCfg("ee_frame")},
+        )
+        # Position of plate relative to EE (3D): tells policy where to deposit
+        plate_pos_relative_to_ee = ObsTerm(
+            func=mdp.plate_pos_relative_to_ee,
+            params={"plate_cfg": _PLATE_CFG, "ee_frame_cfg": SceneEntityCfg("ee_frame")},
+        )
+        # Which oranges are already on the plate (3D binary): task progress signal
+        oranges_task_status = ObsTerm(
+            func=mdp.oranges_task_status,
+            params={"orange_cfgs": _ORANGE_CFGS, "plate_cfg": _PLATE_CFG},
         )
 
         def __post_init__(self):
@@ -112,7 +121,7 @@ class PickOrangeRLTerminationsCfg:
 class PickOrangeRLEnvCfg(PickOrangeEnvCfg):
     """RL-specific configuration for the pick orange environment.
 
-    Overrides observations with a flat 28D vector, adds reward terms,
+    Overrides observations with a flat 35D vector, adds reward terms,
     disables cameras, and configures so101ik action space.
     """
 
