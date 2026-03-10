@@ -57,12 +57,17 @@ The LiftCube RL task uses four reward terms:
 
 | Term | Weight | Description |
 |------|--------|-------------|
-| `cube_success` | 500.0 | Per-step bonus when cube height ≥ 20 cm above robot base. Episode ends immediately after. |
-| `ee_to_cube` | 0.5 | `1 - tanh(5 × dist)` — guides EE toward cube. Always active. |
-| `cube_grasped` | 1.0 | Both jaw and gripper sides physically contact the cube AND gripper is closed. Detected via ContactSensor. |
-| `cube_height` | 2.0 | `exp(-2 × |h - 0.20|)` peaking at 20 cm. Only active when `cube_grasped > 0`. |
+| `cube_success` | 100.0 | One-time bonus when cube height ≥ 20 cm above robot base. Episode ends immediately after (early termination). |
+| `ee_to_cube` | 2.5 | `1 - tanh(5 × dist)` — guides gripper body toward a point 5 cm above cube center. Always active. Range [0, 1]. |
+| `cube_grasped` | 7.0 | Soft grasp score in [0, 1]. Active when cube is properly grasped (see below). |
+| `cube_height` | 10.0 | `exp(-10 × |h - 0.20|)` peaking at 20 cm. Only active when grasped AND cube height > 4.6 cm (filters resting-on-table baseline). |
 
-Grasp detection uses two `ContactSensor` instances (`jaw_contact` and `gripper_contact`) to confirm bilateral physical contact — both sides must touch the cube simultaneously. This prevents the degenerate solution of "EE near cube + gripper closed" without actually lifting.
+**Grasp detection** (`_is_grasped`) uses four conditions multiplied together (all soft via sigmoid):
+
+1. `jaw_contact` force > 0.5 N on cube (ContactSensor filtered to cube-only)
+2. `gripper_contact` force > 0.5 N on cube (ContactSensor filtered to cube-only)
+3. Gripper joint position < 0.5 rad (gripper is actually closed)
+4. Contact force Z < 0 on **both** sensors — the cube is pulling the gripper **down** via friction, consistent with supporting the cube's weight. This rejects the degenerate "smash from above" solution where force Z > 0.
 
 **Termination**: episode ends on timeout (15 s) or when cube height ≥ 20 cm (success).
 
@@ -72,8 +77,8 @@ RL training uses the `rl_so101leader` device mode — delta end-effector control
 
 | Component | Dims | Description |
 |-----------|------|-------------|
-| `arm_action` | 6 | Delta EE pose (dx, dy, dz, droll, dpitch, dyaw), scale=0.05 → ±5 cm/step |
-| `gripper_action` | 1 | Binary: 0 = open (1.0 rad), 1 = close (0.4 rad) |
+| `arm_action` | 6 | Delta EE pose (dx, dy, dz, droll, dpitch, dyaw), scale=(0.02, 0.02, 0.02, 0.1, 0.1, 0.1) → ±2 cm / ±0.1 rad per step |
+| `gripper_action` | 1 | Binary: action > 0 → open (1.0 rad), action < 0 → close (0.4 rad) |
 | **Total** | **7** | |
 
 ## Observation Space

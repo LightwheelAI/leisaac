@@ -93,12 +93,12 @@ def init_action_cfg(action_cfg, device):
         )
     elif device in ["rl_so101leader"]:  # RL: delta EE pose (6D) + binary gripper (1D) = 7D total
         # use_relative_mode=True: action = (dx, dy, dz, droll, dpitch, dyaw)
-        # translation scale=0.01 → ±1cm/step; rotation scale=0.1 → ±0.1rad/step (~5.7°) at max action
+        # translation scale=0.02 → ±2cm/step; rotation scale=0.1 → ±0.1rad/step (~5.7°) at max action
         action_cfg.arm_action = mdp.DifferentialInverseKinematicsActionCfg(
             asset_name="robot",
             joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
             body_name="gripper",
-            scale=(0.01, 0.01, 0.01, 0.1, 0.1, 0.1),
+            scale=(0.02, 0.02, 0.02, 0.1, 0.1, 0.1),
             controller=mdp.DifferentialIKControllerCfg(
                 command_type="pose", ik_method="dls", use_relative_mode=True, ik_params={"lambda_val": 0.04}
             ),
