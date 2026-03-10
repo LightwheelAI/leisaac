@@ -1,3 +1,5 @@
+import math
+
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import RewardTermCfg as RewTerm
@@ -54,10 +56,14 @@ _ROBOT_CFG = SceneEntityCfg("robot")
 
 @configclass
 class LiftCubeRLSceneCfg(LiftCubeSceneCfg):
-    """RL-specific scene: adds jaw ContactSensor for accurate grasp detection."""
+    """RL-specific scene: adds ContactSensors on both gripper sides for accurate grasp detection."""
 
     jaw_contact: ContactSensorCfg = ContactSensorCfg(
         prim_path="{ENV_REGEX_NS}/Robot/jaw",
+        filter_prim_paths_expr=["{ENV_REGEX_NS}/Scene/cube"],
+    )
+    gripper_contact: ContactSensorCfg = ContactSensorCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/gripper",
         filter_prim_paths_expr=["{ENV_REGEX_NS}/Scene/cube"],
     )
 
@@ -97,36 +103,42 @@ class LiftCubeRLRewardsCfg:
     # Success: large one-time bonus when cube reaches target height (episode ends immediately after)
     cube_success = RewTerm(
         func=mdp.cube_success_bonus,
-        weight=200.0,
+        weight=100.0,
         params={"cube_cfg": _CUBE_CFG, "robot_cfg": _ROBOT_CFG, "height_threshold": 0.20},
     )
     # Stage 1: tanh reaching reward [0, 1] — always has gradient toward cube
     ee_to_cube = RewTerm(
         func=mdp.ee_to_cube_reward,
-        weight=1.0,
+        weight=0.5,
         params={"cube_cfg": _CUBE_CFG, "ee_frame_cfg": SceneEntityCfg("ee_frame")},
     )
-    # Stage 2: grasped bonus — jaw contact with cube + gripper closed
+    # Stage 2: grasped bonus — either gripper side contacts cube + gripper closed
     cube_grasped = RewTerm(
         func=mdp.cube_grasped_reward,
         weight=1.0,
-        params={"contact_cfg": SceneEntityCfg("jaw_contact"), "robot_cfg": _ROBOT_CFG},
+        params={
+            "contact_cfg": SceneEntityCfg("jaw_contact"),
+            "contact_cfg2": SceneEntityCfg("gripper_contact"),
+            "robot_cfg": _ROBOT_CFG,
+        },
     )
     # Stage 3: height reward [0, 1], only when grasped — peaks at 20cm
     cube_height = RewTerm(
         func=mdp.cube_height_if_grasped,
-        weight=1.0,
+        weight=2.0,
         params={
             "cube_cfg": _CUBE_CFG,
             "robot_cfg": _ROBOT_CFG,
             "contact_cfg": SceneEntityCfg("jaw_contact"),
+            "contact_cfg2": SceneEntityCfg("gripper_contact"),
+            "sharpness": 10.0,
         },
     )
 
 
 @configclass
 class LiftCubeRLTerminationsCfg:
-    """Terminations: timeout + early success for efficiency."""
+    """Terminations: timeout + early success."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     success = DoneTerm(
@@ -171,3 +183,14 @@ class LiftCubeRLEnvCfg(LiftCubeEnvCfg):
                 delattr(self.events, attr_name)
 
         self.episode_length_s = 15.0
+
+        # Set robot initial joint positions to the rest pose used by the state machine
+        # (shoulder_lift=-100°, elbow_flex=90°, wrist_flex=50°) so the EE points toward the table.
+        self.scene.robot.init_state.joint_pos.update({
+            "shoulder_pan": 0.0,
+            "shoulder_lift": math.radians(-100.0),
+            "elbow_flex": math.radians(90.0),
+            "wrist_flex": math.radians(50.0),
+            "wrist_roll": 0.0,
+            "gripper": 1.0,  # open
+        })

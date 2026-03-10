@@ -91,7 +91,7 @@ def init_action_cfg(action_cfg, device):
             open_command_expr={"gripper": 1.0},
             close_command_expr={"gripper": 0.4},
         )
-    elif device in ["rl_so101leader"]:  # RL: delta EE control (6D) + binary gripper (1D) = 7D total
+    elif device in ["rl_so101leader"]:  # RL: delta EE pose (6D) + binary gripper (1D) = 7D total
         # use_relative_mode=True: action = (dx, dy, dz, droll, dpitch, dyaw), scale=0.05 → ±5cm/step
         action_cfg.arm_action = mdp.DifferentialInverseKinematicsActionCfg(
             asset_name="robot",
@@ -106,7 +106,7 @@ def init_action_cfg(action_cfg, device):
             asset_name="robot",
             joint_names=["gripper"],
             open_command_expr={"gripper": 1.0},
-            close_command_expr={"gripper": 0.4},
+            close_command_expr={"gripper": 0.2},
         )
     elif device in ["bi_ik_so101leader"]:  # IK-based: action = EE pose (7D) + binary gripper, not raw joint angles
         action_cfg.left_arm_action = mdp.DifferentialInverseKinematicsActionCfg(

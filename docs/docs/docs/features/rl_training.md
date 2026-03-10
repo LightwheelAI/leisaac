@@ -5,21 +5,23 @@ The RL training module enables training manipulation policies with reinforcement
 ## Training
 
 ```shell
-python scripts/rl/train_lift_cube.py \
+python scripts/rl/train.py \
+    --task LeIsaac-SO101-LiftCube-RL-v0 \
     --num_envs 64 \
     --max_iterations 1500 \
-    --log_dir logs/rl/lift_cube \
     --headless
 ```
 
 <details>
-<summary><strong>Parameter descriptions for train_lift_cube.py</strong></summary>
+<summary><strong>Parameter descriptions for train.py</strong></summary>
+
+- `--task`: Gym task ID to train. Required.
 
 - `--num_envs`: Number of parallel simulation environments. More environments = faster data collection. Default: `64`.
 
 - `--max_iterations`: Number of PPO update iterations. Default: `1500`.
 
-- `--log_dir`: Directory to save model checkpoints and tensorboard logs. Default: `logs/rl/lift_cube`.
+- `--log_dir`: Base directory for logs. Runs are saved to `<log_dir>/<task_slug>/<timestamp>/`. Default: `logs/rl`.
 
 - `--seed`: Random seed for reproducibility. Default: `42`.
 
@@ -30,14 +32,24 @@ python scripts/rl/train_lift_cube.py \
 </details>
 
 ::::tip
-Training logs (tensorboard) are written to `<log_dir>/<timestamp>/`. Monitor progress with:
+Training logs (tensorboard) are written to `logs/rl/<task_slug>/<timestamp>/`. Monitor progress with:
 
 ```shell
-tensorboard --logdir logs/rl/lift_cube
+tensorboard --logdir logs/rl
 ```
 
-Key metrics to watch: `Train/mean_reward` (total episode reward) and `Episode/rew_cube_stable_hold` (stable grasp signal).
+Key metrics to watch: `Train/mean_reward` (total episode reward) and individual reward terms such as `Episode/rew_cube_height`.
 ::::
+
+## Evaluation
+
+```shell
+python scripts/rl/play.py \
+    --task LeIsaac-SO101-LiftCube-RL-v0 \
+    --checkpoint logs/rl/<run>/model_<iter>.pt \
+    --num_envs 4 \
+    --num_episodes 20
+```
 
 ## Reward Design
 
@@ -45,12 +57,14 @@ The LiftCube RL task uses four reward terms:
 
 | Term | Weight | Description |
 |------|--------|-------------|
-| `cube_success` | 100.0 | One-time bonus when cube reaches target height (≥ 20 cm). Episode ends immediately after. |
-| `ee_to_cube` | 0.5 | Gaussian reward (σ=10 cm) guiding EE toward cube. |
-| `cube_stable_hold` | 5.0 | Flat reward when EE has been within 8 cm of cube for 10+ consecutive steps **and** cube is off the ground. |
-| `cube_height` | 5.0 | Gaussian reward (peak at 20 cm) × hold gate. Encourages lifting the cube once it is stably grasped. |
+| `cube_success` | 500.0 | Per-step bonus when cube height ≥ 20 cm above robot base. Episode ends immediately after. |
+| `ee_to_cube` | 0.5 | `1 - tanh(5 × dist)` — guides EE toward cube. Always active. |
+| `cube_grasped` | 1.0 | Both jaw and gripper sides physically contact the cube AND gripper is closed. Detected via ContactSensor. |
+| `cube_height` | 2.0 | `exp(-2 × |h - 0.20|)` peaking at 20 cm. Only active when `cube_grasped > 0`. |
 
-The **hold gate** is the key mechanism: `cube_stable_hold` and `cube_height` both require the EE to be continuously near the cube for `min_hold_steps` steps, preventing rewards from knocked or bounced cubes.
+Grasp detection uses two `ContactSensor` instances (`jaw_contact` and `gripper_contact`) to confirm bilateral physical contact — both sides must touch the cube simultaneously. This prevents the degenerate solution of "EE near cube + gripper closed" without actually lifting.
+
+**Termination**: episode ends on timeout (15 s) or when cube height ≥ 20 cm (success).
 
 ## Action Space
 
@@ -77,9 +91,11 @@ RL training uses the `rl_so101leader` device mode — delta end-effector control
 ## Adding a New RL Task
 
 1. Create `<task>/mdp/rewards.py` with reward functions.
-2. Create `<task>/<task>_rl_env_cfg.py` inheriting from the base env config:
+2. Create `<task>/<task>_rl_env_cfg.py` with `TRAIN_CFG` dict and env config class:
 
 ```python
+TRAIN_CFG = { ... }  # PPO hyperparameters
+
 @configclass
 class MyTaskRLEnvCfg(MyTaskEnvCfg):
     observations: MyTaskRLObsCfg = MyTaskRLObsCfg()
@@ -93,5 +109,18 @@ class MyTaskRLEnvCfg(MyTaskEnvCfg):
         self.episode_length_s = 15.0
 ```
 
-3. Register the gym environment in `<task>/__init__.py`.
-4. Write a training script following `scripts/rl/train_lift_cube.py`.
+3. Register the gym environment in `<task>/__init__.py` with both `env_cfg_entry_point` and `rsl_rl_cfg_entry_point`:
+
+```python
+gym.register(
+    id="LeIsaac-SO101-MyTask-RL-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.<task>_rl_env_cfg:MyTaskRLEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{__name__}.<task>_rl_env_cfg:TRAIN_CFG",
+    },
+)
+```
+
+4. Train with the generic script: `python scripts/rl/train.py --task LeIsaac-SO101-MyTask-RL-v0`.

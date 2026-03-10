@@ -48,6 +48,7 @@ def main():
     env_cfg.scene.num_envs = args_cli.num_envs
     env_cfg.seed = args_cli.seed
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
+    env_cfg.recorders = None  # disable HDF5 recording during eval
 
     device = env_cfg.sim.device
 
@@ -66,10 +67,21 @@ def main():
     episode_count = 0
     success_count = 0
 
+    step = 0
     obs = env.get_observations()
     while simulation_app.is_running() and (args_cli.num_episodes <= 0 or episode_count < args_cli.num_episodes):
         with torch.no_grad():
             actions = policy(obs)
+        # Print actions and obs every 10 steps for env 0
+        if step % 10 == 0:
+            a = actions[0].cpu().numpy()
+            o = obs["policy"][0].cpu().numpy()
+            print(
+                f"[step {step:4d}] actions: {' '.join(f'{v:+.3f}' for v in a)}"
+                f"  obs[:6](jpos): {' '.join(f'{v:+.3f}' for v in o[:6])}"
+                f"  obs_norm: {float(o.std()):.4f}"
+            )
+        step += 1
         obs, _, dones, extras = env.step(actions)
 
         time_outs = extras.get("time_outs", torch.zeros_like(dones))

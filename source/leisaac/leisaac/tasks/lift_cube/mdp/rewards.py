@@ -32,16 +32,26 @@ def ee_to_cube_reward(
     return 1.0 - torch.tanh(k * dist)
 
 
-def _is_grasped(env: ManagerBasedRLEnv, contact_cfg: SceneEntityCfg, robot_cfg: SceneEntityCfg) -> torch.Tensor:
-    """Binary grasp detection: jaw in contact with cube AND gripper closed. Shape: (num_envs,)."""
+def _is_grasped(
+    env: ManagerBasedRLEnv,
+    contact_cfg: SceneEntityCfg,
+    robot_cfg: SceneEntityCfg,
+    contact_cfg2: SceneEntityCfg | None = None,
+) -> torch.Tensor:
+    """Grasp detection: either gripper side contacts cube AND gripper is closed. Shape: (num_envs,)."""
     contact_sensor: ContactSensor = env.scene[contact_cfg.name]
-    # net_forces_w: (num_envs, num_bodies, 3) — here num_bodies=1 (jaw)
     forces = contact_sensor.data.net_forces_w[:, 0, :]
     in_contact = (torch.linalg.vector_norm(forces, dim=1) > 0.5).float()
 
+    if contact_cfg2 is not None:
+        sensor2: ContactSensor = env.scene[contact_cfg2.name]
+        forces2 = sensor2.data.net_forces_w[:, 0, :]
+        in_contact2 = (torch.linalg.vector_norm(forces2, dim=1) > 0.5).float()
+        in_contact = torch.maximum(in_contact, in_contact2)
+
     robot: Articulation = env.scene[robot_cfg.name]
     gripper_pos = robot.data.joint_pos[:, -1]
-    gripper_closed = torch.sigmoid(20.0 * (0.7 - gripper_pos))
+    gripper_closed = torch.sigmoid(20.0 * (0.5 - gripper_pos))
 
     return in_contact * gripper_closed
 
@@ -50,9 +60,10 @@ def cube_grasped_reward(
     env: ManagerBasedRLEnv,
     contact_cfg: SceneEntityCfg = SceneEntityCfg("jaw_contact"),
     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    contact_cfg2: SceneEntityCfg | None = None,
 ) -> torch.Tensor:
-    """Grasp reward: jaw physically contacts cube AND gripper is closed. Range [0, 1]."""
-    return _is_grasped(env, contact_cfg, robot_cfg)
+    """Grasp reward: contact + gripper closed. Range [0, 1]."""
+    return _is_grasped(env, contact_cfg, robot_cfg, contact_cfg2)
 
 
 def cube_height_if_grasped(
@@ -60,15 +71,18 @@ def cube_height_if_grasped(
     cube_cfg: SceneEntityCfg = SceneEntityCfg("cube"),
     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     contact_cfg: SceneEntityCfg = SceneEntityCfg("jaw_contact"),
+    contact_cfg2: SceneEntityCfg | None = None,
     target_height: float = 0.20,
+    sharpness: float = 2.0,
 ) -> torch.Tensor:
-    """Exponential height reward, only when jaw is in contact with cube. Range [0, 1].
+    """Exponential height reward, only when either gripper side contacts cube. Range [0, 1].
 
-    exp(-2 * |h - target|) peaks at target_height.
+    exp(-sharpness * |h - target|) peaks at target_height.
+    Higher sharpness = bigger gap between h=0 and h=target.
     """
     height_above_base = _cube_pos(env, cube_cfg)[:, 2] - _robot_base_height(env, robot_cfg)
-    height_rew = torch.exp(-2.0 * torch.abs(height_above_base - target_height))
-    return height_rew * _is_grasped(env, contact_cfg, robot_cfg)
+    height_rew = torch.exp(-sharpness * torch.abs(height_above_base - target_height))
+    return height_rew * _is_grasped(env, contact_cfg, robot_cfg, contact_cfg2)
 
 
 def cube_success_bonus(
