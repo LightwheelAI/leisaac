@@ -83,7 +83,7 @@ class SingleArmTaskDirectEnvCfg(DirectRLEnvCfg):
 
     def use_teleop_device(self, teleop_device) -> None:
         self.task_type = teleop_device
-        if teleop_device in ["keyboard", "gamepad"]:
+        if teleop_device in ["keyboard", "gamepad", "so101_state_machine"]:
             self.scene.robot.spawn.rigid_props.disable_gravity = True
 
     def preprocess_device_action(self, action: dict[str, Any], teleop_device) -> torch.Tensor:
@@ -155,7 +155,7 @@ class SingleArmTaskDirectEnv(DirectRLEnv):
         return 0.0
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
-        if self.cfg.manual_terminate and self.cfg.return_success_status:
+        if (self.cfg.manual_terminate or self.cfg.auto_terminate) and self.cfg.return_success_status:
             done = torch.ones(self.num_envs, dtype=torch.bool, device=self.device)
         else:
             done = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)

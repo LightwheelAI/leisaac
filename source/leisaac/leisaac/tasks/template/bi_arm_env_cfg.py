@@ -211,6 +211,9 @@ class BiArmTaskEnvCfg(ManagerBasedRLEnvCfg):
     def use_teleop_device(self, teleop_device) -> None:
         self.task_type = teleop_device
         self.actions = init_action_cfg(self.actions, device=teleop_device)
+        if teleop_device in ["bi_so101_state_machine"]:
+            self.scene.left_arm.spawn.rigid_props.disable_gravity = True
+            self.scene.right_arm.spawn.rigid_props.disable_gravity = True
 
     def preprocess_device_action(self, action: dict[str, Any], teleop_device) -> torch.Tensor:
         return preprocess_device_action(action, teleop_device)

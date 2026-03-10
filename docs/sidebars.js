@@ -117,6 +117,12 @@ const sidebars = {
           link: { type: 'doc', id: 'docs/features/lerobot_recorder' },
           items: [],
         },
+        {
+          type: 'category',
+          label: 'State Machine Data Generation',
+          link: { type: 'doc', id: 'docs/features/state_machine' },
+          items: [],
+        },
       ],
     },
     'docs/trouble_shooting',
