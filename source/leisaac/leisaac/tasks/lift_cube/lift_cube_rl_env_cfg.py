@@ -183,8 +183,7 @@ class LiftCubeRLEnvCfg(LiftCubeEnvCfg):
         for actuator_cfg in self.scene.robot.actuators.values():
             actuator_cfg.damping = 15.0
 
-        # Set robot initial joint positions to the rest pose used by the state machine
-        # (shoulder_lift=-100°, elbow_flex=90°, wrist_flex=50°) so the EE points toward the table.
+        # Initial pose: EE pointing toward table (shoulder_lift=-100°, elbow_flex=90°, wrist_flex=50°).
         self.scene.robot.init_state.joint_pos = {
             "shoulder_pan": 0.0,
             "shoulder_lift": math.radians(-100.0),
