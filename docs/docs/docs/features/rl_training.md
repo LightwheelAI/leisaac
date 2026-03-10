@@ -5,7 +5,7 @@ The RL training module enables training manipulation policies with reinforcement
 ## Training
 
 ```shell
-python scripts/rl/train.py \
+python scripts/datagen/rl/train.py \
     --task LeIsaac-SO101-LiftCube-RL-v0 \
     --num_envs 64 \
     --max_iterations 1500 \
@@ -44,7 +44,7 @@ Key metrics to watch: `Train/mean_reward` (total episode reward) and individual 
 ## Evaluation
 
 ```shell
-python scripts/rl/play.py \
+python scripts/datagen/rl/play.py \
     --task LeIsaac-SO101-LiftCube-RL-v0 \
     --checkpoint logs/rl/<run>/model_<iter>.pt \
     --num_envs 4 \
@@ -127,4 +127,4 @@ gym.register(
 )
 ```
 
-4. Train with the generic script: `python scripts/rl/train.py --task LeIsaac-SO101-MyTask-RL-v0`.
+4. Train with the generic script: `python scripts/datagen/rl/train.py --task LeIsaac-SO101-MyTask-RL-v0`.
