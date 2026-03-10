@@ -52,14 +52,13 @@ import torch
 from isaaclab.envs import DirectRLEnv, ManagerBasedRLEnv
 from isaaclab.managers import DatasetExportMode, TerminationTermCfg
 from isaaclab_tasks.utils import parse_env_cfg
-from leisaac.datagen.state_machine import LiftCubeStateMachine, PickOrangeStateMachine
+from leisaac.datagen.state_machine import PickOrangeStateMachine
 from leisaac.enhance.managers import EnhanceDatasetExportMode, StreamingRecorderManager
 from leisaac.utils.env_utils import dynamic_reset_gripper_effort_limit_sim
 
 # Maps gym task id → (StateMachineClass, device_type)
 TASK_REGISTRY = {
     "LeIsaac-SO101-PickOrange-v0": (PickOrangeStateMachine, "ik_so101leader"),
-    "LeIsaac-SO101-LiftCube-v0": (LiftCubeStateMachine, "ik_so101leader"),
 }
 
 

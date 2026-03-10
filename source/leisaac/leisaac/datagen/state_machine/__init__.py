@@ -1,3 +1,3 @@
 from .pick_orange import PickOrangeStateMachine
 
-__all__ = ["LiftCubeStateMachine", "PickOrangeStateMachine"]
+__all__ = ["PickOrangeStateMachine"]
