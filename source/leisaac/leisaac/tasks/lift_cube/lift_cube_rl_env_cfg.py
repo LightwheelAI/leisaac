@@ -19,7 +19,7 @@ TRAIN_CFG = {
         "obs_normalization": True,
         "distribution_cfg": {
             "class_name": "GaussianDistribution",
-            "init_std": 0.3,
+            "init_std": 0.5,
         },
     },
     "critic": {
@@ -33,7 +33,7 @@ TRAIN_CFG = {
         "value_loss_coef": 1.0,
         "use_clipped_value_loss": True,
         "clip_param": 0.1,
-        "entropy_coef": 0.0,
+        "entropy_coef": 0.005,
         "num_learning_epochs": 5,
         "num_mini_batches": 4,
         "learning_rate": 3.0e-4,
@@ -44,7 +44,7 @@ TRAIN_CFG = {
         "max_grad_norm": 0.5,
     },
     "obs_groups": {"actor": ["policy"], "critic": ["policy"]},
-    "num_steps_per_env": 48,
+    "num_steps_per_env": 256,
     "save_interval": 50,
     "experiment_name": "lift_cube_rl",
     "seed": 42,
@@ -109,29 +109,30 @@ class LiftCubeRLRewardsCfg:
     # Stage 1: tanh reaching reward [0, 1] — always has gradient toward cube
     ee_to_cube = RewTerm(
         func=mdp.ee_to_cube_reward,
-        weight=0.5,
-        params={"cube_cfg": _CUBE_CFG, "ee_frame_cfg": SceneEntityCfg("ee_frame")},
+        weight=2.5,
+        params={"cube_cfg": _CUBE_CFG, "robot_cfg": _ROBOT_CFG},
     )
-    # Stage 2: grasped bonus — either gripper side contacts cube + gripper closed
+    # Stage 1b: close gripper when near (provides gradient toward grasping)
+    gripper_close = RewTerm(
+        func=mdp.gripper_close_when_near,
+        weight=0.3,
+        params={"cube_cfg": _CUBE_CFG, "robot_cfg": _ROBOT_CFG, "near_dist": 0.10},
+    )
+    # Stage 2: grasped bonus — both gripper sides in contact with cube
     cube_grasped = RewTerm(
         func=mdp.cube_grasped_reward,
-        weight=1.0,
-        params={
-            "contact_cfg": SceneEntityCfg("jaw_contact"),
-            "contact_cfg2": SceneEntityCfg("gripper_contact"),
-            "robot_cfg": _ROBOT_CFG,
-        },
+        weight=7.0,
+        params={"robot_cfg": _ROBOT_CFG},
     )
     # Stage 3: height reward [0, 1], only when grasped — peaks at 20cm
     cube_height = RewTerm(
         func=mdp.cube_height_if_grasped,
-        weight=2.0,
+        weight=10.0,
         params={
             "cube_cfg": _CUBE_CFG,
             "robot_cfg": _ROBOT_CFG,
-            "contact_cfg": SceneEntityCfg("jaw_contact"),
-            "contact_cfg2": SceneEntityCfg("gripper_contact"),
             "sharpness": 10.0,
+            "lift_threshold": 0.046,
         },
     )
 
@@ -184,13 +185,17 @@ class LiftCubeRLEnvCfg(LiftCubeEnvCfg):
 
         self.episode_length_s = 15.0
 
+        # Increase joint damping for smoother RL movement (default=0.60 causes oscillation)
+        for actuator_cfg in self.scene.robot.actuators.values():
+            actuator_cfg.damping = 15.0
+
         # Set robot initial joint positions to the rest pose used by the state machine
         # (shoulder_lift=-100°, elbow_flex=90°, wrist_flex=50°) so the EE points toward the table.
-        self.scene.robot.init_state.joint_pos.update({
+        self.scene.robot.init_state.joint_pos = {
             "shoulder_pan": 0.0,
             "shoulder_lift": math.radians(-100.0),
             "elbow_flex": math.radians(90.0),
             "wrist_flex": math.radians(50.0),
             "wrist_roll": 0.0,
             "gripper": 1.0,  # open
-        })
+        }

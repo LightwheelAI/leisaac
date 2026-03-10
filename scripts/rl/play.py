@@ -72,14 +72,26 @@ def main():
     while simulation_app.is_running() and (args_cli.num_episodes <= 0 or episode_count < args_cli.num_episodes):
         with torch.no_grad():
             actions = policy(obs)
-        # Print actions and obs every 10 steps for env 0
+        # Print actions, obs, and heights every 10 steps for env 0
         if step % 10 == 0:
             a = actions[0].cpu().numpy()
             o = obs["policy"][0].cpu().numpy()
+            # obs layout: joint_pos(6) | joint_vel(6) | ee_state(7) | cube_rel_ee(3)
+            cube_rel = o[19:22]  # cube position relative to EE jaw (dx, dy, dz)
+
+            # Raw world heights for debugging
+            unwrapped = env.unwrapped
+            robot = unwrapped.scene["robot"]
+            cube = unwrapped.scene["cube"]
+            base_index = robot.data.body_names.index("base")
+            robot_base_z = robot.data.body_pos_w[0, base_index, 2].item()
+            cube_z = cube.data.root_pos_w[0, 2].item()
+            height_above_base = cube_z - robot_base_z
+
             print(
                 f"[step {step:4d}] actions: {' '.join(f'{v:+.3f}' for v in a)}"
-                f"  obs[:6](jpos): {' '.join(f'{v:+.3f}' for v in o[:6])}"
-                f"  obs_norm: {float(o.std()):.4f}"
+                f"  cube_rel_ee(dx,dy,dz): {' '.join(f'{v:+.3f}' for v in cube_rel)}"
+                f"  cube_z={cube_z:.3f} base_z={robot_base_z:.3f} height_above_base={height_above_base:.3f}"
             )
         step += 1
         obs, _, dones, extras = env.step(actions)
