@@ -126,7 +126,7 @@ class LiftCubeRLRewardsCfg:
             "cube_cfg": _CUBE_CFG,
             "robot_cfg": _ROBOT_CFG,
             "sharpness": 10.0,
-            "lift_threshold": 0.046,
+            "lift_threshold": 0.05,
         },
     )
 

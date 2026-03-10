@@ -28,9 +28,9 @@ def ee_to_cube_reward(
     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     k: float = 5.0,
 ) -> torch.Tensor:
-    """Reaching reward: closer gripper body is to 5cm above cube center, the higher. Range [0, 1]."""
+    """Reaching reward: closer gripper body is to 10cm above cube center, the higher. Range [0, 1]."""
     target_pos = _cube_pos(env, cube_cfg).clone()
-    target_pos[:, 2] += 0.05
+    target_pos[:, 2] += 0.10
     dist = torch.linalg.vector_norm(target_pos - _gripper_root_pos(env, robot_cfg), dim=1)
     return 1.0 - torch.tanh(k * dist)
 
