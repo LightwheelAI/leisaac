@@ -121,7 +121,7 @@ class LiftCubeRLRewardsCfg:
     # Stage 3: height reward [0, 1], only when grasped — peaks at 20cm
     cube_height = RewTerm(
         func=mdp.cube_height_if_grasped,
-        weight=10.0,
+        weight=20.0,
         params={
             "cube_cfg": _CUBE_CFG,
             "robot_cfg": _ROBOT_CFG,
