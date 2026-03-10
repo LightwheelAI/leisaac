@@ -112,12 +112,6 @@ class LiftCubeRLRewardsCfg:
         weight=2.5,
         params={"cube_cfg": _CUBE_CFG, "robot_cfg": _ROBOT_CFG},
     )
-    # Stage 1b: close gripper when near (provides gradient toward grasping)
-    gripper_close = RewTerm(
-        func=mdp.gripper_close_when_near,
-        weight=0.3,
-        params={"cube_cfg": _CUBE_CFG, "robot_cfg": _ROBOT_CFG, "near_dist": 0.10},
-    )
     # Stage 2: grasped bonus — both gripper sides in contact with cube
     cube_grasped = RewTerm(
         func=mdp.cube_grasped_reward,
