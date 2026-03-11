@@ -75,32 +75,14 @@ def cube_height_if_grasped(
     cube_cfg: SceneEntityCfg = SceneEntityCfg("cube"),
     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     target_height: float = 0.20,
-    sharpness: float = 2.0,
-    lift_threshold: float = 0.08,
+    sharpness: float = 10.0,
+    lift_threshold: float = 0.05,
 ) -> torch.Tensor:
     """Exponential height reward, only when grasped AND cube above lift_threshold (~0.05m). Range [0, 1]."""
     height_above_base = _cube_pos(env, cube_cfg)[:, 2] - _robot_base_height(env, robot_cfg)
     height_rew = torch.exp(-sharpness * torch.abs(height_above_base - target_height))
     lifted = (height_above_base > lift_threshold).float()
     return height_rew * _is_grasped(env, robot_cfg=robot_cfg) * lifted
-
-
-def gripper_close_when_near(
-    env: ManagerBasedRLEnv,
-    cube_cfg: SceneEntityCfg = SceneEntityCfg("cube"),
-    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-    near_dist: float = 0.10,
-    k: float = 50.0,
-) -> torch.Tensor:
-    """Reward gripper closure when gripper body is within near_dist of cube. Range [0, 1]."""
-    dist = torch.linalg.vector_norm(_cube_pos(env, cube_cfg) - _gripper_root_pos(env, robot_cfg), dim=1)
-    near = torch.sigmoid(k * (near_dist - dist))
-
-    robot: Articulation = env.scene[robot_cfg.name]
-    gripper_pos = robot.data.joint_pos[:, -1]
-    closed_signal = torch.sigmoid(10.0 * (0.5 - gripper_pos))  # 1 when closed (joint≈0.2)
-
-    return near * closed_signal
 
 
 def cube_success_bonus(

@@ -10,6 +10,7 @@ parser.add_argument("--num_envs", type=int, default=64, help="Number of parallel
 parser.add_argument("--max_iterations", type=int, default=1500, help="Number of PPO iterations.")
 parser.add_argument("--log_dir", type=str, default="logs/rl", help="Base logging directory.")
 parser.add_argument("--seed", type=int, default=42, help="Random seed.")
+parser.add_argument("--checkpoint", type=str, default=None, help="Path to checkpoint (.pt) to resume training from.")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 
@@ -66,6 +67,9 @@ def main():
 
     # --- Create PPO runner ---
     runner = OnPolicyRunner(env, train_cfg, log_dir=log_dir, device=device)
+    if args_cli.checkpoint is not None:
+        runner.load(args_cli.checkpoint)
+        print(f"[INFO] Resumed from checkpoint: {args_cli.checkpoint}")
 
     # --- Dump env config ---
     os.makedirs(os.path.join(log_dir, "params"), exist_ok=True)

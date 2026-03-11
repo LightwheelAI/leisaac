@@ -76,7 +76,7 @@ RL training uses the `rl_so101leader` device mode — delta end-effector control
 
 | Component | Dims | Description |
 |-----------|------|-------------|
-| `arm_action` | 6 | Delta EE pose (dx, dy, dz, droll, dpitch, dyaw), scale=(0.02, 0.02, 0.02, 0.1, 0.1, 0.1) → ±2 cm / ±0.1 rad per step |
+| `arm_action` | 6 | Delta EE pose (dx, dy, dz, droll, dpitch, dyaw), scale=(0.02, 0.02, 0.02, 0.5, 0.5, 0.5) → ±2 cm / ±0.5 rad per step |
 | `gripper_action` | 1 | Binary: action > 0 → open (1.0 rad), action < 0 → close (0.2 rad) |
 | **Total** | **7** | |
 
