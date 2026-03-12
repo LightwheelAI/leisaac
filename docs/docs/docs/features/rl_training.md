@@ -45,15 +45,37 @@ tensorboard --logdir logs/rl
 Key metrics to watch: `Train/mean_reward` (total episode reward) and individual reward terms such as `Episode/rew_cube_height`.
 ::::
 
-## Evaluation
+## Evaluation & Recording
+
+Evaluate a checkpoint and save all episodes to HDF5 (both success and failure, tagged with `attrs["success"]`):
 
 ```shell
-python scripts/datagen/rl/play.py \
+python scripts/datagen/rl/record.py \
     --task LeIsaac-SO101-LiftCube-RL-v0 \
     --checkpoint logs/rl/<run>/model_<iter>.pt \
-    --num_envs 4 \
-    --num_episodes 20
+    --num_envs 1 \
+    --num_episodes 100 \
+    --record --dataset_file ./datasets/rl_eval.hdf5
 ```
+
+<details>
+<summary><strong>Parameter descriptions for record.py</strong></summary>
+
+- `--task`: Gym task ID. Required.
+
+- `--checkpoint`: Path to a saved model checkpoint (`.pt`). Required.
+
+- `--num_envs`: Number of parallel environments. Default: `1`.
+
+- `--num_episodes`: Total episodes to run across all envs. `0` = run indefinitely. Default: `0`.
+
+- `--seed`: Random seed. Default: `42`.
+
+- `--record`: Enable HDF5 recording. Both successful and failed episodes are saved.
+
+- `--dataset_file`: Output HDF5 file path. Default: `./datasets/rl_eval.hdf5`.
+
+</details>
 
 ## Reward Design
 
