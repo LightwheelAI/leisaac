@@ -1,3 +1,43 @@
+"""Reward functions for the LiftCube RL task.
+
+Reward structure
+----------------
+The task uses three complementary reward terms to guide the policy through a
+natural lifting curriculum:
+
+1. ee_to_cube  (weight 1.5, shaped)
+   Guides the end-effector toward the cube before and during grasping.
+   Formula: 1 - tanh(k * dist(TCP, cube))
+   - Peaks at 1.0 when TCP is exactly at the cube center, decays smoothly with distance.
+   - k = 5.0 gives a reach radius of ~10 cm before the reward drops below 0.5.
+
+2. cube_height  (weight 10.0, shaped)
+   Encourages lifting the cube continuously from table height to the success
+   threshold with a constant gradient.
+   Formula: clamp((h - min_height) / (max_height - min_height), 0, 1)
+   - Zero below min_height (4.6 cm above robot base) — ignores ground-level noise.
+   - Linear ramp to 1.0 at max_height (20 cm), never saturates before success.
+   - Unlike a tanh formulation, the gradient does not vanish mid-trajectory, so
+     the policy always receives a clear signal to keep lifting.
+
+3. cube_success  (weight 100.0, sparse)
+   One-time terminal bonus when h >= 20 cm. Also triggers early episode
+   termination so the policy does not receive further shaped reward after success.
+
+TCP computation
+---------------
+The Tool Center Point (TCP) is the midpoint between the two fingertip contact
+surfaces, computed from body_pos_w / body_quat_w plus calibrated local offsets
+derived from the USD collision mesh geometry:
+  - jaw body local frame  : (0.0, -0.05, 0.02)
+  - gripper body local frame : (-0.012, 0.0, -0.08)
+
+Height reference
+----------------
+All heights are measured relative to the robot base link ("base") in the world
+frame, making the reward invariant to the absolute table / mount height.
+"""
+
 import torch
 from isaaclab.assets import Articulation, RigidObject
 from isaaclab.envs import ManagerBasedRLEnv
@@ -57,12 +97,11 @@ def cube_height_reward(
     cube_cfg: SceneEntityCfg = SceneEntityCfg("cube"),
     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     min_height: float = 0.046,
-    k: float = 5.0,
+    max_height: float = 0.20,
 ) -> torch.Tensor:
-    """Height reward: tanh(k * max(h - min_height, 0)). Zero below min_height, monotonically increasing above. Range [0, 1]."""
+    """Height reward: linear ramp from 0 at min_height to 1 at max_height. Constant gradient encourages lifting all the way to success."""
     height_above_base = _cube_pos(env, cube_cfg)[:, 2] - _robot_base_height(env, robot_cfg)
-    h = torch.clamp(height_above_base - min_height, min=0.0)
-    return torch.tanh(k * h)
+    return torch.clamp((height_above_base - min_height) / (max_height - min_height), 0.0, 1.0)
 
 
 def cube_success_bonus(
