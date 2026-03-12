@@ -12,13 +12,10 @@ natural lifting curriculum:
    - k = 5.0 gives a reach radius of ~10 cm before the reward drops below 0.5.
 
 2. cube_height  (weight 10.0, shaped)
-   Encourages lifting the cube continuously from table height to the success
-   threshold with a constant gradient.
-   Formula: clamp((h - min_height) / (max_height - min_height), 0, 1)
+   Encourages lifting the cube above the table surface.
+   Formula: tanh(k * max(h - min_height, 0))
    - Zero below min_height (4.6 cm above robot base) — ignores ground-level noise.
-   - Linear ramp to 1.0 at max_height (20 cm), never saturates before success.
-   - Unlike a tanh formulation, the gradient does not vanish mid-trajectory, so
-     the policy always receives a clear signal to keep lifting.
+   - Monotonically increasing above min_height. Range [0, 1].
 
 3. cube_success  (weight 100.0, sparse)
    One-time terminal bonus when h >= 20 cm. Also triggers early episode
@@ -97,11 +94,12 @@ def cube_height_reward(
     cube_cfg: SceneEntityCfg = SceneEntityCfg("cube"),
     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     min_height: float = 0.046,
-    max_height: float = 0.20,
+    k: float = 5.0,
 ) -> torch.Tensor:
-    """Height reward: linear ramp from 0 at min_height to 1 at max_height. Constant gradient encourages lifting all the way to success."""
+    """Height reward: tanh(k * max(h - min_height, 0)). Zero below min_height, monotonically increasing above. Range [0, 1]."""
     height_above_base = _cube_pos(env, cube_cfg)[:, 2] - _robot_base_height(env, robot_cfg)
-    return torch.clamp((height_above_base - min_height) / (max_height - min_height), 0.0, 1.0)
+    h = torch.clamp(height_above_base - min_height, min=0.0)
+    return torch.tanh(k * h)
 
 
 def cube_success_bonus(

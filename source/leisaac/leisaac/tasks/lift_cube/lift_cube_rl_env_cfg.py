@@ -90,7 +90,7 @@ class LiftCubeRLRewardsCfg:
 
     cube_success = RewTerm(
         func=mdp.cube_success_bonus,
-        weight=100.0,
+        weight=200.0,
         params={"cube_cfg": _CUBE_CFG, "robot_cfg": _ROBOT_CFG, "height_threshold": 0.20},
     )
     ee_to_cube = RewTerm(
@@ -101,7 +101,7 @@ class LiftCubeRLRewardsCfg:
     cube_height = RewTerm(
         func=mdp.cube_height_reward,
         weight=10.0,
-        params={"cube_cfg": _CUBE_CFG, "robot_cfg": _ROBOT_CFG, "min_height": 0.046, "max_height": 0.20},
+        params={"cube_cfg": _CUBE_CFG, "robot_cfg": _ROBOT_CFG, "min_height": 0.046, "k": 3.0},
     )
 
 

@@ -83,9 +83,9 @@ The LiftCube RL task uses three reward terms:
 
 | Term | Weight | Description |
 |------|--------|-------------|
-| `cube_success` | 100.0 | One-time bonus when cube height ≥ 20 cm above robot base. Episode ends immediately after (early termination). |
+| `cube_success` | 200.0 | One-time bonus when cube height ≥ 20 cm above robot base. Episode ends immediately after (early termination). |
 | `ee_to_cube` | 1.5 | `1 - tanh(5 × dist(TCP, cube))` — guides TCP to cube center. Range [0, 1]. |
-| `cube_height` | 10.0 | `clamp((h - 4.6 cm) / (20 cm - 4.6 cm), 0, 1)` — linear ramp from 0 at 4.6 cm to 1 at 20 cm, constant gradient all the way to success. |
+| `cube_height` | 10.0 | `tanh(3 × max(h - 4.6 cm, 0))` — zero below 4.6 cm, monotonically increasing above. Range [0, 1]. |
 
 **TCP (Tool Center Point)** is computed as the midpoint between the two fingertip contact surfaces, derived from `body_pos_w` and `body_quat_w` with calibrated local offsets from the USD collision mesh:
 
