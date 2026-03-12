@@ -123,6 +123,12 @@ const sidebars = {
           link: { type: 'doc', id: 'docs/features/state_machine' },
           items: [],
         },
+        {
+          type: 'category',
+          label: 'RL Training',
+          link: { type: 'doc', id: 'docs/features/rl_training' },
+          items: [],
+        },
       ],
     },
     'docs/trouble_shooting',

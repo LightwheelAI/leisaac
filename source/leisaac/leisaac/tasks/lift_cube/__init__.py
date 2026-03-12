@@ -10,6 +10,16 @@ gym.register(
 )
 
 gym.register(
+    id="LeIsaac-SO101-LiftCube-RL-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.lift_cube_rl_env_cfg:LiftCubeRLEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{__name__}.lift_cube_rl_env_cfg:TRAIN_CFG",
+    },
+)
+
+gym.register(
     id="LeIsaac-SO101-LiftCube-DigitalTwin-v0",
     entry_point="leisaac.enhance.envs:ManagerBasedRLDigitalTwinEnv",
     disable_env_checker=True,
@@ -20,7 +30,7 @@ gym.register(
 
 gym.register(
     id="LeIsaac-SO101-LiftCube-Mimic-v0",
-    entry_point=f"leisaac.enhance.envs:ManagerBasedRLLeIsaacMimicEnv",
+    entry_point="leisaac.enhance.envs:ManagerBasedRLLeIsaacMimicEnv",
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": f"{__name__}.lift_cube_mimic_env_cfg:LiftCubeMimicEnvCfg",
