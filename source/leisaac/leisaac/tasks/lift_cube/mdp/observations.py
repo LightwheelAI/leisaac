@@ -27,6 +27,15 @@ def object_grasped(
     return grasped
 
 
+def cube_quat(
+    env: ManagerBasedRLEnv,
+    cube_cfg: SceneEntityCfg = SceneEntityCfg("cube"),
+) -> torch.Tensor:
+    """Returns cube orientation as quaternion (w, x, y, z) in world frame. (num_envs, 4)"""
+    cube: RigidObject = env.scene[cube_cfg.name]
+    return cube.data.root_quat_w
+
+
 def cube_pos_relative_to_ee(
     env: ManagerBasedRLEnv,
     cube_cfg: SceneEntityCfg = SceneEntityCfg("cube"),

@@ -7,7 +7,7 @@ The RL training module enables training manipulation policies with reinforcement
 ```shell
 python scripts/datagen/rl/train.py \
     --task LeIsaac-SO101-LiftCube-RL-v0 \
-    --num_envs 64 \
+    --num_envs 512 \
     --max_iterations 1500 \
     --headless
 ```
@@ -17,7 +17,7 @@ python scripts/datagen/rl/train.py \
 
 - `--task`: Gym task ID to train. Required.
 
-- `--num_envs`: Number of parallel simulation environments. More environments = faster data collection. Default: `64`.
+- `--num_envs`: Number of parallel simulation environments. More environments = faster data collection. Default: `512`.
 
 - `--max_iterations`: Number of PPO update iterations. Default: `1500`.
 
@@ -53,22 +53,36 @@ python scripts/datagen/rl/play.py \
 
 ## Reward Design
 
-The LiftCube RL task uses four reward terms:
+The LiftCube RL task uses three reward terms:
 
 | Term | Weight | Description |
 |------|--------|-------------|
 | `cube_success` | 100.0 | One-time bonus when cube height ≥ 20 cm above robot base. Episode ends immediately after (early termination). |
-| `ee_to_cube` | 2.5 | `1 - tanh(5 × dist)` — guides gripper body toward a point 10 cm above cube center. Always active. Range [0, 1]. |
-| `cube_grasped` | 7.0 | Soft grasp score in [0, 1]. Active when cube is properly grasped (see below). |
-| `cube_height` | 20.0 | `exp(-10 × |h - 0.20|)` peaking at 20 cm. Only active when grasped AND cube height > 5 cm (filters resting-on-table baseline and tipped-corner cases). |
+| `ee_to_cube` | 1.5 | `1 - tanh(5 × dist(TCP, cube))` — guides TCP to cube center. Range [0, 1]. |
+| `cube_height` | 10.0 | `tanh(5 × max(h - 4.6 cm, 0))` — zero below 4.6 cm, monotonically increasing above. Range [0, 1]. |
 
-**Grasp detection** (`_is_grasped`) uses three conditions multiplied together (all soft via sigmoid):
+**TCP (Tool Center Point)** is computed as the midpoint between the two fingertip contact surfaces, derived from `body_pos_w` and `body_quat_w` with calibrated local offsets from the USD collision mesh:
 
-1. `jaw_contact` force > 0.5 N on cube (ContactSensor filtered to cube-only)
-2. `gripper_contact` force > 0.5 N on cube (ContactSensor filtered to cube-only)
-3. Gripper joint position < 0.5 rad (gripper is actually closed)
+- Jaw tip offset (jaw body local frame): `(0.0, -0.05, 0.02)`
+- Gripper tip offset (gripper body local frame): `(-0.012, 0.0, -0.08)`
 
 **Termination**: episode ends on timeout (15 s) or when cube height ≥ 20 cm (success).
+
+## PPO Hyperparameters
+
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| `gamma` | 0.95 | Discount factor |
+| `lam` | 0.95 | GAE lambda |
+| `clip_param` | 0.1 | PPO clip range |
+| `entropy_coef` | 0.005 | Entropy regularization to encourage exploration |
+| `learning_rate` | 1e-4 | Adam learning rate |
+| `schedule` | adaptive | Adjusts learning rate based on KL divergence |
+| `desired_kl` | 0.01 | Target KL divergence for adaptive schedule |
+| `num_learning_epochs` | 5 | PPO update epochs per rollout |
+| `num_mini_batches` | 4 | Mini-batches per epoch |
+| `num_steps_per_env` | 100 | Rollout steps per environment per update |
+| `num_envs` (recommended) | 512 | Parallel environments — more = faster sparse reward discovery |
 
 ## Action Space
 
@@ -82,7 +96,7 @@ RL training uses the `rl_so101leader` device mode — delta end-effector control
 
 ## Observation Space
 
-22D flat vector (concatenated):
+26D flat vector (concatenated):
 
 | Term | Dims |
 |------|------|
@@ -90,7 +104,8 @@ RL training uses the `rl_so101leader` device mode — delta end-effector control
 | `joint_vel` | 6 |
 | `ee_frame_state` (pos + quat, robot frame) | 7 |
 | `cube_pos_relative_to_ee` | 3 |
-| **Total** | **22** |
+| `cube_quat` (orientation in world frame) | 4 |
+| **Total** | **26** |
 
 ## Adding a New RL Task
 

@@ -76,7 +76,7 @@ def main():
         if step % 10 == 0:
             a = actions[0].cpu().numpy()
             o = obs["policy"][0].cpu().numpy()
-            # obs layout: joint_pos(6) | joint_vel(6) | ee_state(7) | cube_rel_ee(3)
+            # obs layout: joint_pos(6) | joint_vel(6) | ee_state(7) | cube_rel_ee(3) | cube_quat(4)
             cube_rel = o[19:22]  # cube position relative to EE jaw (dx, dy, dz)
 
             # Raw world heights for debugging
