@@ -74,15 +74,11 @@ def main():
         unwrapped.recorder_manager = StreamingRecorderManager(env_cfg.recorders, unwrapped)
         unwrapped.recorder_manager.flush_steps = 100
         unwrapped.recorder_manager.compression = "lzf"
-        print(f"[INFO] Recording to: {args_cli.dataset_file}")
 
     env = RslRlVecEnvWrapper(env)
 
     runner = OnPolicyRunner(env, train_cfg, log_dir=None, device=env_cfg.sim.device)
     runner.load(args_cli.checkpoint)
-    print(f"[INFO] Task: {args_cli.task}")
-    print(f"[INFO] Loaded checkpoint: {args_cli.checkpoint}")
-
     policy = runner.get_inference_policy(device=env_cfg.sim.device)
 
     episode_count = 0
