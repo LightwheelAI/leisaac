@@ -14,6 +14,9 @@ parser.add_argument("--num_envs", type=int, default=1, help="Number of parallel 
 parser.add_argument("--num_episodes", type=int, default=0, help="Total episodes to run (0 = infinite).")
 parser.add_argument("--seed", type=int, default=42, help="Random seed.")
 parser.add_argument("--record", action="store_true", help="Save all episodes to HDF5 with success/failure tags.")
+parser.add_argument(
+    "--resume", action="store_true", help="Append to an existing dataset file instead of creating a new one."
+)
 parser.add_argument("--dataset_file", type=str, default="./datasets/rl_eval.hdf5", help="Output HDF5 file path.")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
@@ -27,7 +30,7 @@ import leisaac.tasks  # noqa: F401
 import torch
 from isaaclab.managers import DatasetExportMode
 from isaaclab_rl.rsl_rl import RslRlVecEnvWrapper
-from leisaac.enhance.managers import StreamingRecorderManager
+from leisaac.enhance.managers import EnhanceDatasetExportMode, StreamingRecorderManager
 from rsl_rl.runners import OnPolicyRunner
 
 
@@ -48,7 +51,16 @@ def main():
     if args_cli.record:
         output_dir = os.path.dirname(os.path.abspath(args_cli.dataset_file))
         output_filename = os.path.splitext(os.path.basename(args_cli.dataset_file))[0]
-        env_cfg.recorders.dataset_export_mode = DatasetExportMode.EXPORT_ALL
+        if args_cli.resume:
+            env_cfg.recorders.dataset_export_mode = EnhanceDatasetExportMode.EXPORT_ALL_RESUME
+            assert os.path.exists(
+                args_cli.dataset_file
+            ), "the dataset file does not exist, please don't use '--resume' if you want to record a new dataset"
+        else:
+            env_cfg.recorders.dataset_export_mode = DatasetExportMode.EXPORT_ALL
+            assert not os.path.exists(
+                args_cli.dataset_file
+            ), "the dataset file already exists, please use '--resume' to resume recording"
         env_cfg.recorders.dataset_export_dir_path = output_dir
         env_cfg.recorders.dataset_filename = output_filename
     else:
