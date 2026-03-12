@@ -2,6 +2,10 @@
 
 The RL training module enables training manipulation policies with reinforcement learning using [rsl_rl](https://github.com/leggedrobotics/rsl_rl) (PPO). It runs fully in simulation with parallel environments and no human teleoperation required.
 
+:::note
+End-to-end RL for manipulation is challenging — reward design, exploration, and sim-to-real transfer all require significant task-specific tuning. Currently only the **LiftCube** task is supported. Support for additional tasks will be added in future updates.
+:::
+
 ## Training
 
 ```shell
