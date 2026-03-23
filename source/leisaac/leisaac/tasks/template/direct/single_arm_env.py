@@ -91,7 +91,7 @@ class SingleArmTaskDirectEnvCfg(DirectRLEnvCfg):
 
     def build_lerobot_frame(self, episode_data: EpisodeData, dataset_cfg: LeRobotDatasetCfg) -> dict:
         obs_data = episode_data._data["obs"]
-        action = obs_data["actions"][-1]
+        action = episode_data._data["actions"][-1]
         if dataset_cfg.action_align:
             processed_action = convert_leisaac_action_to_lerobot(action.unsqueeze(0)).squeeze(0)
         else:
