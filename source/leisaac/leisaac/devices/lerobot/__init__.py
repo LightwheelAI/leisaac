@@ -2,3 +2,4 @@
 
 from .bi_so101_leader import BiSO101Leader
 from .so101_leader import SO101Leader
+from .so101_leader_remote import SO101LeaderRemote
