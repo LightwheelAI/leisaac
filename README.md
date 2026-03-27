@@ -26,6 +26,10 @@ Please refer to our [documentation](https://lightwheelai.github.io/leisaac/) to 
 >
 > For more features and updates, please refer to the [News](https://lightwheelai.github.io/leisaac/#news) section on our website!
 
+## Contributing 🤝
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for how to report issues and submit pull requests.
+
 ## Citation 📝
 
 If you use leisaac, please cite it as follows.
