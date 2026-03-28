@@ -10,45 +10,6 @@ from isaaclab.utils import configclass
 from . import mdp
 from .lift_cube_env_cfg import LiftCubeEnvCfg, LiftCubeSceneCfg
 
-TRAIN_CFG = {
-    "actor": {
-        "class_name": "MLPModel",
-        "hidden_dims": [256, 128, 64],
-        "activation": "elu",
-        "obs_normalization": True,
-        "distribution_cfg": {
-            "class_name": "GaussianDistribution",
-            "init_std": 0.3,
-        },
-    },
-    "critic": {
-        "class_name": "MLPModel",
-        "hidden_dims": [256, 128, 64],
-        "activation": "elu",
-        "obs_normalization": True,
-    },
-    "algorithm": {
-        "class_name": "PPO",
-        "value_loss_coef": 1.0,
-        "use_clipped_value_loss": True,
-        "clip_param": 0.1,
-        "entropy_coef": 0.005,
-        "num_learning_epochs": 5,
-        "num_mini_batches": 4,
-        "learning_rate": 1.0e-4,
-        "schedule": "adaptive",
-        "gamma": 0.95,
-        "lam": 0.95,
-        "desired_kl": 0.01,
-        "max_grad_norm": 0.5,
-    },
-    "obs_groups": {"actor": ["policy"], "critic": ["policy"]},
-    "num_steps_per_env": 100,
-    "save_interval": 50,
-    "experiment_name": "lift_cube_rl",
-    "seed": 42,
-}
-
 _CUBE_CFG = SceneEntityCfg("cube")
 _ROBOT_CFG = SceneEntityCfg("robot")
 

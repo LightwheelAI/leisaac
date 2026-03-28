@@ -1,5 +1,7 @@
 import gymnasium as gym
 
+from . import rl_agents
+
 gym.register(
     id="LeIsaac-SO101-LiftCube-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
@@ -15,7 +17,7 @@ gym.register(
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": f"{__name__}.lift_cube_rl_env_cfg:LiftCubeRLEnvCfg",
-        "rsl_rl_cfg_entry_point": f"{__name__}.lift_cube_rl_env_cfg:TRAIN_CFG",
+        "rsl_rl_cfg_entry_point": f"{rl_agents.__name__}.rsl_rl_ppo_cfg:LiftCubeRLPPORunnerCfg",
     },
 )
 

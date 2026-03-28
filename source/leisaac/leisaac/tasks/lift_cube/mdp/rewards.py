@@ -17,7 +17,7 @@ natural lifting curriculum:
    - Zero below min_height (4.6 cm above robot base) — ignores ground-level noise.
    - Monotonically increasing above min_height. Range [0, 1].
 
-3. cube_success  (weight 100.0, sparse)
+3. cube_success  (weight 200.0, sparse)
    One-time terminal bonus when h >= 20 cm. Also triggers early episode
    termination so the policy does not receive further shaped reward after success.
 

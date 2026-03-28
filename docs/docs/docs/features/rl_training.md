@@ -21,13 +21,11 @@ python scripts/datagen/rl/train.py \
 
 - `--task`: Gym task ID to train. Required.
 
-- `--num_envs`: Number of parallel simulation environments. More environments = faster data collection. Default: `512`.
+- `--num_envs`: Number of parallel simulation environments. More environments = faster data collection. Default: value from task config.
 
-- `--max_iterations`: Number of PPO update iterations. Default: `1500`.
+- `--max_iterations`: Number of PPO update iterations. Default: value from agent config.
 
-- `--log_dir`: Base directory for logs. Runs are saved to `<log_dir>/<task_slug>/<timestamp>/`. Default: `logs/rl`.
-
-- `--seed`: Random seed for reproducibility. Default: `42`.
+- `--seed`: Random seed for reproducibility. Default: value from agent config.
 
 - `--headless`: Run without rendering window for faster training.
 
@@ -36,10 +34,10 @@ python scripts/datagen/rl/train.py \
 </details>
 
 ::::tip
-Training logs (tensorboard) are written to `logs/rl/<task_slug>/<timestamp>/`. Monitor progress with:
+Training logs (tensorboard) are written to `logs/rsl_rl/<experiment_name>/<timestamp>/`. Monitor progress with:
 
 ```shell
-tensorboard --logdir logs/rl
+tensorboard --logdir logs/rsl_rl
 ```
 
 Key metrics to watch: `Train/mean_reward` (total episode reward) and individual reward terms such as `Episode/rew_cube_height`.
@@ -47,33 +45,46 @@ Key metrics to watch: `Train/mean_reward` (total episode reward) and individual 
 
 ## Evaluation & Recording
 
-Evaluate a checkpoint and save all episodes to HDF5 (both success and failure, tagged with `attrs["success"]`):
+Evaluate a checkpoint visually (no recording):
 
 ```shell
-python scripts/datagen/rl/record.py \
+python scripts/datagen/rl/play.py \
     --task LeIsaac-SO101-LiftCube-RL-v0 \
-    --checkpoint logs/rl/<run>/model_<iter>.pt \
+    --checkpoint logs/rsl_rl/lift_cube_rl/<run>/model_<iter>.pt \
+    --num_envs 1
+```
+
+Save all episodes to HDF5 (both success and failure) by adding `--record`:
+
+```shell
+python scripts/datagen/rl/play.py \
+    --task LeIsaac-SO101-LiftCube-RL-v0 \
+    --checkpoint logs/rsl_rl/lift_cube_rl/<run>/model_<iter>.pt \
     --num_envs 1 \
     --num_episodes 100 \
     --record --dataset_file ./datasets/rl_eval.hdf5
 ```
 
 <details>
-<summary><strong>Parameter descriptions for record.py</strong></summary>
+<summary><strong>Parameter descriptions for play.py</strong></summary>
 
 - `--task`: Gym task ID. Required.
 
 - `--checkpoint`: Path to a saved model checkpoint (`.pt`). Required.
 
-- `--num_envs`: Number of parallel environments. Default: `1`.
+- `--num_envs`: Number of parallel environments. Default: value from task config.
 
 - `--num_episodes`: Total episodes to run across all envs. `0` = run indefinitely. Default: `0`.
 
-- `--seed`: Random seed. Default: `42`.
+- `--seed`: Random seed. Default: value from agent config.
 
 - `--record`: Enable HDF5 recording. Both successful and failed episodes are saved.
 
+- `--resume_recording`: Append to an existing dataset file instead of creating a new one.
+
 - `--dataset_file`: Output HDF5 file path. Default: `./datasets/rl_eval.hdf5`.
+
+- `--real-time`: Slow down simulation to real-time speed.
 
 </details>
 
@@ -93,22 +104,6 @@ The LiftCube RL task uses three reward terms:
 - Gripper tip offset (gripper body local frame): `(-0.012, 0.0, -0.08)`
 
 **Termination**: episode ends on timeout (15 s) or when cube height ≥ 20 cm (success).
-
-## PPO Hyperparameters
-
-| Parameter | Value | Notes |
-|-----------|-------|-------|
-| `gamma` | 0.95 | Discount factor |
-| `lam` | 0.95 | GAE lambda |
-| `clip_param` | 0.1 | PPO clip range |
-| `entropy_coef` | 0.005 | Entropy regularization to encourage exploration |
-| `learning_rate` | 1e-4 | Adam learning rate |
-| `schedule` | adaptive | Adjusts learning rate based on KL divergence |
-| `desired_kl` | 0.01 | Target KL divergence for adaptive schedule |
-| `num_learning_epochs` | 5 | PPO update epochs per rollout |
-| `num_mini_batches` | 4 | Mini-batches per epoch |
-| `num_steps_per_env` | 100 | Rollout steps per environment per update |
-| `num_envs` (recommended) | 512 | Parallel environments — more = faster sparse reward discovery |
 
 ## Action Space
 
@@ -136,11 +131,9 @@ RL training uses the `rl_so101leader` device mode — delta end-effector control
 ## Adding a New RL Task
 
 1. Create `<task>/mdp/rewards.py` with reward functions.
-2. Create `<task>/<task>_rl_env_cfg.py` with `TRAIN_CFG` dict and env config class:
+2. Create `<task>/<task>_rl_env_cfg.py` with the RL env config class:
 
 ```python
-TRAIN_CFG = { ... }  # PPO hyperparameters
-
 @configclass
 class MyTaskRLEnvCfg(MyTaskEnvCfg):
     observations: MyTaskRLObsCfg = MyTaskRLObsCfg()
@@ -154,18 +147,66 @@ class MyTaskRLEnvCfg(MyTaskEnvCfg):
         self.episode_length_s = 15.0
 ```
 
-3. Register the gym environment in `<task>/__init__.py` with both `env_cfg_entry_point` and `rsl_rl_cfg_entry_point`:
+3. Create `<task>/rl_agents/rsl_rl_ppo_cfg.py` with the PPO runner config:
 
 ```python
+from isaaclab.utils import configclass
+from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, RslRlPpoAlgorithmCfg
+
+@configclass
+class MyTaskRLPPORunnerCfg(RslRlOnPolicyRunnerCfg):
+    num_steps_per_env = 100
+    max_iterations = 1500
+    save_interval = 50
+    experiment_name = "my_task_rl"
+    obs_groups = {"actor": ["policy"], "critic": ["policy"]}
+
+    policy = RslRlPpoActorCriticCfg(
+        init_noise_std=0.3,
+        actor_obs_normalization=True,
+        critic_obs_normalization=True,
+        actor_hidden_dims=[256, 128, 64],
+        critic_hidden_dims=[256, 128, 64],
+        activation="elu",
+    )
+
+    algorithm = RslRlPpoAlgorithmCfg(
+        value_loss_coef=1.0,
+        use_clipped_value_loss=True,
+        clip_param=0.2,
+        entropy_coef=0.005,
+        num_learning_epochs=5,
+        num_mini_batches=4,
+        learning_rate=1.0e-3,
+        schedule="adaptive",
+        gamma=0.99,
+        lam=0.95,
+        desired_kl=0.01,
+        max_grad_norm=1.0,
+    )
+```
+
+4. Register the gym environment in `<task>/__init__.py`:
+
+```python
+from . import rl_agents
+
 gym.register(
     id="LeIsaac-SO101-MyTask-RL-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": f"{__name__}.<task>_rl_env_cfg:MyTaskRLEnvCfg",
-        "rsl_rl_cfg_entry_point": f"{__name__}.<task>_rl_env_cfg:TRAIN_CFG",
+        "rsl_rl_cfg_entry_point": f"{rl_agents.__name__}.rsl_rl_ppo_cfg:MyTaskRLPPORunnerCfg",
     },
 )
 ```
 
-4. Train with the generic script: `python scripts/datagen/rl/train.py --task LeIsaac-SO101-MyTask-RL-v0`.
+5. Train:
+
+```bash
+python scripts/datagen/rl/train.py \
+    --task LeIsaac-SO101-MyTask-RL-v0 \
+    --num_envs 512 \
+    --headless
+```
