@@ -4,14 +4,16 @@ The state machine module provides automated data collection for manipulation tas
 
 ## Recording
 
+Supported tasks: `LeIsaac-SO101-LiftCube-v0`, `LeIsaac-SO101-PickOrange-v0`.
+
 ```shell
 python scripts/datagen/state_machine/generate.py \
-    --task LeIsaac-SO101-PickOrange-v0 \
+    --task LeIsaac-SO101-LiftCube-v0 \
     --num_envs 1 \
     --device cuda \
     --enable_cameras \
     --record \
-    --dataset_file ./datasets/pick_orange.hdf5 \
+    --dataset_file ./datasets/lift_cube.hdf5 \
     --num_demos 50
 ```
 
@@ -49,7 +51,7 @@ python scripts/datagen/state_machine/generate.py \
 </details>
 
 ::::tip
-Grasp success rate depends heavily on orange spawn positions. Adjusting the spawn positions in the task's environment config file (e.g. moving oranges closer to the robot base) can significantly improve success rate.
+Grasp success rate depends heavily on object spawn positions. Adjusting the spawn range in the task's environment config (e.g. moving objects closer to the robot base) can significantly improve success rate.
 ::::
 
 ## Replay
@@ -58,9 +60,9 @@ After recording, you can replay the collected demonstrations in simulation:
 
 ```shell
 python scripts/datagen/state_machine/replay.py \
-    --task LeIsaac-SO101-PickOrange-v0 \
-    --dataset_file ./datasets/pick_orange.hdf5 \
-    --task_type so101_state_machine \
+    --task LeIsaac-SO101-LiftCube-v0 \
+    --dataset_file ./datasets/lift_cube.hdf5 \
+    --task_type ik_so101leader \
     --select_episodes 0 \
     --device cuda \
     --enable_cameras \
@@ -82,7 +84,7 @@ python scripts/datagen/state_machine/replay.py \
 
 - `--replay_mode`: Replay mode — `action` replays IK pose targets, `state` replays joint positions.
 
-- `--task_type`: State machine device type used during recording, e.g., `so101_state_machine` or `bi_so101_state_machine`. Inferred from task name if not set.
+- `--task_type`: State machine device type used during recording, e.g., `ik_so101leader` or `bi_ik_so101leader`. Inferred from task name if not set.
 
 - `--select_episodes`: List of episode indices to replay. Leave empty to replay all episodes.
 
@@ -97,7 +99,8 @@ python scripts/datagen/state_machine/replay.py \
 
 ```python
 TASK_REGISTRY = {
-    "LeIsaac-SO101-PickOrange-v0": (PickOrangeStateMachine, "so101_state_machine"),
-    "LeIsaac-MY-NewTask-v0":       (MyNewStateMachine,      "so101_state_machine"),
+    "LeIsaac-SO101-LiftCube-v0":  (LiftCubeStateMachine,   "ik_so101leader"),
+    "LeIsaac-SO101-PickOrange-v0": (PickOrangeStateMachine, "ik_so101leader"),
+    "LeIsaac-MY-NewTask-v0":       (MyNewStateMachine,      "ik_so101leader"),
 }
 ```
