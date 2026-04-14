@@ -8,5 +8,9 @@ Python module serving as a project/extension template.
 """
 
 # Register Gym environments.
-from .tasks import *
-from .utils import monkey_patch
+try:
+    from .tasks import *
+    from .utils import monkey_patch
+except ImportError as e:
+    print(f"[leisaac] ERROR: Failed to import tasks: {e!r}")
+    print("[leisaac] If you are using remote teleoperation, you can ignore the above error.")

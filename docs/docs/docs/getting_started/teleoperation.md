@@ -85,15 +85,19 @@ Laptop (leader arm)                      Cloud GPU (Isaac Sim)
 ### Prerequisites
 
 - Network connectivity between the two machines (direct or via SSH tunnel)
-- `pyzmq` installed on the Isaac Sim machine: `pip install leisaac[remote]` or `pip install pyzmq`
+- `pyzmq` installed on the Isaac Sim machine: `pip install "source/leisaac[remote]"` or `pip install pyzmq`
 
 ### Local Machine Setup
 
 On the machine where the leader arm is connected, install leisaac with remote support:
 
 ```bash
-pip install leisaac[remote]
+pip install "source/leisaac[remote]"
 ```
+
+::::info
+On the remote machine (the Isaac Sim machine), you need to install the full simulation stack, including PyTorch, Isaac Sim, and IsaacLab. On your local machine, you can skip these heavyweight dependencies—just run the command above; local installation of PyTorch/Isaac Sim/IsaacLab is not required.
+::::
 
 ### Usage
 

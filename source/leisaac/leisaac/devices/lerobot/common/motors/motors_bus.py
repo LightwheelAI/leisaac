@@ -28,7 +28,6 @@ from typing import Protocol, TypeAlias
 
 import serial
 from deepdiff import DeepDiff
-from tqdm import tqdm
 
 from ..errors import DeviceAlreadyConnectedError, DeviceNotConnectedError
 from ..utils import enter_pressed, move_cursor_up
@@ -527,31 +526,6 @@ class MotorsBus(abc.ABC):
 
         self.port_handler.closePort()
         logger.debug(f"{self.__class__.__name__} disconnected.")
-
-    @classmethod
-    def scan_port(cls, port: str, *args, **kwargs) -> dict[int, list[int]]:
-        """Probe *port* at every supported baud-rate and list responding IDs.
-
-        Args:
-            port (str): Serial/USB port to scan (e.g. ``"/dev/ttyUSB0"``).
-            *args, **kwargs: Forwarded to the subclass constructor.
-
-        Returns:
-            dict[int, list[int]]: Mapping *baud-rate → list of motor IDs*
-            for every baud-rate that produced at least one response.
-        """
-        bus = cls(port, {}, *args, **kwargs)
-        bus._connect(handshake=False)
-        baudrate_ids = {}
-        for baudrate in tqdm(bus.available_baudrates, desc="Scanning port"):
-            bus.set_baudrate(baudrate)
-            ids_models = bus.broadcast_ping()
-            if ids_models:
-                tqdm.write(f"Motors found for {baudrate=}: {pformat(ids_models, indent=4)}")
-                baudrate_ids[baudrate] = list(ids_models)
-
-        bus.port_handler.closePort()
-        return baudrate_ids
 
     def setup_motor(self, motor: str, initial_baudrate: int | None = None, initial_id: int | None = None) -> None:
         """Assign the correct ID and baud-rate to a single motor.
