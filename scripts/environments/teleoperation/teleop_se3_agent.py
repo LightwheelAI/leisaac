@@ -37,6 +37,15 @@ parser.add_argument(
     "--port", type=str, default="/dev/ttyACM0", help="Port for the teleop device:so101leader, default is /dev/ttyACM0"
 )
 parser.add_argument(
+    "--remote_endpoint",
+    type=str,
+    default=None,
+    help=(
+        "ZMQ endpoint for remote so101leader (e.g. tcp://192.168.1.10:5556). Uses so101_joint_state_server.py on the"
+        " remote machine."
+    ),
+)
+parser.add_argument(
     "--left_arm_port",
     type=str,
     default="/dev/ttyACM0",
@@ -246,9 +255,14 @@ def main():  # noqa: C901
 
         teleop_interface = SO101Gamepad(env, sensitivity=args_cli.sensitivity)
     elif args_cli.teleop_device == "so101leader":
-        from leisaac.devices import SO101Leader
+        if args_cli.remote_endpoint:
+            from leisaac.devices import SO101LeaderRemote
 
-        teleop_interface = SO101Leader(env, port=args_cli.port, recalibrate=args_cli.recalibrate)
+            teleop_interface = SO101LeaderRemote(env, endpoint=args_cli.remote_endpoint)
+        else:
+            from leisaac.devices import SO101Leader
+
+            teleop_interface = SO101Leader(env, port=args_cli.port, recalibrate=args_cli.recalibrate)
     elif args_cli.teleop_device == "bi-so101leader":
         from leisaac.devices import BiSO101Leader
 
