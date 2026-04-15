@@ -4,6 +4,11 @@ import numpy as np
 import torch
 from isaaclab.envs import DirectRLEnv, ManagerBasedEnv
 from isaaclab.sensors import Camera
+from leisaac.assets.robots.elfin_s30 import (
+    S30_MOTOR_LIMITS,
+    S30_REST_POSE_RANGE,
+    S30_USD_JOINT_LIMITS,
+)
 from leisaac.assets.robots.lerobot import (
     SO101_FOLLOWER_MOTOR_LIMITS,
     SO101_FOLLOWER_REST_POSE_RANGE,
@@ -136,6 +141,63 @@ def convert_lerobot_action_to_leisaac(action: torch.Tensor | np.ndarray) -> np.n
         processed_degree = motor_degree / motor_range * joint_range + joint_limit_range[0]
         processed_radius = processed_degree / 180.0 * torch.pi  # convert to radian
         processed_action[:, idx] = processed_radius
+
+    return processed_action
+
+
+def is_s30_at_rest_pose(joint_pos: torch.Tensor, joint_names: list[str]) -> torch.Tensor:
+    """Check if the S30 arm is in the rest pose."""
+    is_reset = torch.ones(joint_pos.shape[0], dtype=torch.bool, device=joint_pos.device)
+    joint_pos_deg = joint_pos / torch.pi * 180.0
+    for joint_name, (min_pos, max_pos) in S30_REST_POSE_RANGE.items():
+        joint_idx = joint_names.index(joint_name)
+        is_reset = torch.logical_and(
+            is_reset,
+            torch.logical_and(joint_pos_deg[:, joint_idx] > min_pos, joint_pos_deg[:, joint_idx] < max_pos),
+        )
+    return is_reset
+
+
+def convert_s30_action_to_lerobot(action: torch.Tensor | np.ndarray) -> np.ndarray:
+    """Convert joint positions from Isaac Sim (radians) to LeRobot dataset format (degrees).
+
+    For S30 the TCP/IP SDK accepts joint angles in degrees, so the dataset stores degrees.
+    Mapping: Isaac Sim radians → degrees via USD joint limits → motor limits (SDK degrees).
+    """
+    if isinstance(action, torch.Tensor):
+        action = action.cpu().numpy()
+
+    action_deg = action / np.pi * 180.0  # radians → degrees
+
+    processed_action = np.zeros_like(action_deg)
+    for idx, joint_name in enumerate(S30_USD_JOINT_LIMITS):
+        usd_min, usd_max = S30_USD_JOINT_LIMITS[joint_name]
+        mot_min, mot_max = S30_MOTOR_LIMITS[joint_name]
+        usd_range = usd_max - usd_min
+        mot_range = mot_max - mot_min
+        joint_deg = action_deg[:, idx] - usd_min
+        processed_action[:, idx] = joint_deg / usd_range * mot_range + mot_min
+
+    return processed_action
+
+
+def convert_lerobot_action_to_s30(action: torch.Tensor | np.ndarray) -> np.ndarray:
+    """Convert joint positions from LeRobot dataset format (degrees) to Isaac Sim (radians).
+
+    Inverse of convert_s30_action_to_lerobot.
+    """
+    if isinstance(action, torch.Tensor):
+        action = action.cpu().numpy()
+
+    processed_action = np.zeros_like(action)
+    for idx, joint_name in enumerate(S30_USD_JOINT_LIMITS):
+        usd_min, usd_max = S30_USD_JOINT_LIMITS[joint_name]
+        mot_min, mot_max = S30_MOTOR_LIMITS[joint_name]
+        usd_range = usd_max - usd_min
+        mot_range = mot_max - mot_min
+        motor_deg = action[:, idx] - mot_min
+        deg = motor_deg / mot_range * usd_range + usd_min
+        processed_action[:, idx] = deg / 180.0 * np.pi  # degrees → radians
 
     return processed_action
 

@@ -25,6 +25,9 @@ def _resolve_assets_root() -> str:
 ASSETS_ROOT = _resolve_assets_root()
 
 SINGLE_ARM_JOINT_NAMES = ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"]
+
+# Elfin S30 + Robotiq 2F-140: 6 arm joints + 1 gripper main joint
+S30_JOINT_NAMES = ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "finger_joint"]
 BI_ARM_JOINT_NAMES = [
     "left_shoulder_pan",
     "left_shoulder_lift",

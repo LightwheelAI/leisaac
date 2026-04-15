@@ -60,6 +60,8 @@ def get_task_type(task: str, task_type: str | None = None) -> str:
         return "bi-so101leader"
     elif "LeKiwi" in task:
         return "lekiwi-leader"
+    elif "S30" in task:
+        return "s30"
     else:
         return "so101leader"
 
