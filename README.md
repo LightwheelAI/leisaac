@@ -41,8 +41,8 @@ license = {Apache-2.0},
 month = dec,
 title = {{LeIsaac}},
 url = {https://github.com/LightwheelAI/leisaac},
-version = {0.3.0},
-year = {2025}
+version = {0.4.0},
+year = {2026}
 }
 ```
 

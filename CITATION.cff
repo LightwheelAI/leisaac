@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use leisaac, please cite it as follows."
 title: LeIsaac
-version: 0.3.0
+version: 0.4.0
 repository-code: https://github.com/LightwheelAI/leisaac
 type: software
 authors:
@@ -9,4 +9,4 @@ authors:
   - name: LeIsaac Project Developers
 url: https://lightwheelai.github.io/leisaac/
 license: Apache-2.0
-date-released: 2025-12-19
+date-released: 2026-04-14
