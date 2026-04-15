@@ -8,7 +8,11 @@ from leisaac.utils.constant import SINGLE_ARM_JOINT_NAMES
 from leisaac.utils.robot_utils import (
     convert_leisaac_action_to_lerobot,
     convert_lerobot_action_to_leisaac,
+    convert_s30_action_to_lerobot,
+    convert_lerobot_action_to_s30,
 )
+
+from leisaac.utils.constant import S30_JOINT_NAMES
 
 from .base import Policy, WebsocketServicePolicy, ZMQServicePolicy
 from .lerobot.helpers import RemotePolicyConfig, TimedObservation
@@ -225,6 +229,13 @@ class LeRobotServicePolicyClient(Policy):
                 "names": [f"{joint_name}.pos" for joint_name in SINGLE_ARM_JOINT_NAMES],
             }
             self.last_action = np.zeros((1, 6))
+        elif task_type == "s30":
+            lerobot_features["observation.state"] = {
+                "dtype": "float32",
+                "shape": (len(S30_JOINT_NAMES),),
+                "names": [f"{joint_name}.pos" for joint_name in S30_JOINT_NAMES],
+            }
+            self.last_action = np.zeros((1, len(S30_JOINT_NAMES)))
         # TODO: add bi-arm support
 
         for camera_key, camera_image_shape in camera_infos.items():
@@ -275,6 +286,10 @@ class LeRobotServicePolicyClient(Policy):
             joint_pos = convert_leisaac_action_to_lerobot(observation_dict["joint_pos"])
             for joint_name in SINGLE_ARM_JOINT_NAMES:
                 raw_observation[f"{joint_name}.pos"] = joint_pos[0, SINGLE_ARM_JOINT_NAMES.index(joint_name)].item()
+        elif self.task_type == "s30":
+            joint_pos = convert_s30_action_to_lerobot(observation_dict["joint_pos"])
+            for idx, joint_name in enumerate(S30_JOINT_NAMES):
+                raw_observation[f"{joint_name}.pos"] = joint_pos[0, idx].item()
         # TODO: add bi-arm support
 
         """
@@ -315,6 +330,12 @@ class LeRobotServicePolicyClient(Policy):
             return None
         return pickle.loads(actions_chunk.data)
 
+    def _lerobot_to_sim(self, action: torch.Tensor) -> np.ndarray:
+        """Convert policy output (LeRobot dataset units) back to Isaac Sim radians."""
+        if self.task_type == "s30":
+            return convert_lerobot_action_to_s30(action)
+        return convert_lerobot_action_to_leisaac(action)
+
     def get_action(self, observation_dict: dict) -> torch.Tensor:
         if not self.skip_send_observation:
             self._send_observation(observation_dict)
@@ -325,7 +346,7 @@ class LeRobotServicePolicyClient(Policy):
 
         action_list = [action.get_action()[None, :] for action in action_chunk]
         concat_action = torch.cat(action_list, dim=0)
-        concat_action = convert_lerobot_action_to_leisaac(concat_action)
+        concat_action = self._lerobot_to_sim(concat_action)
 
         self.last_action = concat_action[-1, :]
         self.skip_send_observation = False

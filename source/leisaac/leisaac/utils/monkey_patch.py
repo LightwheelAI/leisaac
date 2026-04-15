@@ -14,6 +14,13 @@ def patch_termination_manager():
     """
     import torch
     from isaaclab.managers import TerminationManager
+    import inspect
+
+    # Check if _term_dones is already dict-based (fix already applied in this IsaacLab version)
+    source = inspect.getsource(TerminationManager.compute)
+    if "_term_dones[name]" in source:
+        # IsaacLab already contains the fix, skip patching
+        return
 
     def compute(self) -> torch.Tensor:
         # reset computation

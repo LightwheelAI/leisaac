@@ -8,7 +8,18 @@ from leisaac.assets.robots.lerobot import SO101_FOLLOWER_USD_JOINT_LIMLITS
 
 def init_action_cfg(action_cfg, device):
     """SO101 Follower action configuration: arm_action and gripper_action"""
-    if device in ["so101leader", "lekiwi-leader"]:
+    if device in ["s30"]:
+        action_cfg.arm_action = mdp.JointPositionActionCfg(
+            asset_name="robot",
+            joint_names=["joint1", "joint2", "joint3", "joint4", "joint5", "joint6"],
+            scale=1.0,
+        )
+        action_cfg.gripper_action = mdp.JointPositionActionCfg(
+            asset_name="robot",
+            joint_names=["finger_joint"],
+            scale=1.0,
+        )
+    elif device in ["so101leader", "lekiwi-leader"]:
         action_cfg.arm_action = mdp.JointPositionActionCfg(
             asset_name="robot",
             joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
@@ -17,6 +28,18 @@ def init_action_cfg(action_cfg, device):
         action_cfg.gripper_action = mdp.JointPositionActionCfg(
             asset_name="robot",
             joint_names=["gripper"],
+            scale=1.0,
+        )
+    elif device in ["s30-keyboard", "s30-gamepad"]:
+        action_cfg.arm_action = mdp.DifferentialInverseKinematicsActionCfg(
+            asset_name="robot",
+            joint_names=["joint1", "joint2", "joint3", "joint4", "joint5", "joint6"],
+            body_name="elfin_link6",
+            controller=mdp.DifferentialIKControllerCfg(command_type="pose", ik_method="dls", use_relative_mode=True),
+        )
+        action_cfg.gripper_action = mdp.RelativeJointPositionActionCfg(
+            asset_name="robot",
+            joint_names=["finger_joint"],
             scale=1.0,
         )
     elif device in ["keyboard", "gamepad", "lekiwi-keyboard", "lekiwi-gamepad"]:
@@ -169,6 +192,9 @@ def preprocess_device_action(action: dict[str, Any], teleop_device) -> torch.Ten
         processed_action = convert_action_from_so101_leader(
             action["joint_state"], action["motor_limits"], teleop_device
         )
+    elif action.get("s30-keyboard") is not None or action.get("s30-gamepad") is not None:
+        processed_action = torch.zeros(teleop_device.env.num_envs, 7, device=teleop_device.env.device)
+        processed_action[:, :] = action["joint_state"]
     elif action.get("keyboard") is not None or action.get("gamepad") is not None:
         processed_action = torch.zeros(teleop_device.env.num_envs, 8, device=teleop_device.env.device)
         processed_action[:, :] = action["joint_state"]
