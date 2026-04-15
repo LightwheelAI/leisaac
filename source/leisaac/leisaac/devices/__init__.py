@@ -4,12 +4,13 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .device_base import DeviceBase
     from .gamepad import SO101Gamepad
-    from .keyboard import SO101Keyboard
+    from .keyboard import S30Keyboard, SO101Keyboard
     from .lekiwi import LeKiwiGamepad, LeKiwiKeyboard, LeKiwiLeader
     from .lerobot import BiSO101Leader, SO101Leader, SO101LeaderRemote
 
 __all__ = [
     "DeviceBase",
+    "S30Keyboard",
     "SO101Gamepad",
     "SO101Keyboard",
     "LeKiwiGamepad",
@@ -22,6 +23,7 @@ __all__ = [
 
 _LAZY_IMPORTS = {
     "DeviceBase": (".device_base", "DeviceBase"),
+    "S30Keyboard": (".keyboard", "S30Keyboard"),
     "SO101Gamepad": (".gamepad", "SO101Gamepad"),
     "SO101Keyboard": (".keyboard", "SO101Keyboard"),
     "LeKiwiGamepad": (".lekiwi", "LeKiwiGamepad"),

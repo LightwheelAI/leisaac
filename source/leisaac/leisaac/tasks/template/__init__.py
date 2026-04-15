@@ -16,6 +16,7 @@ from .lekiwi_env_cfg import (
     LeKiwiTerminationsCfg,
 )
 from .single_arm_env_cfg import (
+    SingleArmEventCfg,
     SingleArmObservationsCfg,
     SingleArmTaskEnvCfg,
     SingleArmTaskSceneCfg,
