@@ -21,6 +21,7 @@ class Gr00tServicePolicyClient(ZMQServicePolicy):
     """
     Service policy client for GR00T N1.5: https://github.com/NVIDIA/Isaac-GR00T
     Target Commit: https://github.com/NVIDIA/Isaac-GR00T/commit/4af2b622892f7dcb5aae5a3fb70bcb02dc217b96
+    Reference: https://github.com/EverNorif/Isaac-GR00T/tree/leisaac_gr00t_n1.5
     """
 
     def __init__(
@@ -88,6 +89,7 @@ class Gr00t16ServicePolicyClient(ZMQServicePolicy):
     """
     Service policy client for GR00T N1.6: https://github.com/NVIDIA/Isaac-GR00T
     Target commit: https://github.com/NVIDIA/Isaac-GR00T/commit/e8e625f4f21898c506a1d8f7d20a289c97a52acf
+    Reference: https://github.com/EverNorif/Isaac-GR00T/tree/leisaac_gr00t_n1.6
     """
 
     def __init__(
