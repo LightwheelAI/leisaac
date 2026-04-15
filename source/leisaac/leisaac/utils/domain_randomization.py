@@ -20,6 +20,20 @@ def randomize_object_uniform(
     )
 
 
+def randomize_deformable_object_uniform(
+    name: str,
+    pose_range: dict[str, tuple[float, float]],
+    velocity_range: dict[str, tuple[float, float]] | None = None,
+) -> EventTerm:
+    if velocity_range is None:
+        velocity_range = {}
+    return EventTerm(
+        func=mdp.reset_nodal_state_uniform,
+        mode="reset",
+        params={"position_range": pose_range, "velocity_range": velocity_range, "asset_cfg": SceneEntityCfg(name)},
+    )
+
+
 def randomize_camera_uniform(
     name: str, pose_range: dict[str, tuple[float, float]], convention: Literal["ros", "opengl", "world"] = "ros"
 ) -> EventTerm:
@@ -51,3 +65,50 @@ def randomize_particle_object_uniform(
 def domain_randomization(env_cfg, random_options: list[EventTerm]):
     for idx, event_item in enumerate(random_options):
         setattr(env_cfg.events, f"domain_randomize_{idx}", event_item)
+
+
+def randomize_mixed_objects_uniform(
+    rigid_names: list[str] | None = None,
+    deformable_names: list[str] | None = None,
+    pose_range: dict[str, tuple[float, float]] | None = None,
+    velocity_range: dict[str, tuple[float, float]] | None = None,
+) -> EventTerm:
+
+    if rigid_names is None:
+        rigid_names = []
+    if deformable_names is None:
+        deformable_names = []
+    if pose_range is None:
+        pose_range = {}
+    if velocity_range is None:
+        velocity_range = {}
+    return EventTerm(
+        func=enhance_mdp.reset_mixed_objects_uniform,
+        mode="reset",
+        params={
+            "pose_range": pose_range,
+            "velocity_range": velocity_range,
+            "rigid_asset_cfg": [SceneEntityCfg(name) for name in rigid_names],
+            "deformable_asset_cfg": [SceneEntityCfg(name) for name in deformable_names],
+        },
+    )
+
+
+def randomize_cuttable_object_uniform(
+    attr_name: str,
+    pose_range: dict[str, tuple[float, float]],
+) -> EventTerm:
+    """Randomize a cuttable object's pose.
+
+    Args:
+        attr_name: The attribute name of the CuttableObject on the env (e.g., "cuttable_sausage").
+        pose_range: Dict with keys x, y, z, roll, pitch, yaw and (min, max) tuple values.
+    """
+    return EventTerm(
+        func=enhance_mdp.randomize_cuttable_object_uniform,
+        mode="reset",
+        params={
+            "attr_name": attr_name,
+            "pose_range": pose_range,
+        },
+    )
