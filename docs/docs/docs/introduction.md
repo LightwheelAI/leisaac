@@ -19,6 +19,9 @@ LeIsaac provides teleoperation functionality in [IsaacLab](https://isaac-sim.git
 - 🧠 Simulation data is used to fine-tune [GR00T N1.5](https://github.com/NVIDIA/Isaac-GR00T) and deploy the policy on real hardware. And more policies will be supported.
 
 ## News
+- [26/04/14] Remote teleoperation is now available in LeIsaac! Try it out [here](/docs/getting_started/teleoperation#remote-teleoperation).
+- [26/03/10] With the new `datagen` module, LeIsaac can generate motion trajectories programmatically. See [State Machine Data Generation](/docs/features/state_machine).
+- [26/01/16] Added inference support for GR00T N1.6; details are in [Available Policy Inference](/resources/available_policy#finetuned-gr00t-n16).
 - [26/01/13] Try our tutorial [LeIsaac x Cosmos](/docs/tutorials/cosmos_tutorial) to get a video2action data generation pipeline.
 - [26/01/12] Extra feature of [lerobot recorder integration](/docs/features/lerobot_recorder) released! You can now record data directly in LeRobot Dataset format during teleoperation.
 - [25/12/19] Try our tutorial [LeIsaac x Marble](/docs/tutorials/marble_tutorial) to build and evaluate diverse embodied tasks across large-scale generalized environments.
