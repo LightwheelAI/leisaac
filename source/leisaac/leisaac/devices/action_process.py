@@ -76,7 +76,7 @@ def init_action_cfg(action_cfg, device):
             joint_names=["gripper"],
             scale=1.0,
         )
-    elif device in ["so101_state_machine"]:  # IK-based: action = EE pose (7D) + binary gripper, not raw joint angles
+    elif device in ["ik_so101leader"]:  # IK-based: action = EE pose (7D) + binary gripper, not raw joint angles
         action_cfg.arm_action = mdp.DifferentialInverseKinematicsActionCfg(
             asset_name="robot",
             joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
@@ -91,7 +91,25 @@ def init_action_cfg(action_cfg, device):
             open_command_expr={"gripper": 1.0},
             close_command_expr={"gripper": 0.4},
         )
-    elif device in ["bi_so101_state_machine"]:  # IK-based: action = EE pose (7D) + binary gripper, not raw joint angles
+    elif device in ["rl_so101leader"]:  # RL: delta EE pose (6D) + binary gripper (1D) = 7D total
+        # use_relative_mode=True: action = (dx, dy, dz, droll, dpitch, dyaw)
+        # translation scale=0.02 → ±2cm/step; rotation scale=0.5 → ±0.5rad/step (~28.6°) at max action
+        action_cfg.arm_action = mdp.DifferentialInverseKinematicsActionCfg(
+            asset_name="robot",
+            joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
+            body_name="gripper",
+            scale=(0.02, 0.02, 0.02, 0.5, 0.5, 0.5),
+            controller=mdp.DifferentialIKControllerCfg(
+                command_type="pose", ik_method="dls", use_relative_mode=True, ik_params={"lambda_val": 0.04}
+            ),
+        )
+        action_cfg.gripper_action = mdp.BinaryJointPositionActionCfg(
+            asset_name="robot",
+            joint_names=["gripper"],
+            open_command_expr={"gripper": 1.0},
+            close_command_expr={"gripper": 0.2},
+        )
+    elif device in ["bi_ik_so101leader"]:  # IK-based: action = EE pose (7D) + binary gripper, not raw joint angles
         action_cfg.left_arm_action = mdp.DifferentialInverseKinematicsActionCfg(
             asset_name="left_arm",
             joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
@@ -112,6 +130,38 @@ def init_action_cfg(action_cfg, device):
             body_name="gripper",
             controller=mdp.DifferentialIKControllerCfg(
                 command_type="pose", ik_method="dls", ik_params={"lambda_val": 0.04}
+            ),
+        )
+        action_cfg.right_gripper_action = mdp.BinaryJointPositionActionCfg(
+            asset_name="right_arm",
+            joint_names=["gripper"],
+            open_command_expr={"gripper": 1.0},
+            close_command_expr={"gripper": 0.01},
+        )
+    elif device in ["bi_rl_so101leader"]:  # RL: delta EE control for both arms, 6D×2 + binary gripper×2 = 14D total
+        # use_relative_mode=True: action = (dx, dy, dz, droll, dpitch, dyaw) per arm, scale=0.05 → ±5cm/step
+        action_cfg.left_arm_action = mdp.DifferentialInverseKinematicsActionCfg(
+            asset_name="left_arm",
+            joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
+            body_name="gripper",
+            scale=0.05,
+            controller=mdp.DifferentialIKControllerCfg(
+                command_type="pose", ik_method="dls", use_relative_mode=True, ik_params={"lambda_val": 0.04}
+            ),
+        )
+        action_cfg.left_gripper_action = mdp.BinaryJointPositionActionCfg(
+            asset_name="left_arm",
+            joint_names=["gripper"],
+            open_command_expr={"gripper": 1.0},
+            close_command_expr={"gripper": 0.01},
+        )
+        action_cfg.right_arm_action = mdp.DifferentialInverseKinematicsActionCfg(
+            asset_name="right_arm",
+            joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
+            body_name="gripper",
+            scale=0.05,
+            controller=mdp.DifferentialIKControllerCfg(
+                command_type="pose", ik_method="dls", use_relative_mode=True, ik_params={"lambda_val": 0.04}
             ),
         )
         action_cfg.right_gripper_action = mdp.BinaryJointPositionActionCfg(

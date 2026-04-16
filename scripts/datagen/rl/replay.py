@@ -1,4 +1,4 @@
-"""Script to replay recorded state-machine demonstrations."""
+"""Script to replay recorded RL episodes from HDF5 dataset."""
 
 import multiprocessing
 
@@ -9,12 +9,11 @@ import argparse
 
 from isaaclab.app import AppLauncher
 
-parser = argparse.ArgumentParser(description="Replay state-machine recorded demonstrations.")
+parser = argparse.ArgumentParser(description="Replay recorded RL episodes.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
-parser.add_argument("--step_hz", type=int, default=60, help="Environment stepping rate in Hz.")
 parser.add_argument(
-    "--dataset_file", type=str, default="./datasets/dataset.hdf5", help="File path to load recorded demos."
+    "--dataset_file", type=str, default="./datasets/rl_eval.hdf5", help="File path to load recorded episodes."
 )
 parser.add_argument(
     "--replay_mode",
@@ -30,16 +29,6 @@ parser.add_argument(
     default=[],
     help="List of episode indices to replay. Empty = replay all.",
 )
-parser.add_argument(
-    "--task_type",
-    type=str,
-    default=None,
-    help=(
-        "State machine device type used during recording, e.g. 'ik_so101leader' or "
-        "'bi_ik_so101leader'. If not set, inferred from the task name."
-    ),
-)
-
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 
@@ -48,58 +37,23 @@ simulation_app = app_launcher.app
 
 import contextlib
 import os
-import time
 
 import gymnasium as gym
+import leisaac.tasks  # noqa: F401
 import torch
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.utils.datasets import EpisodeData, HDF5DatasetFileHandler
 from isaaclab_tasks.utils import parse_env_cfg
-from leisaac.utils.env_utils import get_task_type
-
-import leisaac  # noqa: F401
 
 
-class RateLimiter:
-    def __init__(self, hz):
-        self.hz = hz
-        self.last_time = time.time()
-        self.sleep_duration = 1.0 / hz
-        self.render_period = min(0.0166, self.sleep_duration)
-
-    def sleep(self, env):
-        next_wakeup_time = self.last_time + self.sleep_duration
-        while time.time() < next_wakeup_time:
-            time.sleep(self.render_period)
-            env.sim.render()
-        self.last_time = self.last_time + self.sleep_duration
-        if self.last_time < time.time():
-            while self.last_time < time.time():
-                self.last_time += self.sleep_duration
-
-
-def get_next_action(episode_data: EpisodeData, return_state: bool = False, task_type: str = None):
+def get_next_action(episode_data: EpisodeData, return_state: bool = False) -> torch.Tensor | None:
     if return_state:
         next_state = episode_data.get_next_state()
         if next_state is None:
             return None
-        if task_type == "bi_ik_so101leader":
-            left_joint_pos = next_state["articulation"]["left_arm"]["joint_position"]
-            right_joint_pos = next_state["articulation"]["right_arm"]["joint_position"]
-            return torch.cat([left_joint_pos, right_joint_pos], dim=0)
-        else:
-            return next_state["articulation"]["robot"]["joint_position"]
+        return next_state["articulation"]["robot"]["joint_position"]
     else:
         return episode_data.get_next_action()
-
-
-def apply_damping(env, task_type: str):
-    """Apply joint damping each step to match state-machine recording behavior."""
-    if task_type == "ik_so101leader":
-        env.scene["robot"].write_joint_damping_to_sim(damping=10.0)
-    elif task_type == "bi_ik_so101leader":
-        env.scene["left_arm"].write_joint_damping_to_sim(damping=10.0)
-        env.scene["right_arm"].write_joint_damping_to_sim(damping=10.0)
 
 
 def main():
@@ -117,23 +71,11 @@ def main():
     episode_indices_to_replay = args_cli.select_episodes or list(range(episode_count))
     num_envs = args_cli.num_envs
 
-    task_type = get_task_type(args_cli.task, args_cli.task_type)
-
     env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=num_envs)
-    env_cfg.use_teleop_device(task_type)
     env_cfg.recorders = {}
     env_cfg.terminations = {}
 
     env: ManagerBasedRLEnv = gym.make(args_cli.task, cfg=env_cfg).unwrapped
-
-    # Disable gravity for all robot link prims (matches state-machine recording setup).
-    import omni.usd
-    from pxr import PhysxSchema, UsdPhysics
-
-    _stage = omni.usd.get_context().get_stage()
-    for _prim in _stage.Traverse():
-        if "Robot" in str(_prim.GetPath()) and _prim.HasAPI(UsdPhysics.RigidBodyAPI):
-            PhysxSchema.PhysxRigidBodyAPI.Apply(_prim).CreateDisableGravityAttr(True)
 
     idle_action = torch.zeros(env.action_space.shape)
 
@@ -141,7 +83,6 @@ def main():
         env.initialize()
     env.reset()
 
-    rate_limiter = RateLimiter(args_cli.step_hz)
     episode_names = list(dataset_file_handler.get_episode_names())
     replayed_episode_count = 0
 
@@ -150,13 +91,12 @@ def main():
             env_episode_data_map = {i: EpisodeData() for i in range(num_envs)}
             has_next_action = True
             while has_next_action:
-                actions = idle_action
+                actions = idle_action.clone()
                 has_next_action = False
                 for env_id in range(num_envs):
                     env_next_action = get_next_action(
                         env_episode_data_map[env_id],
                         return_state=args_cli.replay_mode == "state",
-                        task_type=task_type,
                     )
                     if env_next_action is None:
                         next_episode_index = None
@@ -183,7 +123,6 @@ def main():
                             env_next_action = get_next_action(
                                 env_episode_data_map[env_id],
                                 return_state=args_cli.replay_mode == "state",
-                                task_type=task_type,
                             )
                             has_next_action = True
                         else:
@@ -192,11 +131,7 @@ def main():
                         has_next_action = True
                     actions[env_id] = env_next_action
 
-                # Apply damping every step to match state-machine recording behavior.
-                apply_damping(env, task_type)
-
                 env.step(actions)
-                rate_limiter.sleep(env)
             break
 
     print(f"Finished replaying {replayed_episode_count} episode{'s' if replayed_episode_count != 1 else ''}.")
@@ -205,3 +140,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    simulation_app.close()

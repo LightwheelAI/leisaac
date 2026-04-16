@@ -211,7 +211,7 @@ class BiArmTaskEnvCfg(ManagerBasedRLEnvCfg):
     def use_teleop_device(self, teleop_device) -> None:
         self.task_type = teleop_device
         self.actions = init_action_cfg(self.actions, device=teleop_device)
-        if teleop_device in ["bi_so101_state_machine"]:
+        if teleop_device in ["bi_ik_so101leader"]:
             self.scene.left_arm.spawn.rigid_props.disable_gravity = True
             self.scene.right_arm.spawn.rigid_props.disable_gravity = True
 

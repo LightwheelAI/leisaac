@@ -60,7 +60,7 @@ After recording, you can replay the collected demonstrations in simulation:
 python scripts/datagen/state_machine/replay.py \
     --task LeIsaac-SO101-PickOrange-v0 \
     --dataset_file ./datasets/pick_orange.hdf5 \
-    --task_type so101_state_machine \
+    --task_type ik_so101leader \
     --select_episodes 0 \
     --device cuda \
     --enable_cameras \
@@ -82,7 +82,7 @@ python scripts/datagen/state_machine/replay.py \
 
 - `--replay_mode`: Replay mode — `action` replays IK pose targets, `state` replays joint positions.
 
-- `--task_type`: State machine device type used during recording, e.g., `so101_state_machine` or `bi_so101_state_machine`. Inferred from task name if not set.
+- `--task_type`: State machine device type used during recording, e.g., `ik_so101leader` or `bi_ik_so101leader`. Inferred from task name if not set.
 
 - `--select_episodes`: List of episode indices to replay. Leave empty to replay all episodes.
 
@@ -97,7 +97,7 @@ python scripts/datagen/state_machine/replay.py \
 
 ```python
 TASK_REGISTRY = {
-    "LeIsaac-SO101-PickOrange-v0": (PickOrangeStateMachine, "so101_state_machine"),
-    "LeIsaac-MY-NewTask-v0":       (MyNewStateMachine,      "so101_state_machine"),
+    "LeIsaac-SO101-PickOrange-v0": (PickOrangeStateMachine, "ik_so101leader"),
+    "LeIsaac-MY-NewTask-v0":       (MyNewStateMachine,      "ik_so101leader"),
 }
 ```
