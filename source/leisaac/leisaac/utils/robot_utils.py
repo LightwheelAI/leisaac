@@ -14,11 +14,9 @@ from leisaac.enhance.datasets.lerobot_dataset_handler import LeRobotDatasetCfg
 
 @dataclass
 class StateFeatureItem:
+    shape: tuple
+    names: list[str]
     dtype: str = "float32"
-    shape: tuple = (6,)
-    names: list[str] = field(
-        default_factory=lambda: ["joint1.pos", "joint2.pos", "joint3.pos", "joint4.pos", "joint5.pos", "joint6.pos"]
-    )
 
 
 @dataclass
@@ -47,6 +45,14 @@ def build_feature_from_env(env: ManagerBasedEnv | DirectRLEnv, dataset_cfg: LeRo
     features = {}
 
     default_feature_joint_names = env.cfg.default_feature_joint_names
+    if not default_feature_joint_names:
+        raise ValueError(
+            "env.cfg.default_feature_joint_names is empty; it must contain one feature name per robot joint."
+        )
+    if len(set(default_feature_joint_names)) != len(default_feature_joint_names):
+        raise ValueError(
+            f"env.cfg.default_feature_joint_names contains duplicated names: {default_feature_joint_names}"
+        )
     if isinstance(env, ManagerBasedEnv):
         action_dim = env.action_manager.total_action_dim
     else:
@@ -93,16 +99,51 @@ def is_so101_at_rest_pose(joint_pos: torch.Tensor, joint_names: list[str]) -> to
     return is_reset
 
 
-def convert_leisaac_action_to_lerobot(action: torch.Tensor | np.ndarray) -> np.ndarray:
+def resolve_conversion_limits(
+    dim: int,
+    joint_limits: dict[str, tuple[float, float]] | None,
+    motor_limits: dict[str, tuple[float, float]] | None,
+) -> tuple[dict[str, tuple[float, float]], dict[str, tuple[float, float]]]:
+    """
+    Resolve the joint/motor limits used for value conversion, defaulting to the SO-101 follower ones.
+
+    Both dicts must define the joints in order and cover every converted dimension. Raising here
+    prevents dimensions without a configured limit from being silently dropped.
+    """
+    if joint_limits is None:
+        joint_limits = SO101_FOLLOWER_USD_JOINT_LIMLITS
+    if motor_limits is None:
+        motor_limits = SO101_FOLLOWER_MOTOR_LIMITS
+    if len(joint_limits) == 0:
+        raise ValueError("joint_limits must contain at least one joint.")
+    missing_motor_limits = [joint_name for joint_name in joint_limits if joint_name not in motor_limits]
+    if missing_motor_limits:
+        raise ValueError(f"motor_limits is missing entries for joints: {missing_motor_limits}")
+    if dim != len(joint_limits):
+        raise ValueError(
+            f"Value has {dim} dimensions but limits are configured for {len(joint_limits)} joints"
+            f" ({list(joint_limits)}). Configure one joint limit per dimension in the task's"
+            " environment configuration (usd_joint_limits / motor_limits)."
+        )
+    return joint_limits, motor_limits
+
+
+def convert_leisaac_action_to_lerobot(
+    action: torch.Tensor | np.ndarray,
+    joint_limits: dict[str, tuple[float, float]] | None = None,
+    motor_limits: dict[str, tuple[float, float]] | None = None,
+) -> np.ndarray:
     """
     Convert the action from LeIsaac to Lerobot. Just convert value, not include the format.
+
+    ``joint_limits`` and ``motor_limits`` default to the SO-101 follower ones; pass the limits of
+    your own robot to convert values for other robots.
     """
     if isinstance(action, torch.Tensor):
         action = action.cpu().numpy()
 
+    joint_limits, motor_limits = resolve_conversion_limits(action.shape[-1], joint_limits, motor_limits)
     processed_action = np.zeros_like(action)
-    joint_limits = SO101_FOLLOWER_USD_JOINT_LIMLITS
-    motor_limits = SO101_FOLLOWER_MOTOR_LIMITS
     action = action / torch.pi * 180.0  # convert to degree
 
     for idx, joint_name in enumerate(joint_limits):
@@ -116,16 +157,22 @@ def convert_leisaac_action_to_lerobot(action: torch.Tensor | np.ndarray) -> np.n
     return processed_action
 
 
-def convert_lerobot_action_to_leisaac(action: torch.Tensor | np.ndarray) -> np.ndarray:
+def convert_lerobot_action_to_leisaac(
+    action: torch.Tensor | np.ndarray,
+    joint_limits: dict[str, tuple[float, float]] | None = None,
+    motor_limits: dict[str, tuple[float, float]] | None = None,
+) -> np.ndarray:
     """
     Convert the action from Lerobot to LeIsaac. Just convert value, not include the format.
+
+    ``joint_limits`` and ``motor_limits`` default to the SO-101 follower ones; pass the limits of
+    your own robot to convert values for other robots.
     """
     if isinstance(action, torch.Tensor):
         action = action.cpu().numpy()
 
+    joint_limits, motor_limits = resolve_conversion_limits(action.shape[-1], joint_limits, motor_limits)
     processed_action = np.zeros_like(action)
-    joint_limits = SO101_FOLLOWER_USD_JOINT_LIMLITS
-    motor_limits = SO101_FOLLOWER_MOTOR_LIMITS
 
     for idx, joint_name in enumerate(joint_limits):
         motor_limit_range = motor_limits[joint_name]

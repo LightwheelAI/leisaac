@@ -53,6 +53,10 @@ pip install numpy==1.26.0
 The available arguments of `isaaclab2lerobotv3.py` are identical to those of `isaaclab2lerobot.py`.
 :::
 
+:::tip
+The conversion scripts are not limited to the SO-101. The joint names, joint count, and value ranges are all taken from the task's environment configuration (`robot_name`, `default_feature_joint_names`, `usd_joint_limits`, `motor_limits`), so a task built around a robot with a different number of joints only needs to override these fields in its environment configuration to export LeRobot datasets.
+:::
+
 ## 2. Policy Training
 
 Taking [GR00T N1.5](https://github.com/NVIDIA/Isaac-GR00T) as an example, which provides a fine-tuning workflow based on the LeRobot Dataset. You can refer to [nvidia/gr00t-n1.5-so101-tuning](https://huggingface.co/blog/nvidia/gr00t-n1-5-so101-tuning) to fine-tune it with your collected lerobot data. We take pick-orange task as an example.
