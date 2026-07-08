@@ -6,6 +6,10 @@ import torch
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.datasets.episode_data import EpisodeData
+from leisaac.assets.robots.lerobot import (
+    SO101_FOLLOWER_MOTOR_LIMITS,
+    SO101_FOLLOWER_USD_JOINT_LIMLITS,
+)
 from leisaac.devices.action_process import preprocess_device_action
 from leisaac.enhance.datasets.lerobot_dataset_handler import LeRobotDatasetCfg
 from leisaac.enhance.envs import RecorderEnhanceDirectRLEnv as DirectRLEnv
@@ -62,6 +66,10 @@ class BiArmTaskDirectEnvCfg(DirectRLEnvCfg):
     """Robot name for lerobot dataset export."""
     default_feature_joint_names: list[str] = MISSING
     """Default feature joint names for lerobot dataset export."""
+    usd_joint_limits: dict[str, tuple[float, float]] = SO101_FOLLOWER_USD_JOINT_LIMLITS
+    """Per-joint USD limits (degree) of each arm for lerobot dataset export. Override for non-SO101 robots."""
+    motor_limits: dict[str, tuple[float, float]] = SO101_FOLLOWER_MOTOR_LIMITS
+    """Per-joint motor limits of each arm for lerobot dataset export. Override for non-SO101 robots."""
     task_description: str = MISSING
     """Task description for lerobot dataset export."""
 
@@ -104,8 +112,13 @@ class BiArmTaskDirectEnvCfg(DirectRLEnvCfg):
         action = episode_data._data["actions"][-1]
         if dataset_cfg.action_align:
             action = action.unsqueeze(0)
-            left_arm_action = convert_leisaac_action_to_lerobot(action[:, :6]).squeeze(0)
-            right_arm_action = convert_leisaac_action_to_lerobot(action[:, 6:]).squeeze(0)
+            arm_dim = len(self.usd_joint_limits)
+            left_arm_action = convert_leisaac_action_to_lerobot(
+                action[:, :arm_dim], self.usd_joint_limits, self.motor_limits
+            ).squeeze(0)
+            right_arm_action = convert_leisaac_action_to_lerobot(
+                action[:, arm_dim:], self.usd_joint_limits, self.motor_limits
+            ).squeeze(0)
             processed_action = np.concatenate([left_arm_action, right_arm_action], axis=0)
         else:
             processed_action = action.cpu().numpy()
@@ -113,8 +126,12 @@ class BiArmTaskDirectEnvCfg(DirectRLEnvCfg):
             "action": processed_action,
             "observation.state": np.concatenate(
                 [
-                    convert_leisaac_action_to_lerobot(obs_data["left_joint_pos"][-1].unsqueeze(0)).squeeze(0),
-                    convert_leisaac_action_to_lerobot(obs_data["right_joint_pos"][-1].unsqueeze(0)).squeeze(0),
+                    convert_leisaac_action_to_lerobot(
+                        obs_data["left_joint_pos"][-1].unsqueeze(0), self.usd_joint_limits, self.motor_limits
+                    ).squeeze(0),
+                    convert_leisaac_action_to_lerobot(
+                        obs_data["right_joint_pos"][-1].unsqueeze(0), self.usd_joint_limits, self.motor_limits
+                    ).squeeze(0),
                 ],
                 axis=0,
             ),

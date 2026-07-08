@@ -5,6 +5,10 @@ import torch
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.datasets.episode_data import EpisodeData
+from leisaac.assets.robots.lerobot import (
+    SO101_FOLLOWER_MOTOR_LIMITS,
+    SO101_FOLLOWER_USD_JOINT_LIMLITS,
+)
 from leisaac.devices.action_process import preprocess_device_action
 from leisaac.enhance.datasets.lerobot_dataset_handler import LeRobotDatasetCfg
 from leisaac.enhance.envs import RecorderEnhanceDirectRLEnv as DirectRLEnv
@@ -55,6 +59,10 @@ class SingleArmTaskDirectEnvCfg(DirectRLEnvCfg):
     """Robot name for lerobot dataset export."""
     default_feature_joint_names: list[str] = MISSING
     """Default feature joint names for lerobot dataset export."""
+    usd_joint_limits: dict[str, tuple[float, float]] = SO101_FOLLOWER_USD_JOINT_LIMLITS
+    """Per-joint limits written in USD (degree) for lerobot dataset export. Override for non-SO101 robots."""
+    motor_limits: dict[str, tuple[float, float]] = SO101_FOLLOWER_MOTOR_LIMITS
+    """Per-joint motor limits of the real device for lerobot dataset export. Override for non-SO101 robots."""
     task_description: str = MISSING
     """Task description for lerobot dataset export."""
 
@@ -93,12 +101,16 @@ class SingleArmTaskDirectEnvCfg(DirectRLEnvCfg):
         obs_data = episode_data._data["obs"]
         action = episode_data._data["actions"][-1]
         if dataset_cfg.action_align:
-            processed_action = convert_leisaac_action_to_lerobot(action.unsqueeze(0)).squeeze(0)
+            processed_action = convert_leisaac_action_to_lerobot(
+                action.unsqueeze(0), self.usd_joint_limits, self.motor_limits
+            ).squeeze(0)
         else:
             processed_action = action.cpu().numpy()
         frame = {
             "action": processed_action,
-            "observation.state": convert_leisaac_action_to_lerobot(obs_data["joint_pos"][-1].unsqueeze(0)).squeeze(0),
+            "observation.state": convert_leisaac_action_to_lerobot(
+                obs_data["joint_pos"][-1].unsqueeze(0), self.usd_joint_limits, self.motor_limits
+            ).squeeze(0),
             "task": self.task_description,
         }
         for frame_key in dataset_cfg.features.keys():

@@ -18,7 +18,11 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import FrameTransformerCfg, OffsetCfg, TiledCameraCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.datasets.episode_data import EpisodeData
-from leisaac.assets.robots.lerobot import LEKIWI_CFG
+from leisaac.assets.robots.lerobot import (
+    LEKIWI_CFG,
+    SO101_FOLLOWER_MOTOR_LIMITS,
+    SO101_FOLLOWER_USD_JOINT_LIMLITS,
+)
 from leisaac.devices.action_process import init_action_cfg, preprocess_device_action
 from leisaac.enhance.datasets.lerobot_dataset_handler import LeRobotDatasetCfg
 from leisaac.utils.constant import LEKIWI_JOINT_NAMES
@@ -188,6 +192,10 @@ class LeKiwiTaskEnvCfg(ManagerBasedRLEnvCfg):
     """Robot name for lerobot dataset export."""
     default_feature_joint_names: list[str] = MISSING
     """Default feature joint names for lerobot dataset export."""
+    usd_joint_limits: dict[str, tuple[float, float]] = SO101_FOLLOWER_USD_JOINT_LIMLITS
+    """Per-joint limits of the arm written in USD (degree) for lerobot dataset export. Override for non-SO101 arms."""
+    motor_limits: dict[str, tuple[float, float]] = SO101_FOLLOWER_MOTOR_LIMITS
+    """Per-joint motor limits of the arm on the real device for lerobot dataset export. Override for non-SO101 arms."""
     task_description: str = MISSING
     """Task description for lerobot dataset export."""
 
@@ -221,7 +229,10 @@ class LeKiwiTaskEnvCfg(ManagerBasedRLEnvCfg):
         action = episode_data._data["actions"][-1]
         if dataset_cfg.action_align:
             action = action.unsqueeze(0)
-            arm_action = convert_leisaac_action_to_lerobot(action[:, :6]).squeeze(0)
+            arm_dim = len(self.usd_joint_limits)
+            arm_action = convert_leisaac_action_to_lerobot(
+                action[:, :arm_dim], self.usd_joint_limits, self.motor_limits
+            ).squeeze(0)
             wheel_action = obs_data["user_vel_action"][-1].cpu().numpy()
             processed_action = np.concatenate([arm_action, wheel_action], axis=0)
         else:
@@ -230,7 +241,9 @@ class LeKiwiTaskEnvCfg(ManagerBasedRLEnvCfg):
             "action": processed_action,
             "observation.state": np.concatenate(
                 [
-                    convert_leisaac_action_to_lerobot(obs_data["joint_pos"][-1][:-3].unsqueeze(0)).squeeze(0),
+                    convert_leisaac_action_to_lerobot(
+                        obs_data["joint_pos"][-1][:-3].unsqueeze(0), self.usd_joint_limits, self.motor_limits
+                    ).squeeze(0),
                     obs_data["user_vel_state"][-1].cpu().numpy(),
                 ],
                 axis=0,

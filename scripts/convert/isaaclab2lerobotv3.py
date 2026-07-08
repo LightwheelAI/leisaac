@@ -187,6 +187,12 @@ def convert_isaaclab_to_lerobot():
 
         dataset_file_handler.close()
 
+    if now_episode_index == 0:
+        raise RuntimeError(
+            "No episodes were converted: every episode was skipped because it was unsuccessful or"
+            " shorter than 10 frames. Refusing to write an empty LeRobot dataset."
+        )
+
     dataset.finalize()
 
     if args_cli.push_to_hub:
