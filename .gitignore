@@ -59,7 +59,10 @@ _build
 /datasets/
 
 # Tests
-tests/
+# NOTE: this repository commits tests/ (architecture + pipeline tests are part of
+# the deliverable). Only ignore compiled/test caches, never the test sources.
+**/__pycache__/
+**/.pytest_cache/
 
 # Docker history
 .isaac-lab-docker-history
